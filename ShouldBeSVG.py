@@ -31,14 +31,18 @@ def getUsage(cat):
     usageCounts = {}
 
     for page in gen:
-        mimetype = pywikibot.FilePage(page).latest_file_info.mime
-        if mimetype != 'image/svg+xml':
-            try:
-                usage = pywikibot.FilePage.globalusage(page)
-                l = len(list(usage))
-                usageCounts[page] = l
-            except (pywikibot.NoUsername, pywikibot.PageRelatedError):
-                print('Skipping', page)
+        try:
+            mimetype = pywikibot.FilePage(page).latest_file_info.mime
+        except pywikibot.PageRelatedError:
+            print('Skipping', page)
+        else:
+            if mimetype != 'image/svg+xml':
+                try:
+                    usage = pywikibot.FilePage.globalusage(page)
+                    l = len(list(usage))
+                    usageCounts[page] = l
+                except (pywikibot.NoUsername, pywikibot.PageRelatedError):
+                    print('Skipping', page)
 
 
     # Sort from greatest to least
