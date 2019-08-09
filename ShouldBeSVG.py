@@ -76,7 +76,7 @@ def constructGallery(sortedPages, cat, totalScanned, version):
     skippedFiles = ''
     for page in skipped:
         skippedFiles += page.title()
-    gallery = '''Last update: {{{{{date}}}}}.
+    gallery = '''Last update: {{{{isodate|1={date}}}}}.
 
 This report includes the following categories while counting only the usage of each file in the main namespace.
 {cats}
