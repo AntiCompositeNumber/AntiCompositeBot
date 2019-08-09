@@ -56,6 +56,7 @@ def getUsage(cat):
     i = 0
     j = 200
     totalScanned = len(list(usageCounts))
+    sortedPages = ''
     for page in usageCountsSorted:
         if i < j:
             i += 1
