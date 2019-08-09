@@ -76,7 +76,7 @@ def constructGallery(sortedPages, cat, totalScanned, version):
     skippedFiles = ''
     for page in skipped:
         skippedFiles += page.title()
-    gallery = '''Last update: {{{{{date}}}}}.
+    gallery = '''Last update: {{{{isodate|1={date}}}}}.
 
 This report includes the following categories while counting only the usage of each file in the main namespace.
 {cats}
@@ -101,7 +101,7 @@ site = pywikibot.Site('commons', 'commons')
 cat = pywikibot.Category(site, 'Category:Diagram images that should use vector graphics')
 target = pywikibot.Page(site, 'Top 200 diagram images that should use vector graphics')
 
-print('AntiCompositeBot {version} started at {starttime}'.format(version=version, starttime=datetime.datetime.now().isoformat())
+print('AntiCompositeBot {version} started at {starttime}'.format(version=version, starttime=datetime.datetime.now().isoformat()))
 getUsage(cat)
 constructGallery()
 #savePage(target, galleryWikitext)
