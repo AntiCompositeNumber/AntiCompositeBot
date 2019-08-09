@@ -102,7 +102,8 @@ cat = pywikibot.Category(site, 'Category:Diagram images that should use vector g
 target = pywikibot.Page(site, 'Top 200 diagram images that should use vector graphics')
 
 print('AntiCompositeBot {version} started at {starttime}'.format(version=version, starttime=datetime.datetime.now().isoformat())
-galleryWikitext = getUsage(cat)
+getUsage(cat)
+constructGallery()
 #savePage(target, galleryWikitext)
 print(galleryWikitext)
 
