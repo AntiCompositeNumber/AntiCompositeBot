@@ -56,7 +56,6 @@ def getUsage(cat):
     i = 0
     j = 200
     totalScanned = len(list(usageCounts))
-    gallery += '<gallery showfilename=yes >\n'
     for page in usageCountsSorted:
         if i < j:
             i += 1
