@@ -114,7 +114,7 @@ def savePage(target, gallery):
     regex = re.compile(
         '(?<=<!-- Only text ABOVE this line '
         'will be preserved on updates -->\n).*', re.M | re.S)
-    new_wikitext = re.sub(regex, new_wikitext, old_wikitext)
+    new_wikitext = re.sub(regex, gallery, old_wikitext)
     print(new_wikitext)
     return
 #     target.save(summary='Updating gallery (Bot) ({version})'.format(
