@@ -17,7 +17,7 @@
    # See the License for the specific language governing permissions and
    # limitations under the License.
 
-version = 'ShouldBeSVG 0.5.0'
+version = 'ShouldBeSVG 0.5.1'
 
 import pywikibot
 from pywikibot import pagegenerators
@@ -72,9 +72,9 @@ def constructGallery(cat, totalScanned, sortedPages, skipped, version, depth):
     date = datetime.date.today()
     cats = "'''[[:{maincat}]]''' ({num} files) \n".format(maincat=cat.title(),
         num=cat.categoryinfo['files'])
-    pageCats = '{maincat}\n\
-        [[Category:Images that should use vector graphics]]'.format(
-            maincat=cat.aslink())
+    pageCats = ('{maincat}\n'
+                '[[Category:Images that should use vector graphics]]').format(
+                    maincat=cat.aslink())
     
     if depth > 0:
         for subcat in cat.subcategories(recurse=depth - 1):
@@ -165,5 +165,4 @@ if args.simulate:
     print(gallery)
 else:
     savePage(target, gallery)
-
-
+print('Finished')
