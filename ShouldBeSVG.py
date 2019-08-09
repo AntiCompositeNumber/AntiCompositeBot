@@ -17,15 +17,16 @@
    # See the License for the specific language governing permissions and
    # limitations under the License.
 
-version = 'ShouldBeSVG 0.3.1'
+version = 'ShouldBeSVG 0.4.0'
 
 import pywikibot
 from pywikibot import pagegenerators
 import datetime
+import argparse
 
-def getUsage(cat):
+def getUsage(cat, depth):
 
-    gen = pagegenerators.CategorizedPageGenerator(cat,recurse=1,namespaces=6,total=5)
+    gen = pagegenerators.CategorizedPageGenerator(cat,recurse=depth,namespaces=6,total=5)
 
     # Generate a dictionary with diagrams that should be SVG.
     usageCounts = {}
@@ -65,14 +66,15 @@ def getUsage(cat):
     print('Scanning finished')
     return sortedPages,totalScanned,skipped
 
-def constructGallery(cat, totalScanned, sortedPages, skipped, version):
+def constructGallery(cat, totalScanned, sortedPages, skipped, version, depth):
     date = datetime.date.today()
     cats = "'''[[:{maincat}]]''' ({num} files) \n".format(maincat=cat.title(),
         num=cat.categoryinfo['files'])
     pageCats = '{maincat}\n[[Category:Images that should use vector graphics]]'.format(maincat=cat.aslink())
-    for subcat in cat.subcategories():
-       cats +=  "* [[:{subcat}]] ({num} files) \n".format(subcat=subcat.title(),
-            num=subcat.categoryinfo['files'])
+    if depth > 0:
+        for subcat in cat.subcategories(recurse=depth - 1):
+           cats +=  "* [[:{subcat}]] ({num} files) \n".format(subcat=subcat.title(),
+                num=subcat.categoryinfo['files'])
     gallery = '''Last update: {{{{isodate|1={date}}}}}.
 
 This report includes the following categories while counting only the usage of each file in the main namespace.
@@ -96,15 +98,44 @@ def savePage(target, text):
     target.text = text
     target.save(summary='Updating gallery (Bot) ({version})'.format(version=version), botflag=False) 
 
+reports = {
+        'diagram': {'gallery': 'Top 200 diagram images that should use vector graphics', 'category':'Category:Diagram images that should use vector graphics', 'depth':1},
+        'graph': {'gallery': 'Top 200 graph images that should use vector graphics', 'category': 'Category:Graph images that should use vector graphics', 'depth':1},
+        'math': {'gallery': 'Top 200 math images that should use vector graphics', 'category': 'Category:Math images that should use vector graphics', 'depth':1},
+        'text': {'gallery': 'Top 200 text images that should use vector graphics', 'category': 'Category:Text images that should use vector graphics', 'depth':2},
+        'sport': {'gallery': 'Top 200 sport images that should use vector graphics', 'category': 'Category:Sport images that should use vector graphics', 'depth':2},
+        'military_insignia': {'gallery': 'Top 200 military insignia images that should use vector graphics', 'category': 'Category:Military insignia images that should use vector graphics', 'depth':0},
+        'biology': {'gallery': 'Top 200 biology images that should use vector graphics', 'category': 'Category:Biology images that should use vector graphics', 'depth':1},
+        'ribbon': {'gallery': 'Top 200 ribbon images that should use vector graphics', 'category': 'Category:Ribbon images that should use vector graphics', 'depth':1},
+        'technology': {'gallery': 'Top 200 technology images that should use vector graphics', 'category': 'Category:Technology images that should use vector graphics', 'depth':1},
+        'transport_map': {'gallery': 'Top 200 transport map images that should use vector graphics', 'category': 'Category:Transport map images that should use vector graphics', 'depth':1},
+        'chemical': {'gallery': 'Top 200 chemical images that should use vector graphics', 'category': 'Category:Chemical images that should use vector graphics', 'depth':0},
+        'physics': {'gallery': 'Top 200 physics images that should use vector graphics', 'category': 'Category:Physics images that should use vector graphics', 'depth':2},
+        'chemistry': {'gallery': 'Top 200 chemistry images that should use vector graphics', 'category': 'Category:Chemistry images that should use vector graphics', 'depth':0},
+        'sign': {'gallery': 'Top 200 road sign images that should use vector graphics', 'category': 'Category:Road sign images that should use vector graphics', 'depth':0},
+        'jpg': {'gallery': 'Top 200 JPG images that should use vector graphics', 'category': 'Category:JPG images that should use vector graphics', 'depth':1},
+        'coat_of_arms': {'gallery': 'Top 200 coat of arms images that should use vector graphics', 'category': 'Category:Coat of arms images that should use vector graphics', 'depth':1},
+        'locator_map': {'gallery': 'Top 200 locator map images that should use vector graphics', 'category': 'Category:Locator map images that should use vector graphics', 'depth':0},
+        'logo': {'gallery': 'Top 200 logo images that should use vector graphics', 'category': 'Logo images that should use vector graphics', 'depth':1},
+        'map': {'gallery': 'Top 200 map images that should use vector graphics', 'category': 'Category:Map images that should use vector graphics', 'depth':2},
+        'flag': {'gallery': 'Top 200 flag images that should use vector graphics', 'category':'Category:Flag images that should use vector graphics', 'depth':1},
+        'symbol of municipalities in Japan': {'gallery': 'Top 200 symbol of municipalities in Japan images that should use vector graphics', 'category': 'Symbol of municipalities in Japan images that should use vector graphics', 'depth':1}
+}
+
+parser = argparse.ArgumentParser(description='Generate global usage reports for vectorization categories.')
+parser.add_argument('key')
+args = parser.parse_args()
+
 site = pywikibot.Site('commons', 'commons')
-cat = pywikibot.Category(site, 'Category:Diagram images that should use vector graphics')
-target = pywikibot.Page(site, 'Top 200 diagram images that should use vector graphics')
+cat = pywikibot.Category(site, reports[args.key]['category'])
+target = pywikibot.Page(site, reports[args.key]['gallery'])
+depth = reports[args.key]['depth']
 
 print('AntiCompositeBot {version} started at {starttime}'.format(version=version,
     starttime=datetime.datetime.now().isoformat()))
 
-sortedPages,totalScanned,skipped = getUsage(cat)
-gallery = constructGallery(cat, totalScanned, sortedPages, skipped, version)
+sortedPages,totalScanned,skipped = getUsage(cat, depth)
+gallery = constructGallery(cat, totalScanned, sortedPages, skipped, version, depth)
 #savePage(target, gallery)
 print(gallery)
 
