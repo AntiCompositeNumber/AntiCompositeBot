@@ -67,7 +67,7 @@ def getUsage(cat):
     print('Scanning finished')
     return sortedPages
 
-def constructGallery()
+def constructGallery():
     date = datetime.date.today()
     cats = "'''[[:{maincat}]]''' ({num} files) \n".format(maincat=cat.title(), num=cat.categoryinfo['files'])
     pageCats = '{maincat}\n[[Category:Images that should use vector graphics]]'.format(maincat=cat.aslink())
