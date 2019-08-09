@@ -132,10 +132,9 @@ def savePage(target, gallery):
         '(?<=<!-- Only text ABOVE this line '
         'will be preserved on updates -->\n).*', re.M | re.S)
     new_wikitext = re.sub(regex, gallery, old_wikitext)
-    print(new_wikitext)
-    return
-#     target.save(summary='Updating gallery (Bot) ({version})'.format(
-        # version=version), botflag=False) 
+    target.text = new_wikitext
+    target.save(summary='Updating gallery (Bot) ({version})'.format(
+        version=version), botflag=False) 
 
 # This dict contains the pairings between {{Convert to SVG}} values,
 # their categories, and the report galleries. It also defines how far into the
