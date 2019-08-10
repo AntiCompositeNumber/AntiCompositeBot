@@ -27,7 +27,7 @@ import time
 import pywikibot
 from pywikibot import pagegenerators
 
-version = 'ShouldBeSVG 0.6.1'
+version = 'ShouldBeSVG 0.7.0'
 
 def getUsage(cat, depth, total):
 
@@ -162,6 +162,10 @@ args = parser.parse_args()
 # Set up pywikibot to operate off of Commons
 site = pywikibot.Site('commons', 'commons')
 
+# Log the version and the start time
+print('AntiCompositeBot {version} started at {starttime}'.format(
+    version=version, starttime=datetime.datetime.now().isoformat()))
+
 # Check if runpage is True, otherwise, stop the bot.
 runpage = pywikibot.Page(site, 'User:AntiCompositeBot/ShouldBeSVG/Run')
 run = runpage.text.endswith('True')
@@ -179,10 +183,6 @@ cat = pywikibot.Category(site, reports[args.key]['category'])
 target = pywikibot.Page(site, reports[args.key]['gallery'])
 depth = reports[args.key]['depth']
 total = args.total
-
-# Log the version and the start time
-print('AntiCompositeBot {version} started at {starttime}'.format(
-    version=version, starttime=datetime.datetime.now().isoformat()))
 
 # Run getUsage() with the cat based on the input. Returns the files with
 # their usage, the total number scanned, and any that were skipped.
