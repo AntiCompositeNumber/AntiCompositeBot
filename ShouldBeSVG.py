@@ -22,6 +22,7 @@
 import datetime
 import argparse
 import re
+import json
 import pywikibot
 from pywikibot import pagegenerators
 
@@ -134,35 +135,6 @@ def savePage(target, gallery):
     target.save(summary='Updating gallery (Bot) ({version})'.format(
         version=version), botflag=False)
 
-# This dict contains the pairings between {{Convert to SVG}} values,
-# their categories, and the report galleries. It also defines how far into the
-# subcategory tree the script will scan. It will eventually live on-wiki,
-# but it's staying here for now. I probably could do these pairings
-# programatically, but I didn't.
-reports = {
-        'diagram': {'gallery': 'Top 200 diagram images that should use vector graphics', 'category':'Category:Diagram images that should use vector graphics', 'depth':1},
-        'graph': {'gallery': 'Top 200 graph images that should use vector graphics', 'category': 'Category:Graph images that should use vector graphics', 'depth':1},
-        'math': {'gallery': 'Top 200 math images that should use vector graphics', 'category': 'Category:Math images that should use vector graphics', 'depth':1},
-        'text': {'gallery': 'Top 200 text images that should use vector graphics', 'category': 'Category:Text images that should use vector graphics', 'depth':2},
-        'sport': {'gallery': 'Top 200 sport images that should use vector graphics', 'category': 'Category:Sport images that should use vector graphics', 'depth':2},
-        'military_insignia': {'gallery': 'Top 200 military insignia images that should use vector graphics', 'category': 'Category:Military insignia images that should use vector graphics', 'depth':0},
-        'biology': {'gallery': 'Top 200 biology images that should use vector graphics', 'category': 'Category:Biology images that should use vector graphics', 'depth':1},
-        'ribbon': {'gallery': 'Top 200 ribbon images that should use vector graphics', 'category': 'Category:Ribbon images that should use vector graphics', 'depth':1},
-        'technology': {'gallery': 'Top 200 technology images that should use vector graphics', 'category': 'Category:Technology images that should use vector graphics', 'depth':1},
-        'transport_map': {'gallery': 'Top 200 transport map images that should use vector graphics', 'category': 'Category:Transport map images that should use vector graphics', 'depth':1},
-        'chemical': {'gallery': 'Top 200 chemical images that should use vector graphics', 'category': 'Category:Chemical images that should use vector graphics', 'depth':0},
-        'physics': {'gallery': 'Top 200 physics images that should use vector graphics', 'category': 'Category:Physics images that should use vector graphics', 'depth':2},
-        'chemistry': {'gallery': 'Top 200 chemistry images that should use vector graphics', 'category': 'Category:Chemistry images that should use vector graphics', 'depth':0},
-        'sign': {'gallery': 'Top 200 road sign images that should use vector graphics', 'category': 'Category:Road sign images that should use vector graphics', 'depth':0},
-        'jpg': {'gallery': 'Top 200 JPG images that should use vector graphics', 'category': 'Category:JPG images that should use vector graphics', 'depth':1},
-        'coat_of_arms': {'gallery': 'Top 200 coat of arms images that should use vector graphics', 'category': 'Category:Coat of arms images that should use vector graphics', 'depth':1},
-        'locator_map': {'gallery': 'Top 200 locator map images that should use vector graphics', 'category': 'Category:Locator map images that should use vector graphics', 'depth':0},
-        'logo': {'gallery': 'Top 200 logo images that should use vector graphics', 'category': 'Logo images that should use vector graphics', 'depth':1},
-        'map': {'gallery': 'Top 200 map images that should use vector graphics', 'category': 'Category:Map images that should use vector graphics', 'depth':2},
-        'flag': {'gallery': 'Top 200 flag images that should use vector graphics', 'category':'Category:Flag images that should use vector graphics', 'depth':1},
-        'symbol of municipalities in Japan': {'gallery': 'Top 200 symbol of municipalities in Japan images that should use vector graphics', 'category': 'Symbol of municipalities in Japan images that should use vector graphics', 'depth':1}
-}
-
 # Handle command line arguments. Requires the key for the reports dict
 # Optional argument --total limits the files scanned
 # and --simulate prevents saving.
@@ -176,9 +148,22 @@ parser.add_argument('--simulate',
                     action="store_true")
 args = parser.parse_args()
 
-# Alright, into the main body of the script. Set up pywikibot to operate
-# off of Commons using the category and target gallery from the input key.
+# Set up pywikibot to operate off of Commons
 site = pywikibot.Site('commons', 'commons')
+
+# Check if runpage is True, otherwise, stop the bot.
+runpage = pywikibot.Page(site, 'User:AntiCompositeBot/ShouldBeSVG/Run')
+run = runpage.text.endswith('True')
+if run is False:
+    print('Runpage is false, quitting...')
+    exit()
+
+# Download a dict relating keys to galleries, categories, and depth values.
+reportsPage = pywikibot.Page(site,
+                             'User:AntiCompositeBot/ShouldBeSVG/reports.json')
+reports = json.loads(reportsPage.text)
+
+# Collect information from arguments
 cat = pywikibot.Category(site, reports[args.key]['category'])
 target = pywikibot.Page(site, reports[args.key]['gallery'])
 depth = reports[args.key]['depth']
@@ -195,6 +180,7 @@ sortedPages, totalScanned, skipped = getUsage(cat, depth, total)
 # Use all the information gathered or supplied to construct the report gallery.
 gallery = constructGallery(cat, totalScanned, sortedPages, skipped,
                            version, depth)
+
 # Check if we're actually writing to the report gallery. If not, just print
 # the gallery wikitext to SDOUT. If we are, send it to savePage().
 if args.simulate:
