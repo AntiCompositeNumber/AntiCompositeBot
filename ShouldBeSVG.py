@@ -23,6 +23,7 @@ import datetime
 import argparse
 import re
 import json
+import time
 import pywikibot
 from pywikibot import pagegenerators
 
@@ -132,8 +133,18 @@ def savePage(target, gallery):
         'will be preserved on updates -->\n).*', re.M | re.S)
     newWikitext = re.sub(regex, gallery, oldWikitext)
     target.text = newWikitext
-    target.save(summary='Updating gallery (Bot) ({version})'.format(
+    try:
+        target.save(summary='Updating gallery (Bot) ({version})'.format(
         version=version), botflag=False)
+    except pywikibot.PageNotSaved:
+        print('Save failed, trying again soon')
+        time.sleep(15)
+        try:
+            target.save(summary='Updating gallery (Bot) ({version})'.format(
+            version=version), botflag=False)
+        except pywikibot.PageNotSaved:
+            print(target.text)
+            raise
 
 # Handle command line arguments. Requires the key for the reports dict
 # Optional argument --total limits the files scanned
