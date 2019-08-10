@@ -27,7 +27,7 @@ import time
 import pywikibot
 from pywikibot import pagegenerators
 
-version = 'ShouldBeSVG 0.7.1'
+version = 'ShouldBeSVG 0.7.2'
 
 def getUsage(cat, depth, total):
 
@@ -36,7 +36,7 @@ def getUsage(cat, depth, total):
 
     # Generate a dictionary with diagrams that should be SVG.
     usageCounts = {}
-    skipped = ''
+    skipped = () 
 
     for page in gen:
         # First, grab the mimetype of the file.
@@ -44,7 +44,7 @@ def getUsage(cat, depth, total):
         try:
             mimetype = pywikibot.FilePage(page).latest_file_info.mime
         except pywikibot.PageRelatedError:
-            skipped += page.title() + '\n'
+            skipped.append(page.title())
             print('Skipping', page)
         else:
             # The categories are a bit messy, so make sure the image isn't
@@ -59,7 +59,7 @@ def getUsage(cat, depth, total):
                     # Pywikibot complains if the bot doesn't have an account
                     # on a wiki where a file is used. If that happens,
                     # skip the file.
-                    skipped += page.title() + '\n'
+                    skipped.append(page.title())
                     print('Skipping', page)
 
     # Sort from greatest to least
@@ -97,17 +97,19 @@ def constructGallery(cat, totalScanned, sortedPages, skipped, version, depth):
                 subcat=subcat.title(), num=subcat.categoryinfo['files'])
 
     # If any files were skipped, write an explanatory message and the files.
-    if skipped != '':
+    if skipped != ():
         skippedFiles = ('The following files were skipped due to errors '
-                        'during the generation of this report:\n{skipped}')\
+                        'during the generation of this report:')\
                         .format(skipped=skipped)
+        for page in skipped:
+            skippedFiles += '* [[:{title}]]\n'.format(title = page.title())
     else:
         skippedFiles = '\n'
 
     # Now we construct the gallery itself. Everything is formatted by now,
     # it just needs to be slotted into the right spot.
     gallery = """\
-Last update: {{{{isodate|1={date}}}}}.
+Last update: {{{{ISODate|1={date}}}}}.
 
 This report includes the following categories while counting only the usage \
 of each file in the main namespace.
