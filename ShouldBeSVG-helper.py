@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+"""Determine which ShouldBeSVG task should be run when called by cron"""
 import os
 from datetime import datetime
 
@@ -12,18 +12,21 @@ now = int(dt.strftime('%u%H'))
 reports = {100: 'diagram', 108: 'graph', 116: 'math',
            200: 'text', 208: 'sport', 216: 'military_insignia',
            300: 'biology', 308: 'ribbon', 316: 'technology',
-           400: 'transport_map', 408: 'chemical', 416: 'physics',
-           500: 'chemistry', 508: 'sign', 516: 'jpg', 
+           400: 'transport_map', 408: 'wikichart', 416: 'physics',
+           500: 'chemistry', 508: 'sign', 516: 'jpg',
            600: 'coat_of_arms', 608: 'locator_map', 616: 'logo',
            700: 'map', 708: 'flag', 716: 'symbol of municipalities in Japan'}
 
 #Find the report we should be running and send that to the grid.
 #If there's no report to run this hour, raise an error.
-toolpath = /data/project/anticompositebot/AntiCompositeBot/ShouldBeSVG.py
+toolpath = '/data/project/anticompositebot/AntiCompositeBot/'
+
 try:
     report = reports[now]
 except KeyError:
     print("Check your timing, there's no report to run this hour.")
     raise
 else:
-    os.system('jsub -m e {toolpath} {report}'.format(report = report)
+    os.system(('jsub -m e -j y -o {toolpath}/logs'
+               '{toolpath}/ShouldBeSVG.py {report}').format(report=report,
+                                                            toolpath=toolpath))
