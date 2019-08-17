@@ -27,7 +27,7 @@ import time
 import pywikibot
 from pywikibot import pagegenerators
 
-version = 'ShouldBeSVG 0.7.2'
+version = 'ShouldBeSVG 0.7.3'
 
 def getUsage(cat, depth, total):
 
@@ -113,8 +113,8 @@ Last update: {{{{ISODate|1={date}}}}}.
 
 This report includes the following categories while counting only the usage \
 of each file in the main namespace.
-{cats}
 
+{cats}
 Total number of scanned files: {totalScanned}
 <gallery showfilename=yes>
 {sortedPages}
