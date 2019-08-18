@@ -27,7 +27,7 @@ import time
 import pywikibot
 from pywikibot import pagegenerators
 
-version = 'ShouldBeSVG 0.7.3'
+version = 'ShouldBeSVG 1.0.0'
 
 def getUsage(cat, depth, total):
 
