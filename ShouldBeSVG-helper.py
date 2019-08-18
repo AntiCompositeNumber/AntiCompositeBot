@@ -16,7 +16,7 @@ reports = {102: 'diagram', 110: 'graph', 118: 'math',
            402: 'transport_map', 410: 'wikichart', 418: 'physics',
            502: 'chemistry', 510: 'sign', 518: 'jpg',
            602: 'coat_of_arms', 610: 'locator_map', 618: 'logo',
-           702: 'map', 710: 'flag', 718: 'symbol of municipalities in Japan'}
+           702: 'map', 710: 'flag', 718: 'symbol_of_municipalities_in_Japan'}
 
 #Find the report we should be running and send that to the grid.
 #If there's no report to run this hour, raise an error.
