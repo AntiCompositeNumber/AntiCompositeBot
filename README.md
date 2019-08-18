@@ -3,7 +3,7 @@ Wikimedia Commons contains a lot of medium and low quality raster charts, diagra
 
 This task was previously performed by [User:McTopot](https://commons.wikimedia.org/wiki/User:McTopot).
 
-This project, including this documentation, is licensed under Apache 2.0. The code is available on [https://github.com/AntiCompositeNumber/AntiCompositeBot GitHub].
+This project, including this documentation, is licensed under Apache 2.0. Contributions are welcome.
 
 ## Reports
 All times are UTC. The time indicated is the start time. Reports can take some time to run and are affected by load on the Toolforge grid. If a report has not run for two weeks, contact me on [my talk page](https://commons.wikimedia.org/wiki/User_talk:AntiCompositeNumber) or file an issue.
@@ -20,7 +20,7 @@ All times are UTC. The time indicated is the start time. Reports can take some t
 | biology | Wednesday 02:11 | [Top 200 biology images that should use vector graphics](https://commons.wikimedia.org/wiki/Top_200_biology_images_that_should_use_vector_graphics) | [Category:Biology images that should use vector graphics](https://commons.wikimedia.org/wiki/Category:Biology_images_that_should_use_vector_graphics) |
 | ribbon | Wednesday 10:11 | [Top 200 ribbon images that should use vector graphics](https://commons.wikimedia.org/wiki/Top_200_ribbon_images_that_should_use_vector_graphics) | [Category:Ribbon images that should use vector graphics](https://commons.wikimedia.org/wiki/Category:Ribbon_images_that_should_use_vector_graphics) |
 | technology | Wednesday 18:11 | [Top 200 technology images that should use vector graphics](https://commons.wikimedia.org/wiki/Top_200_technology_images_that_should_use_vector_graphics) | [Category:Technology images that should use vector graphics](https://commons.wikimedia.org/wiki/Category:Technology_images_that_should_use_vector_graphics) |
-| transport_map | Thursday 02:11 | [Top 200 transport map images that should use vector graphics](https://commons.wikimedia.org/wiki/Top 200 transport map images that should use vector graphics) | [Category:Transport map images that should use vector graphics](https://commons.wikimedia.org/wiki/Category:Transport_map_images_that_should_use_vector_graphics) |
+| transport_map | Thursday 02:11 | [Top 200 transport map images that should use vector graphics](https://commons.wikimedia.org/wiki/Top_200_transport_map_images_that_should_use_vector_graphics) | [Category:Transport map images that should use vector graphics](https://commons.wikimedia.org/wiki/Category:Transport_map_images_that_should_use_vector_graphics) |
 | wikichart | Thursday 10:11 | [Top 200 images that should use wikicharts](https://commons.wikimedia.org/wiki/Top_200_images_that_should_use_wikicharts) | [Category:Images which should use wikicharts](https://commons.wikimedia.org/wiki/Category:Images_which_should_use_wikicharts) |
 | physics | Thursday 18:11 | [Top 200 physics images that should use vector graphics](https://commons.wikimedia.org/wiki/Top_200_physics_images_that_should_use_vector_graphics) | [Category:Physics images that should use vector graphics](https://commons.wikimedia.org/wiki/Category:Physics_images_that_should_use_vector_graphics) |
 | chemistry | Friday 02:11 | [Top 200 chemistry images that should use vector graphics](https://commons.wikimedia.org/wiki/Top_200_chemistry_images_that_should_use_vector_graphics) | [Category:Chemistry images that should use vector graphics](https://commons.wikimedia.org/wiki/Category:Chemistry_images_that_should_use_vector_graphics) |
