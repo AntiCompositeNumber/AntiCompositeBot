@@ -27,7 +27,7 @@ import time
 import pywikibot
 from pywikibot import pagegenerators
 
-version = 'ShouldBeSVG 1.0.0'
+version = 'ShouldBeSVG 1.1.0'
 
 def getUsage(cat, depth, total):
 
@@ -158,6 +158,8 @@ parser.add_argument('--total', help="maximum number of files to scan",
 parser.add_argument('--simulate',
                     help="prints output to SDOUT instead of saving it",
                     action="store_true")
+parser.add_argument('--run_override', action='store_true', help='force the bot to ignore the runpage')
+parser.add_argument('--version', action='version', version=version)
 args = parser.parse_args()
 
 # Set up pywikibot to operate off of Commons
@@ -170,7 +172,9 @@ print('AntiCompositeBot {version} started at {starttime}'.format(
 # Check if runpage is True, otherwise, stop the bot.
 runpage = pywikibot.Page(site, 'User:AntiCompositeBot/ShouldBeSVG/Run')
 run = runpage.text.endswith('True')
-if run is False:
+run_override = args['run_override']
+
+if run is False and run_override is False:
     print('Runpage is false, quitting...')
     exit()
 
@@ -180,9 +184,10 @@ reportsPage = pywikibot.Page(site,
 reports = json.loads(reportsPage.text)
 
 # Collect information from arguments
-cat = pywikibot.Category(site, reports[args.key]['category'])
-target = pywikibot.Page(site, reports[args.key]['gallery'])
-depth = reports[args.key]['depth']
+key = args.key
+cat = pywikibot.Category(site, reports[key]['category'])
+target = pywikibot.Page(site, reports[key]['gallery'])
+depth = reports[key]['depth']
 total = args.total
 
 # Run getUsage() with the cat based on the input. Returns the files with
