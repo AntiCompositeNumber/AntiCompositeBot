@@ -172,7 +172,7 @@ print('AntiCompositeBot {version} started at {starttime}'.format(
 # Check if runpage is True, otherwise, stop the bot.
 runpage = pywikibot.Page(site, 'User:AntiCompositeBot/ShouldBeSVG/Run')
 run = runpage.text.endswith('True')
-run_override = args['run_override']
+run_override = args.run_override
 
 if run is False and run_override is False:
     print('Runpage is false, quitting...')
