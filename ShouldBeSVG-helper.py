@@ -7,15 +7,16 @@ from datetime import datetime
 dt = datetime.utcnow()
 now = int(dt.strftime('%u%H'))
 
+#Crontab entry: 11 2,10,18 * * * jlocal /data/project/anticompositebot/AntiCompositeBot/ShouldBeSVG-helper.py
 #Each key corresponds to a now value when the cronjob could be running.
 #Each value corresponds to a key in the reports dict in ShouldBeSVG.py
-reports = {100: 'diagram', 108: 'graph', 116: 'math',
-           200: 'text', 208: 'sport', 216: 'military_insignia',
-           300: 'biology', 308: 'ribbon', 316: 'technology',
-           400: 'transport_map', 408: 'wikichart', 416: 'physics',
-           500: 'chemistry', 508: 'sign', 516: 'jpg',
-           600: 'coat_of_arms', 608: 'locator_map', 616: 'logo',
-           700: 'map', 708: 'flag', 716: 'symbol of municipalities in Japan'}
+reports = {102: 'diagram', 110: 'graph', 118: 'math',
+           202: 'text', 210: 'sport', 218: 'military_insignia',
+           302: 'biology', 310: 'ribbon', 318: 'technology',
+           402: 'transport_map', 410: 'wikichart', 418: 'physics',
+           502: 'chemistry', 510: 'sign', 518: 'jpg',
+           602: 'coat_of_arms', 610: 'locator_map', 618: 'logo',
+           702: 'map', 710: 'flag', 718: 'symbol of municipalities in Japan'}
 
 #Find the report we should be running and send that to the grid.
 #If there's no report to run this hour, raise an error.
