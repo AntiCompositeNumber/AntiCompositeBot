@@ -28,6 +28,7 @@ except KeyError:
     print("Check your timing, there's no report to run this hour.")
     raise
 else:
-    os.system(('jsub -m e -j y -o {toolpath}/logs'
+    command = ('jsub -m e -j y -o {toolpath}/logs '
                '{toolpath}/ShouldBeSVG.py {report}').format(report=report,
-                                                            toolpath=toolpath))
+                                                            toolpath=toolpath)
+    os.system(command)
