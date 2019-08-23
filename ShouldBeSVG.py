@@ -24,10 +24,19 @@ import argparse
 import re
 import json
 import time
+import subprocess
 import pywikibot
 from pywikibot import pagegenerators
 
-version = 'ShouldBeSVG 1.1.1'
+version = 'ShouldBeSVG 1.1.2'
+
+def grid_handle_error():
+    """If there's an exception, I want to know about it."""
+    try:
+        subprocess.run('qalter', '-m' 'e' '/ShouldBeSVG/')
+    except FileNotFoundError:
+        print('Not running on Toolforge: This exception will not be reported')
+    raise
 
 def get_usage(cat, depth, total):
     """Get usage information for every file in the supplied category"""
@@ -97,9 +106,9 @@ def construct_gallery(cat, totalScanned, sortedPages, skipped, version, depth):
                 subcat=subcat.title(), num=subcat.categoryinfo['files'])
 
     # If any files were skipped, write an explanatory message and the files.
-    if skipped != ():
+    if skipped != []:
         skippedFiles = ('The following files were skipped due to errors '
-                        'during the generation of this report:')\
+                        'during the generation of this report:\n')\
                         .format(skipped=skipped)
         for page in skipped:
             skippedFiles += '* [[:{title}]]\n'.format(title=page.title())
@@ -147,61 +156,64 @@ def save_page(target, gallery):
             print(target.text)
             raise
 
-# Handle command line arguments. See ShouldBeSVG.py --help for details
-parser = argparse.ArgumentParser(
-    description='Generate global usage reports for vectorization categories.')
-parser.add_argument('key')
-parser.add_argument('--total', help="maximum number of files to scan",
-                    type=int, default=None)
-parser.add_argument('--simulate', action="store_true",
-                    help="prints output to SDOUT instead of saving it",)
-parser.add_argument('--run_override', action='store_true',
-                    help='force the bot to ignore the runpage')
-parser.add_argument('--version', action='version', version=version)
-args = parser.parse_args()
+try:
+    # Handle command line arguments. See ShouldBeSVG.py --help for details
+    parser = argparse.ArgumentParser(
+        description='Generate global usage reports for vectorization categories.')
+    parser.add_argument('key')
+    parser.add_argument('--total', help="maximum number of files to scan",
+                        type=int, default=None)
+    parser.add_argument('--simulate', action="store_true",
+                        help="prints output to SDOUT instead of saving it",)
+    parser.add_argument('--run_override', action='store_true',
+                        help='force the bot to ignore the runpage')
+    parser.add_argument('--version', action='version', version=version)
+    args = parser.parse_args()
 
-# Set up pywikibot to operate off of Commons
-site = pywikibot.Site('commons', 'commons')
+    # Set up pywikibot to operate off of Commons
+    site = pywikibot.Site('commons', 'commons')
 
-# Log the version and the start time
-print('AntiCompositeBot {version} started at {starttime}'.format(
-    version=version, starttime=datetime.datetime.now().isoformat()))
+    # Log the version and the start time
+    print('AntiCompositeBot {version} started at {starttime}'.format(
+        version=version, starttime=datetime.datetime.now().isoformat()))
 
-# Check if runpage is True, otherwise, stop the bot.
-runpage = pywikibot.Page(site, 'User:AntiCompositeBot/ShouldBeSVG/Run')
-run = runpage.text.endswith('True')
-runOverride = args.run_override
+    # Check if runpage is True, otherwise, stop the bot.
+    runpage = pywikibot.Page(site, 'User:AntiCompositeBot/ShouldBeSVG/Run')
+    run = runpage.text.endswith('True')
+    runOverride = args.run_override
 
-if run is False and runOverride is False:
-    print('Runpage is false, quitting...')
-    exit()
+    if run is False and runOverride is False:
+        print('Runpage is false, quitting...')
+        exit()
 
-# Download a dict relating keys to galleries, categories, and depth values.
-reportsPage = pywikibot.Page(site,
-                             'User:AntiCompositeBot/ShouldBeSVG/reports.json')
-reports = json.loads(reportsPage.text)
+    # Download a dict relating keys to galleries, categories, and depth values.
+    reportsPage = pywikibot.Page(site,
+                                 'User:AntiCompositeBot/ShouldBeSVG/reports.json')
+    reports = json.loads(reportsPage.text)
 
-# Collect information from arguments
-key = args.key
-cat = pywikibot.Category(site, reports[key]['category'])
-target = pywikibot.Page(site, reports[key]['gallery'])
-depth = reports[key]['depth']
-total = args.total
+    # Collect information from arguments
+    key = args.key
+    cat = pywikibot.Category(site, reports[key]['category'])
+    target = pywikibot.Page(site, reports[key]['gallery'])
+    depth = reports[key]['depth']
+    total = args.total
 
-# Run get_usage() with the cat based on the input. Returns the files with
-# their usage, the total number scanned, and any that were skipped.
-sortedPages, totalScanned, skipped = get_usage(cat, depth, total)
+    # Run get_usage() with the cat based on the input. Returns the files with
+    # their usage, the total number scanned, and any that were skipped.
+    sortedPages, totalScanned, skipped = get_usage(cat, depth, total)
 
-# Use all the information gathered or supplied to construct the report gallery.
-gallery = construct_gallery(cat, totalScanned, sortedPages, skipped,
-                            version, depth)
+    # Use all the information gathered or supplied to construct the report gallery.
+    gallery = construct_gallery(cat, totalScanned, sortedPages, skipped,
+                                version, depth)
 
-# Check if we're actually writing to the report gallery. If not, just print
-# the gallery wikitext to SDOUT. If we are, send it to save_page().
-if args.simulate:
-    print(gallery)
-else:
-    save_page(target, gallery)
+    # Check if we're actually writing to the report gallery. If not, just print
+    # the gallery wikitext to SDOUT. If we are, send it to save_page().
+    if args.simulate:
+        print(gallery)
+    else:
+        save_page(target, gallery)
 
-#We're done here.
-print('Finished')
+    #We're done here.
+    print('Finished')
+except:
+    grid_handle_error()
