@@ -179,7 +179,7 @@ def handle_args():
 
 def find_report(args, times):
     if args.key == 'auto':
-        dt = datetime.datetime.utcnow
+        dt = datetime.datetime.utcnow()
         now = int(dt.strftime('%u%H'))
         try:
             report = times[now]
