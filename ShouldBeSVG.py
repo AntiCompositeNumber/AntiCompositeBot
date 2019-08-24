@@ -29,7 +29,7 @@ import os
 import pywikibot
 from pywikibot import pagegenerators
 
-version = 'ShouldBeSVG 1.2.1'
+version = 'ShouldBeSVG 1.2.2'
 toolforge = None
 
 def check_toolforge():
@@ -62,7 +62,7 @@ def get_usage(cat, depth, total):
         # If that's not possible, the file is broken and should be skipped.
         try:
             mimetype = pywikibot.FilePage(page).latest_file_info.mime
-        except pywikibot.PageRelatedError:
+        except (pywikibot.PageRelatedError, AttributeError):
             skipped.append(page.title())
             print('Skipping', page)
         else:
