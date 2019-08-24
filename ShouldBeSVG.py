@@ -180,11 +180,11 @@ def handle_args():
 def find_report(args, times):
     if args.key == 'auto':
         dt = datetime.datetime.utcnow()
-        now = int(dt.strftime('%u%H'))
+        now = dt.strftime('%u%H')
         try:
             report = times[now]
         except KeyError:
-            print("Check your timing, there's no report to run this hour.")
+            print("Check your timing, there's no report to run this hour", now)
             raise
     else:
         report = args.key
