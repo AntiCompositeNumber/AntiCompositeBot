@@ -29,7 +29,7 @@ import os
 import pywikibot
 from pywikibot import pagegenerators
 
-version = 'ShouldBeSVG 1.2.0'
+version = 'ShouldBeSVG 1.2.1'
 toolforge = None
 
 def check_toolforge():
@@ -45,7 +45,7 @@ def check_toolforge():
 def grid_handle_error():
     """If there's an exception, I want to know about it."""
     if bool(toolforge):
-        subprocess.run('qalter', '-m' 'e' '/ShouldBeSVG/')
+        subprocess.run(['qalter', '-m', 'e', '/ShouldBeSVG/'])
 
 def get_usage(cat, depth, total):
     """Get usage information for every file in the supplied category"""
@@ -186,6 +186,9 @@ def find_report(args, times):
         except KeyError:
             print("Check your timing, there's no report to run this hour.")
             raise
+    else:
+        report = args.key
+
     if bool(toolforge):
         subprocess.run(['qalter', '-N',
                         'ShouldBeSVG-{report}'.format(report=report)])
