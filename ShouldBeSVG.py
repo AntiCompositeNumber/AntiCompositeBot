@@ -191,7 +191,8 @@ def find_report(args, times):
 
     if bool(toolforge):
         subprocess.run(['qalter', '-N',
-                        'ShouldBeSVG-{report}'.format(report=report)])
+                        'ShouldBeSVG-{report}'.format(report=report),
+                        toolforge])
     return report
 
 def run_check(site, runOverride):
