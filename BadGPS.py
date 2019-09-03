@@ -23,7 +23,7 @@ import mwparserfromhell
 import time
 import platform
 
-version = 'BadGPS 0.1.0'
+version = 'BadGPS 0.1.1'
 site = pywikibot.Site('commons', 'commons')
 
 
@@ -76,7 +76,7 @@ def run_check(site):
     run = runpage.text.endswith('True')
     if not run:
         print('Runpage is false, quitting...')
-        raise pywikibot.UserBlocked
+        raise pywikibot.UserBlocked('Runpage is false')
 
 
 def main():
@@ -97,8 +97,8 @@ def main():
             time_check(start_time, seconds_between_edits)
             summary = ('Adding {{{{{template}}}}} to files '
                        'in [[petscan:{psid}]] per author request, '
-                       'see user page for details (BadGPS)').format(
-                            template=template, psid=psid)
+                       'see user page for details ({version})').format(
+                            template=template, psid=psid, version=version)
             save_page(page, summary)
 
 
