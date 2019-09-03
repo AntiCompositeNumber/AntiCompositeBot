@@ -97,7 +97,7 @@ def main():
             time_check(start_time, seconds_between_edits)
             summary = ('Adding {{{{{template}}}}} to files '
                        'in [[petscan:{psid}]] per author request, '
-                       'see user page for details ({version})').format(
+                       'see user page for details (#{version})').format(
                             template=template, psid=psid, version=version)
             save_page(page, summary)
 

@@ -157,7 +157,7 @@ def save_page(target, gallery):
     newWikitext = re.sub(regex, gallery, oldWikitext)
     target.text = newWikitext
     try:
-        target.save(summary='Updating gallery (Bot) ({version})'.format(
+        target.save(summary='Updating gallery (Bot) (#{version})'.format(
             version=version), botflag=False)
     except pywikibot.PageNotSaved:
         print('Save failed, trying again soon')
