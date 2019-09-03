@@ -21,6 +21,7 @@ import pywikibot
 import requests
 import mwparserfromhell
 import time
+import platform
 
 version = 'BadGPS 0.1.0'
 site = pywikibot.Site('commons', 'commons')
@@ -29,7 +30,12 @@ site = pywikibot.Site('commons', 'commons')
 def data_from_petscan(psid, total):
     params = {'format': 'json', 'output_compatibility': 'catscan',
               'sparse': 'on', 'psid': psid, 'output_limit': total}
-    headers = {'user-agent': 'AntiCompositeBot BadGPS on PAWS'}
+    headers = {'user-agent': (
+        'AntiCompositeBot {version} on Toolforge, '
+        '(commons:User:AntiCompositeNumber) '
+        'Requests/{requests_version} Python/{python_version}').format(
+            version=version, requests_version=requests.__version__,
+            python_version=platform.python_version())}
     r = requests.get('https://petscan.wmflabs.org/',
                      params=params, headers=headers)
     r.raise_for_status()
@@ -45,10 +51,9 @@ def add_template(page, template):
     return str(wikitext)
 
 
-def time_check(start_time):
+def time_check(start_time, min_wait):
     end_time = time.time()
     diff = end_time - start_time
-    min_wait = 5
     if diff < min_wait:
         print('Sleeping...')
         time.sleep(min_wait - diff)
@@ -79,6 +84,7 @@ def main():
     template = 'Location estimated'
     block_size = 5
     blocks = 1
+    seconds_between_edits = 60
 
     for i in range(blocks):
         run_check(site)
@@ -88,7 +94,7 @@ def main():
             page = pywikibot.Page(site, filename)
             page.text = add_template(page, template)
 
-            time_check(start_time)
+            time_check(start_time, seconds_between_edits)
             summary = ('Adding {{{{{template}}}}} to files '
                        'in [[petscan:{psid}]] per author request, '
                        'see user page for details (BadGPS)').format(
