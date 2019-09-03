@@ -17,13 +17,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pywikibot
 import requests
-import mwparserfromhell
 import time
 import platform
+import configparser
+import mwparserfromhell
+import pywikibot
 
-version = 'BadGPS 0.1.1'
+version = 'BadGPS 0.1.2'
 site = pywikibot.Site('commons', 'commons')
 
 
@@ -80,11 +81,14 @@ def run_check(site):
 
 
 def main():
-    psid = 10891872
-    template = 'Location estimated'
-    block_size = 5
-    blocks = 1
-    seconds_between_edits = 60
+    cparser = configparser.ConfigParser()
+    cparser.read('BadGPS.ini')
+    config = cparser['BadGPS']
+    psid = config.get('psid')
+    template = config.get('template')
+    block_size = config.get('block_size')
+    blocks = config.get('blocks')
+    seconds_between_edits = config.get('seconds_between_edits')
 
     for i in range(blocks):
         run_check(site)
