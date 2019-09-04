@@ -20,7 +20,7 @@
 import requests
 import time
 import platform
-import configparser
+import json
 import mwparserfromhell
 import pywikibot
 
@@ -81,9 +81,8 @@ def run_check(site):
 
 
 def main():
-    cparser = configparser.ConfigParser()
-    cparser.read('BadGPS.ini')
-    config = cparser['BadGPS']
+    with open('BadGPS.json', 'r') as f:
+        config = json.load(f)
     psid = config.get('psid')
     template = config.get('template')
     block_size = config.get('block_size')
