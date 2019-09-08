@@ -24,7 +24,7 @@ import json
 import mwparserfromhell
 import pywikibot
 
-version = 'BadGPS 0.1.2'
+version = 'BadGPS 0.2.0'
 site = pywikibot.Site('commons', 'commons')
 
 
