@@ -80,6 +80,15 @@ def run_check(site):
         raise pywikibot.UserBlocked('Runpage is false')
 
 
+def double_check(template, page):
+    gen = page.itertemplates()
+    res = any(map(
+        lambda page_template:
+        page_template.title() == 'Template:{template}'.format(
+            template=template), gen))
+    return not res
+
+
 def main():
     with open('BadGPS.json', 'r') as f:
         config = json.load(f)
@@ -95,14 +104,18 @@ def main():
         for filename in files:
             start_time = time.time()
             page = pywikibot.Page(site, filename)
-            page.text = add_template(page, template)
 
-            time_check(start_time, seconds_between_edits)
-            summary = ('Adding {{{{{template}}}}} to files '
-                       'in [[petscan:{psid}]] per author request, '
-                       'see user page for details (#{version})').format(
-                            template=template, psid=psid, version=version)
-            save_page(page, summary)
+            if double_check(template, page):
+                page.text = add_template(page, template)
+
+                time_check(start_time, seconds_between_edits)
+                summary = ('Adding {{{{{template}}}}} to files '
+                           'in [[petscan:{psid}]] per author request, '
+                           'see user page for details (#{version})').format(
+                                template=template, psid=psid, version=version)
+                save_page(page, summary)
+            else:
+                continue
 
 
 if __name__ == '__main__':
