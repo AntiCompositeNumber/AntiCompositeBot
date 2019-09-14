@@ -24,7 +24,7 @@ import requests
 import mwparserfromhell
 import pywikibot
 
-version = 'BadGPS 1.0.0'
+version = 'BadGPS 1.0.1'
 site = pywikibot.Site('commons', 'commons')
 
 
@@ -108,7 +108,11 @@ def main():
 
     for i in range(blocks):
         run_check(site)
-        files = data_from_petscan(psid, block_size)
+        try:
+            files = data_from_petscan(psid, block_size)
+        except Exception:
+            files = data_from_petscan(psid, block_size)
+
         for filename in files:
             start_time = time.time()
             page = pywikibot.Page(site, filename)
