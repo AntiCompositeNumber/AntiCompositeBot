@@ -17,18 +17,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import requests
 import time
 import platform
 import json
+import requests
 import mwparserfromhell
 import pywikibot
 
-version = 'BadGPS 0.2.0'
+version = 'BadGPS 1.0.0'
 site = pywikibot.Site('commons', 'commons')
 
 
 def data_from_petscan(psid, total):
+    """Run the specified PetScan query and return a list of files."""
     params = {'format': 'json', 'output_compatibility': 'catscan',
               'sparse': 'on', 'psid': psid, 'output_limit': total}
     headers = {'user-agent': (
@@ -45,6 +46,7 @@ def data_from_petscan(psid, total):
 
 
 def add_template(page, template):
+    """Append the template to the first section of the page"""
     wikitext = mwparserfromhell.parse(page.text)
     s = wikitext.get_sections()
     wikitext.insert_after(s[1].strip(),
@@ -53,6 +55,7 @@ def add_template(page, template):
 
 
 def time_check(start_time, min_wait):
+    """Keep the bot from running faster than 1 edit/min"""
     end_time = time.time()
     diff = end_time - start_time
     if diff < min_wait:
@@ -64,15 +67,17 @@ def time_check(start_time, min_wait):
 
 
 def save_page(page, summary):
+    """Save the page to the wiki, retrying once if it doesn't work."""
     try:
         page.save(summary=summary, botflag=True)
-    except pywikibot.exception.PageNotSaved:
+    except pywikibot.PageNotSaved:
         print('Save failed, trying again soon')
         time.sleep(15)
         page.save(summary=summary, botflag=True)
 
 
 def run_check(site):
+    """Check the on-wiki runpage. If it's not true, throw an exception."""
     runpage = pywikibot.Page(site, 'User:AntiCompositeBot/ShouldBeSVG/Run')
     run = runpage.text.endswith('True')
     if not run:
@@ -81,6 +86,9 @@ def run_check(site):
 
 
 def double_check(template, page):
+    """Double check that we're not editing the same file twice.
+
+    Sometimes the PetScan query doesn't work right."""
     gen = page.itertemplates()
     res = any(map(
         lambda page_template:
