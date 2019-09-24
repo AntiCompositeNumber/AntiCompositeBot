@@ -59,7 +59,6 @@ def time_check(start_time, min_wait):
     end_time = time.time()
     diff = end_time - start_time
     if diff < min_wait:
-        print('Sleeping...')
         time.sleep(min_wait - diff)
         return
     else:
@@ -107,11 +106,17 @@ def main():
     seconds_between_edits = config.get('seconds_between_edits')
 
     for i in range(blocks):
+
         run_check(site)
-        try:
-            files = data_from_petscan(psid, block_size)
-        except Exception:
-            files = data_from_petscan(psid, block_size)
+
+        # Try to get data from Petscan 5 times.
+        for retry in range(0, 5):
+            try:
+                files = data_from_petscan(psid, block_size)
+                break
+            except Exception:
+                time.sleep(5)
+                continue
 
         for filename in files:
             start_time = time.time()
@@ -125,7 +130,16 @@ def main():
                            'in [[petscan:{psid}]] per author request, '
                            'see user page for details (#{version})').format(
                                 template=template, psid=psid, version=version)
-                save_page(page, summary)
+
+                # Try to save the page. If there's an edit conflict,
+                # just skip that page. We'll get back to it later.
+                try:
+                    save_page(page, summary)
+                except pywikibot.exceptions.EditConflict:
+                    continue
+                except Exception:
+                    time.sleep(5)
+                    save_page(page, summary)
             else:
                 continue
 
