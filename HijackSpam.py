@@ -20,11 +20,14 @@
 """Generates reports for a link cleanup project"""
 
 import time
+import re
 import urllib.parse
 import json
 import requests
 import pywikibot
 from pywikibot import pagegenerators
+
+version = '1.0.0'
 
 
 def get_sitematrix():
@@ -39,8 +42,8 @@ def get_sitematrix():
     # Construct the request to the Extension:Sitematrix api
     payload = {"action": "sitematrix", "format": "json",
                "smlangprop": "site", "smsiteprop": "url"}
-    headers = {'user-agent':
-               'HijackSpam on PAWS; User:AntiCompositeBot, pywikibot/'
+    headers = {'user-agent': 'HijackSpam ' + version + ' as AntiCompositeBot'
+               + ' on Toolforge. User:AntiCompositeNumber, pywikibot/'
                + pywikibot.__version__}
     url = 'https://meta.wikimedia.org/w/api.php'
 
@@ -84,10 +87,6 @@ def list_pages(site, target):
             yield page
 
 
-def output(text):
-    raise NotImplementedError
-
-
 def site_report(pages, site, preload_sums, report_site):
     """Generate the full linksearch report for a site"""
 
@@ -97,12 +96,13 @@ def site_report(pages, site, preload_sums, report_site):
     count = 0
     for page in pages:
         count += 1
-        link = page.title(as_link=True, insite=report_site, textlink=True)
-        wt += ('* {link} ([{url}?action=edit&summary={summary}&minor=1'
-               ' edit])\n').format(
-                   link=link, url=page.full_url(), summary=summary)
+
+        wt += ('* <span class=plainlinks>[{url} {title}]'
+               '([{url}?action=edit&summary={summary}&minor=1'
+               ' edit])</span>\n').format(
+                   title=page.title(), url=page.full_url(), summary=summary)
     if count > 0:
-        wt = ('=== {dbname} ===\nTotal: {count}\n'.format(
+        wt = ('\n=== {dbname} ===\nTotal: {count}\n'.format(
             dbname=site.dbName(), count=count) + wt)
 
     return wt, count
@@ -136,6 +136,28 @@ def run_check(site, runOverride):
         raise pywikibot.UserBlocked
 
 
+def save_page(target, gallery):
+    """Saves the page to enwiki, making sure to leave text above the line"""
+    oldWikitext = target.text
+    regex = re.compile(
+        '(?<=<!-- Only text ABOVE this line '
+        'will be preserved on updates -->\n).*', re.M | re.S)
+    newWikitext = re.sub(regex, gallery, oldWikitext)
+    target.text = newWikitext
+    try:
+        target.save(summary='Updating report (Bot) ({version})'.format(
+            version=version), botflag=False)
+    except pywikibot.PageNotSaved:
+        print('Save failed, trying again soon')
+        time.sleep(15)
+        try:
+            target.save(summary='Updating gallery (Bot) ({version})'.format(
+                version=version), botflag=False)
+        except pywikibot.PageNotSaved:
+            print(target.text)
+            raise
+
+
 def main():
     target = 'blackwell-synergy.com'
     counts = {}
@@ -145,7 +167,7 @@ def main():
     run_check(enwiki, False)
     out_page = pywikibot.Page(
         enwiki, 'User:AntiCompositeBot/HijackSpam/Report')
-    out_page.text = ''
+    report_text = '\n\n== Reports ==\n'
 
     # Load preload summaries from on-wiki json
     config = pywikibot.Page(
@@ -160,8 +182,8 @@ def main():
         sitematrix = get_sitematrix()
 
     # Add the start time to the output
-    out_page.text += ('Scanning all public wikis for ' + target + ' at '
-                      + time.asctime() + '.\n\n')
+    lead_text = ('Scanning all public wikis for ' + target + ' at '
+                 + time.asctime() + '.\n')
 
     # Run through the sitematrix. If pywikibot works on that site, generate
     # a report. Otherwise, add it to the skipped list.
@@ -176,14 +198,16 @@ def main():
         pages = list_pages(cur_site, target)
 
         report = site_report(pages, cur_site, preload_sums, enwiki)
-        out_page.text += report[0]
+        report_text += report[0]
         counts[cur_site.dbName()] = report[1]
 
-    out_page.text += '=== Skipped ===\n' + skipped
+    report_text += '\n=== Skipped ===\n' + skipped
 
     # Generate a summary table and stick it at the top
-    out_page.text = summary_table(counts) + out_page.text
-    print(out_page.text)
+    report_text = lead_text + summary_table(counts) + report_text
+
+    # Save the report
+    save_page(out_page, report_text)
 
 
 if __name__ == '__main__':
