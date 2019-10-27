@@ -114,8 +114,8 @@ def summary_table(counts):
     tot = 0
     total_wikis = 0
     wt = ('\n<div class="container float-left">\n<h2 id="Summary">Summary</h2>'
-          '\n<table class="table table-striped table-sm'
-          'container float-left">\n<tr><th>Wiki</th><th>Count</th></tr>')
+          '\n<table class="table table-striped table-sm">'
+          '\n<tr><th>Wiki</th><th>Count</th></tr>')
 
     for wiki, count in sorted(counts.items()):
         if count > 0:
@@ -209,8 +209,8 @@ def main():
         counts[cur_site.dbName()] = report[1]
 
     report_text += ('\n<div class="container float-left">\n'
-            '<h3 id="Skipped>Skipped</h3>\n<ul>\n' + skipped + 
-            '</ul>\n</div>\n</html>'
+                    '<h3 id="Skipped>Skipped</h3>\n<ul>\n' + skipped +
+                    '</ul>\n</div>\n</html>')
 
     # Generate a summary table and stick it at the top
     report_text = lead_text + summary_table(counts) + report_text + footer
