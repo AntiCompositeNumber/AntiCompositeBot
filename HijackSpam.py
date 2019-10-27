@@ -152,7 +152,7 @@ def main():
     # Set up on enwiki, check runpage, and prepare empty report page
     enwiki = pywikibot.Site('en', 'wikipedia')
     run_check(enwiki, False)
-    report_text = '\n\n<h2>Reports</h2>\n'
+    report_text = '\n\n<h2 class="container float-right">Reports</h2>\n'
 
     # Load preload summaries from on-wiki json
     config = pywikibot.Page(
@@ -189,8 +189,9 @@ def main():
 </html>"""
 
     # Add the start time to the output
-    lead_text = (header + 'Scanning all public wikis for ' + target + ' at '
-                 + time.asctime() + '.\n')
+    lead_text = (header + '<div class="container float-right">\n
+                 <h1>HijackSpam</h1>\n<p>Scanning all public wikis for ' +
+                 target + ' at ' + time.asctime() + '.</p>\n</div>\n')
 
     # Run through the sitematrix. If pywikibot works on that site, generate
     # a report. Otherwise, add it to the skipped list.
