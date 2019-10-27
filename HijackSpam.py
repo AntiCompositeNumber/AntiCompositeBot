@@ -174,7 +174,7 @@ def main():
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap-.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" crossorigin="anonymous">
 
     <title>HijackSpam</title>
   </head>
@@ -208,7 +208,9 @@ def main():
         report_text += report[0]
         counts[cur_site.dbName()] = report[1]
 
-    report_text += '\n=== Skipped ===\n<ul>\n' + skipped + '</ul>\n</html>'
+    report_text += ('\n<div class="container float-left">\n'
+            '<h3 id="Skipped>Skipped</h3>\n<ul>\n' + skipped + 
+            '</ul>\n</div>\n</html>'
 
     # Generate a summary table and stick it at the top
     report_text = lead_text + summary_table(counts) + report_text + footer
