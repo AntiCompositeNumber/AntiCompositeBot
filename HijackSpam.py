@@ -97,7 +97,7 @@ def site_report(pages, site, preload_sums, report_site):
         count += 1
 
         wt += ('<li><a href="{url}">{title}</a>'
-               '(<a href="{url}?action=edit&summary={summary}&minor=1>'
+               '(<a href="{url}?action=edit&summary={summary}&minor=1">'
                'edit</a>)</li>\n').format(
                    title=page.title(), url=page.full_url(), summary=summary)
     if count > 0:
@@ -112,13 +112,13 @@ def summary_table(counts):
 
     tot = 0
     total_wikis = 0
-    wt = ('\n<h1>Summary</h2>\n<table>\n'
+    wt = ('\n<h1>Summary</h1>\n<table>\n'
           '<tr><th>Wiki</th><th>Count</th></tr>')
 
     for wiki, count in counts.items():
         if count > 0:
-            wt += ('\n<tr><a href=#{wiki}>{wiki}</a></tr>\n'
-                   '<tr>{count}</tr>').format(wiki=wiki, count=count)
+            wt += ('\n<tr><td><a href="#{wiki}">{wiki}</a></td>\n'
+                   '<td>{count}</td></tr>').format(wiki=wiki, count=count)
             tot += count
             total_wikis += 1
 
