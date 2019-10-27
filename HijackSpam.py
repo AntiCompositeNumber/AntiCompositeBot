@@ -26,7 +26,7 @@ import requests
 import pywikibot
 from pywikibot import pagegenerators
 
-version = '1.2.1'
+version = '1.2.2'
 
 
 def get_sitematrix():
@@ -210,8 +210,8 @@ def main():
         counts[cur_site.dbName()] = report[1]
 
     report_text += ('\n<div class="container">\n'
-                    '<h3 id="Skipped>Skipped</h3>\n<ul>\n' + skipped +
-                    '</ul>\n</div>\n</html>')
+                    '<h3 id="Skipped">Skipped</h3>\n<ul>\n' + skipped +
+                    '</ul>\n</div>\n')
 
     # Generate a summary table and stick it at the top
     report_text = lead_text + summary_table(counts) + report_text + footer
