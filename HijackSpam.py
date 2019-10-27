@@ -101,8 +101,9 @@ def site_report(pages, site, preload_sums, report_site):
                'edit</a>)</li>\n').format(
                    title=page.title(), url=page.full_url(), summary=summary)
     if count > 0:
-        wt = ('\n<h2 id="{dbname}">{dbname}: {count}</h2>\n<ul>\n'.format(
-            dbname=site.dbName(), count=count) + wt + '</ul>\n')
+        wt = ('<div class="container float-left">'
+              '\n<h3 id="{dbname}">{dbname}: {count}</h3>\n<ul>\n').format(
+            dbname=site.dbName(), count=count) + wt + '</ul>\n</div>\n'
 
     return wt, count
 
@@ -112,8 +113,9 @@ def summary_table(counts):
 
     tot = 0
     total_wikis = 0
-    wt = ('\n<h1>Summary</h1>\n<table class="table table-striped">\n'
-          '<tr><th>Wiki</th><th>Count</th></tr>')
+    wt = ('\n<div class="container float-left">\n<h2 id="Summary">Summary</h2>'
+          '\n<table class="table table-striped table-sm'
+          'container float-left">\n<tr><th>Wiki</th><th>Count</th></tr>')
 
     for wiki, count in sorted(counts.items()):
         if count > 0:
@@ -122,8 +124,8 @@ def summary_table(counts):
             tot += count
             total_wikis += 1
 
-    wt += '\n</table>'
-    wt += 'Total wikis: {total_wikis}<br>\nTotal pages: {tot}\n'.format(
+    wt += ('\n</table>\n<p>Total wikis: {total_wikis}</p>\n'
+           '<p>Total pages: {tot}</p>\n</div>\n').format(
             total_wikis=total_wikis, tot=tot)
 
     return wt
@@ -150,7 +152,7 @@ def main():
     # Set up on enwiki, check runpage, and prepare empty report page
     enwiki = pywikibot.Site('en', 'wikipedia')
     run_check(enwiki, False)
-    report_text = '\n\n<h1>Reports</h1>\n'
+    report_text = '\n\n<h2>Reports</h2>\n'
 
     # Load preload summaries from on-wiki json
     config = pywikibot.Page(
@@ -172,7 +174,7 @@ def main():
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap-grid.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap-.min.css" crossorigin="anonymous">
 
     <title>HijackSpam</title>
   </head>
