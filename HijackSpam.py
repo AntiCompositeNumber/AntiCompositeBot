@@ -112,17 +112,19 @@ def summary_table(counts):
 
     tot = 0
     total_wikis = 0
-    wt = ('\n<h1>Summary</h1>\n<table>\n'
+    wt = ('\n<h1>Summary</h1>\n<table class="table table-striped">\n'
           '<tr><th>Wiki</th><th>Count</th></tr>')
 
-    for wiki, count in counts.items():
+    for wiki, count in sorted(counts.items()):
         if count > 0:
             wt += ('\n<tr><td><a href="#{wiki}">{wiki}</a></td>\n'
                    '<td>{count}</td></tr>').format(wiki=wiki, count=count)
             tot += count
             total_wikis += 1
 
-    wt += '</table>'
+    wt += '\n</table>'
+    wt += 'Total wikis: {total_wikis}<br>\nTotal pages: {tot}\n'.format(
+            total_wikis=total_wikis, tot=tot)
 
     return wt
 
@@ -162,11 +164,30 @@ def main():
         time.sleep(5)
         sitematrix = get_sitematrix()
 
+    header = """<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap-grid.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <title>HijackSpam</title>
+  </head>
+  <body>
+"""
+
+    footer = """
+    <script src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/jquery/3.4.1/jquery.slim.min.js" crossorigin="anonymous"></script>
+    <script src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/popper.js/1.15.0/umd/popper.min.js" crossorigin="anonymous"></script>
+    <script src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+  </body>
+</html>"""
+
     # Add the start time to the output
-    lead_text = ('<!DOCTYPE html>\n<html>\n'
-                 '<style>table, th, td {border:1px solid black; '
-                 'border-collapse: collapse;}</style>\n'
-                 'Scanning all public wikis for ' + target + ' at '
+    lead_text = (header + 'Scanning all public wikis for ' + target + ' at '
                  + time.asctime() + '.\n')
 
     # Run through the sitematrix. If pywikibot works on that site, generate
@@ -188,7 +209,7 @@ def main():
     report_text += '\n=== Skipped ===\n<ul>\n' + skipped + '</ul>\n</html>'
 
     # Generate a summary table and stick it at the top
-    report_text = lead_text + summary_table(counts) + report_text
+    report_text = lead_text + summary_table(counts) + report_text + footer
 
     # Save the report
     save_page(report_text)
