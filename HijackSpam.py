@@ -26,7 +26,7 @@ import requests
 import pywikibot
 from pywikibot import pagegenerators
 
-version = '1.1.0'
+version = '1.2.1'
 
 
 def get_sitematrix():
@@ -189,8 +189,8 @@ def main():
 </html>"""
 
     # Add the start time to the output
-    lead_text = (header + '<div class="container float-right">\n
-                 <h1>HijackSpam</h1>\n<p>Scanning all public wikis for ' +
+    lead_text = (header + '<div class="container float-right">\n'
+                 '<h1>HijackSpam</h1>\n<p>Scanning all public wikis for ' +
                  target + ' at ' + time.asctime() + '.</p>\n</div>\n')
 
     # Run through the sitematrix. If pywikibot works on that site, generate
