@@ -136,7 +136,7 @@ def run_check(site, runOverride):
 
 
 def save_page(new_text):
-    with open('/data/project/anticompositebot/www/static/HijackSpam',
+    with open('/data/project/anticompositebot/www/static/HijackSpam.html',
               'w') as f:
         f.write(new_text)
 
