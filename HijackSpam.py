@@ -20,14 +20,13 @@
 """Generates reports for a link cleanup project"""
 
 import time
-import re
 import urllib.parse
 import json
 import requests
 import pywikibot
 from pywikibot import pagegenerators
 
-version = '1.0.0'
+version = '1.1.0'
 
 
 def get_sitematrix():
@@ -97,13 +96,13 @@ def site_report(pages, site, preload_sums, report_site):
     for page in pages:
         count += 1
 
-        wt += ('* <span class=plainlinks>[{url} {title}]'
-               '([{url}?action=edit&summary={summary}&minor=1'
-               ' edit])</span>\n').format(
+        wt += ('<li><a href="{url}">{title}</a>'
+               '(<a href="{url}?action=edit&summary={summary}&minor=1>'
+               'edit</a>)</li>\n').format(
                    title=page.title(), url=page.full_url(), summary=summary)
     if count > 0:
-        wt = ('\n=== {dbname} ===\nTotal: {count}\n'.format(
-            dbname=site.dbName(), count=count) + wt)
+        wt = ('\n<h2 id="{dbname}">{dbname}: {count}</h2>\n<ul>\n'.format(
+            dbname=site.dbName(), count=count) + wt + '</ul>\n')
 
     return wt, count
 
@@ -113,17 +112,17 @@ def summary_table(counts):
 
     tot = 0
     total_wikis = 0
-    wt = ('\n== Summary ==\n{| class="wikitable sortable"\n'
-          '|-\n! Wiki !! Count \n')
+    wt = ('\n<h1>Summary</h2>\n<table>\n'
+          '<tr><th>Wiki</th><th>Count</th></tr>')
 
     for wiki, count in counts.items():
         if count > 0:
-            wt += '|-\n| [[#{wiki}|{wiki}]] || {count} \n'.format(wiki=wiki,
-                                                                  count=count)
+            wt += ('\n<tr><a href=#{wiki}>{wiki}</a></tr>\n'
+                   '<tr>{count}</tr>').format(wiki=wiki, count=count)
             tot += count
             total_wikis += 1
 
-    wt += '|}'
+    wt += '</table>'
 
     return wt
 
@@ -136,26 +135,10 @@ def run_check(site, runOverride):
         raise pywikibot.UserBlocked
 
 
-def save_page(target, gallery):
-    """Saves the page to enwiki, making sure to leave text above the line"""
-    oldWikitext = target.text
-    regex = re.compile(
-        '(?<=<!-- Only text ABOVE this line '
-        'will be preserved on updates -->\n).*', re.M | re.S)
-    newWikitext = re.sub(regex, gallery, oldWikitext)
-    target.text = newWikitext
-    try:
-        target.save(summary='Updating report (Bot) ({version})'.format(
-            version=version), botflag=False)
-    except pywikibot.PageNotSaved:
-        print('Save failed, trying again soon')
-        time.sleep(15)
-        try:
-            target.save(summary='Updating gallery (Bot) ({version})'.format(
-                version=version), botflag=False)
-        except pywikibot.PageNotSaved:
-            print(target.text)
-            raise
+def save_page(new_text):
+    with open('/data/project/anticompositebot/www/static/HijackSpam',
+              'w') as f:
+        f.write(new_text)
 
 
 def main():
@@ -165,9 +148,7 @@ def main():
     # Set up on enwiki, check runpage, and prepare empty report page
     enwiki = pywikibot.Site('en', 'wikipedia')
     run_check(enwiki, False)
-    out_page = pywikibot.Page(
-        enwiki, 'User:AntiCompositeBot/HijackSpam/Report')
-    report_text = '\n\n== Reports ==\n'
+    report_text = '\n\n<h1>Reports</h1>\n'
 
     # Load preload summaries from on-wiki json
     config = pywikibot.Page(
@@ -182,7 +163,10 @@ def main():
         sitematrix = get_sitematrix()
 
     # Add the start time to the output
-    lead_text = ('Scanning all public wikis for ' + target + ' at '
+    lead_text = ('<!DOCTYPE html>\n<html>\n'
+                 '<style>table, th, td {border:1px solid black; '
+                 'border-collapse: collapse;}</style>\n'
+                 'Scanning all public wikis for ' + target + ' at '
                  + time.asctime() + '.\n')
 
     # Run through the sitematrix. If pywikibot works on that site, generate
@@ -192,7 +176,7 @@ def main():
         try:
             cur_site = pywikibot.Site(url=url + '/wiki/MediaWiki:Delete/en')
         except Exception:
-            skipped += '* {url}\n'.format(url=url)
+            skipped += '<li>{url}</li>\n'.format(url=url)
             continue
 
         pages = list_pages(cur_site, target)
@@ -201,13 +185,13 @@ def main():
         report_text += report[0]
         counts[cur_site.dbName()] = report[1]
 
-    report_text += '\n=== Skipped ===\n' + skipped
+    report_text += '\n=== Skipped ===\n<ul>\n' + skipped + '</ul>\n</html>'
 
     # Generate a summary table and stick it at the top
     report_text = lead_text + summary_table(counts) + report_text
 
     # Save the report
-    save_page(out_page, report_text)
+    save_page(report_text)
 
 
 if __name__ == '__main__':
