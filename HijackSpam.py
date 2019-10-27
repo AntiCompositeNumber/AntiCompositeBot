@@ -96,12 +96,12 @@ def site_report(pages, site, preload_sums, report_site):
     for page in pages:
         count += 1
 
-        wt += ('<li><a href="{url}">{title}</a>'
+        wt += ('<li><a href="{url}">{title}</a> '
                '(<a href="{url}?action=edit&summary={summary}&minor=1">'
                'edit</a>)</li>\n').format(
                    title=page.title(), url=page.full_url(), summary=summary)
     if count > 0:
-        wt = ('<div class="container float-left">'
+        wt = ('<div class="container">'
               '\n<h3 id="{dbname}">{dbname}: {count}</h3>\n<ul>\n').format(
             dbname=site.dbName(), count=count) + wt + '</ul>\n</div>\n'
 
@@ -113,8 +113,8 @@ def summary_table(counts):
 
     tot = 0
     total_wikis = 0
-    wt = ('\n<div class="container float-left">\n<h2 id="Summary">Summary</h2>'
-          '\n<table class="table table-striped table-sm">'
+    wt = ('\n<div class="container">\n<h2 id="Summary">Summary</h2>'
+          '\n<table class="table table-striped table-sm table-bordered">'
           '\n<tr><th>Wiki</th><th>Count</th></tr>')
 
     for wiki, count in sorted(counts.items()):
@@ -152,7 +152,7 @@ def main():
     # Set up on enwiki, check runpage, and prepare empty report page
     enwiki = pywikibot.Site('en', 'wikipedia')
     run_check(enwiki, False)
-    report_text = '\n\n<h2 class="container float-right">Reports</h2>\n'
+    report_text = '\n\n<h2 class="container">Reports</h2>\n'
 
     # Load preload summaries from on-wiki json
     config = pywikibot.Page(
@@ -189,7 +189,7 @@ def main():
 </html>"""
 
     # Add the start time to the output
-    lead_text = (header + '<div class="container float-right">\n'
+    lead_text = (header + '<div class="container">\n'
                  '<h1>HijackSpam</h1>\n<p>Scanning all public wikis for ' +
                  target + ' at ' + time.asctime() + '.</p>\n</div>\n')
 
@@ -209,7 +209,7 @@ def main():
         report_text += report[0]
         counts[cur_site.dbName()] = report[1]
 
-    report_text += ('\n<div class="container float-left">\n'
+    report_text += ('\n<div class="container">\n'
                     '<h3 id="Skipped>Skipped</h3>\n<ul>\n' + skipped +
                     '</ul>\n</div>\n</html>')
 
