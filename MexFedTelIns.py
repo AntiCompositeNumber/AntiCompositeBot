@@ -27,17 +27,17 @@ site = pywikibot.Site("en", "wikipedia")
 
 
 def iter_pages(limit=0):
-    query = (
-        "SELECT"
-        "    page_namespace,"
-        "    page_title"
-        "FROM"
-        "    externallinks"
-        "    JOIN page ON el_from = page_id"
-        "WHERE"
-        "    el_to LIKE 'http://rpc.ift.org.mx/rpc/%' OR"
-        "    el_to LIKE 'https://rpc.ift.org.mx/rpc/%'"
-    )
+    query = """
+SELECT
+    page_namespace,
+    page_title
+FROM
+    externallinks
+    JOIN page ON el_from = page_id
+WHERE
+    el_to LIKE "http://rpc.ift.org.mx/rpc/%" OR
+    el_to LIKE "https://rpc.ift.org.mx/rpc/%"
+"""
 
     for i, page in enumerate(pagegenerators.MySQLPageGenerator(query, site=site)):
         if not limit or i < limit:
