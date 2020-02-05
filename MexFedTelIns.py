@@ -57,6 +57,10 @@ def save_page(page, new_text):
 
 
 def main():
-    for page in iter_pages():
+    for page in iter_pages(1):
         new_text = do_text_replace(page.text)
         save_page(page, new_text)
+
+
+if __name__ == "__main__":
+    main()
