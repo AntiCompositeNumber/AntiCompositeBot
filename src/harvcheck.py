@@ -26,6 +26,7 @@ import mwparserfromhell as mwph  # type: ignore
 import json
 import os
 import toolforge
+import argparse
 
 from mwparserfromhell.wikicode import Wikicode  # type: ignore
 from bs4.element import Tag  # type: ignore
@@ -159,19 +160,22 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
     skip_tags = config["skip_tags"]
 
     if target.startswith("<"):
-        matches = wikitext.filter_tags(matches=target)
+        matches = wikitext.filter_tags(matches=lambda n: n == target)
     elif target.startswith("{{"):
-        matches = wikitext.filter_templates(matches=target)
+        matches = wikitext.filter_templates(matches=lambda n: n == target)
 
     for obj in matches:
         index = wikitext.index(obj)
         try:
+            # skip if there's already an inline maint tag
             next_obj = wikitext.nodes[index + 1]
             skip = next_obj.name.matches(skip_tags)
         except (AttributeError, IndexError):
+            # assume that it's the end of a section or something and tag anyway
             skip = False
 
-        skip = str(obj) != target
+        # make sure this is the right object
+        skip = skip or str(obj) != target
 
         if not skip:
             wikitext.insert_after(obj, tag)
@@ -199,7 +203,7 @@ def broken_anchors(title: str, revision: str = "") -> Dict[str, Set[str]]:
                     ref_wikitext.endswith("/>")
                     and ref_wikitext.startswith("<ref")
                     and not ref_wikitext.startswith("<ref>")
-                ):
+                ) or (ref_wikitext.startswith("{{r")):
                     # skip self-closed ref tags, ref text defined elsewhere
                     continue
                 broken_harvs.setdefault(link_id, set()).add(ref_wikitext)
@@ -226,7 +230,7 @@ def save_page(page: BasePage, wikitext: str, summary: str) -> None:
 def check_runpage() -> None:
     """Raises pywikibot.UserBlocked if on-wiki runpage is not True"""
     page = pywikibot.Page(site, config["runpage"])
-    if not page.endswith("True"):
+    if not page.text.endswith("True"):
         raise pywikibot.UserBlocked("Runpage is false, quitting")
 
 
@@ -268,12 +272,36 @@ def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
         return True
 
 
-def auto(limit: int = 0):
+def auto(limit: int = 0, start: str = "!"):
     check_runpage()
     i = 0
-    for page in site.allpages():
+    for page in site.allpages(start=start, content=True):
         if limit and i >= limit:
             break
         result = main(page=page)
         if result:
             i += 1
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    runtype = parser.add_mutually_exclusive_group(required=True)
+    runtype.add_argument(
+        "--auto", help="runs the bot continuously", action="store_true"
+    )
+    runtype.add_argument("--page", help="run the bot on this page only")
+    parser.add_argument("--limit", type=int, help="how many pages to edit", default=0)
+    parser.add_argument("--start", help="page to start iterating from", default="!")
+    parser.add_argument(
+        "--simulate", action="store_true", help="prevents bot from saving"
+    )
+    args = parser.parse_args()
+    if args.simulate:
+        simulate = True
+    if args.auto:
+        auto(limit=args.limit, start=args.start)
+    elif args.page:
+        if main(title=args.page):
+            print("Done")
+        else:
+            print("Failed")
