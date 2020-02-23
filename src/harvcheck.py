@@ -316,4 +316,4 @@ if __name__ == "__main__":
         if main(title=args.page):
             print("Done")
         else:
-            print("Failed")
+            print("No change")
