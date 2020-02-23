@@ -96,8 +96,8 @@ def parse_citeref_links(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]
     # The inline footnote boxes have "cite_ref" ids and link to "cite_note" ids.
     # The reference list items have "cite_note" ids and link to "cite_ref" ids.
     # sfn inline boxes link to cite_note-FOOTNOTE ids
-    # Harvard citations link to CITENOTE ids
-    # ref=harv references have CITENOTE ids
+    # Harvard citations link to CITEREF ids
+    # ref=harv references have CITEREF ids
 
     links: Dict[str, List[Tag]] = {}
     for link in soup.find_all("a"):
