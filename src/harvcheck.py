@@ -27,6 +27,7 @@ import json
 import os
 import toolforge
 import argparse
+import time
 
 from mwparserfromhell.wikicode import Wikicode  # type: ignore
 from bs4.element import Tag  # type: ignore
@@ -272,15 +273,26 @@ def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
         return True
 
 
+def throttle(start_time: float) -> None:
+    end_time = time.monotonic()
+    length = end_time - start_time
+    rate = config["rate"]
+    if length < rate:
+        time.sleep(rate - length)
+
+
 def auto(limit: int = 0, start: str = "!"):
     check_runpage()
     i = 0
     for page in site.allpages(start=start, content=True):
+        start_time = time.monotonic()
         if limit and i >= limit:
             break
         result = main(page=page)
         if result:
             i += 1
+            if i != limit:
+                throttle(start_time)
 
 
 if __name__ == "__main__":
