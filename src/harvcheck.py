@@ -186,8 +186,16 @@ def check_runpage():
     pass
 
 
-def main(title):
-    page = pywikibot.Page(site, title)
+def main(title="", page=None):
+    check_runpage()
+    if page and not title:
+        title = page.title()
+    elif title and not page:
+        page = pywikibot.Page(site, title)
+    elif title == page.title():
+        pass
+    else:
+        raise ValueError("Title or page must be specified")
     wikitext = mwph.parse(page.text)
 
     broken_harvs = broken_anchors(title)
@@ -196,4 +204,10 @@ def main(title):
         for ref_wikitext in ref_text_list:
             wikitext = append_tags(wikitext, ref_wikitext)
 
-    save_page(page, str(wikitext))
+    save_page(page, str(wikitext), "")
+
+
+def auto():
+    check_runpage()
+    for page in site.allpages():
+        main(page=page)
