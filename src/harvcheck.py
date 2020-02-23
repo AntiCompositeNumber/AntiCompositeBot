@@ -28,13 +28,21 @@ import os
 import toolforge
 import argparse
 import time
+import logging
 
 from mwparserfromhell.wikicode import Wikicode  # type: ignore
 from bs4.element import Tag  # type: ignore
 from pywikibot.page import BasePage  # type: ignore
-from typing import Dict, List, Set, Any, Optional, Tuple, overload
+from typing import Dict, List, Set, Any, Optional, Tuple
 
 __version__ = "0.1"
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s:%(name)s:%(message)s", level=logging.INFO,
+)
+pwl = logging.getLogger("pywiki")
+pwl.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # load config
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
@@ -74,7 +82,7 @@ def parse_citeref_ids(soup: BeautifulSoup) -> Set[str]:
     """Parse Parsoid HTML and return html ids for citations"""
     ids = set()
     for element in soup.find_all(class_="citation"):
-        el_id = element["id"]
+        el_id = element.get("id")
         if el_id and el_id.startswith("CITEREF"):
             ids.add(el_id)
 
@@ -235,16 +243,6 @@ def check_runpage() -> None:
         raise pywikibot.UserBlocked("Runpage is false, quitting")
 
 
-@overload
-def main(title: None, page: BasePage) -> None:
-    ...
-
-
-@overload
-def main(title: str, page: None) -> None:
-    ...
-
-
 def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
     assert page or title
 
@@ -257,6 +255,7 @@ def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
             raise ValueError("Specified title and page do not match")
 
     assert page and title
+    logger.info(f"Checking {title}")
     check_runpage()
     wikitext = mwph.parse(page.text)
 
@@ -278,13 +277,15 @@ def throttle(start_time: float) -> None:
     length = end_time - start_time
     rate = config["rate"]
     if length < rate:
+        logger.info(f"Throttling for {rate - length} seconds")
         time.sleep(rate - length)
 
 
 def auto(limit: int = 0, start: str = "!"):
+    logger.info("Starting up")
     check_runpage()
     i = 0
-    for page in site.allpages(start=start, content=True):
+    for page in site.allpages(start=start, content=True, filterredir=False):
         start_time = time.monotonic()
         if limit and i >= limit:
             break
@@ -293,6 +294,8 @@ def auto(limit: int = 0, start: str = "!"):
             i += 1
             if i != limit:
                 throttle(start_time)
+
+    logger.info("Finished!")
 
 
 if __name__ == "__main__":
