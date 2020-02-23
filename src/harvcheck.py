@@ -34,6 +34,7 @@ from typing import Dict, List, Set, Any, Optional, Tuple, overload
 
 __version__ = "0.1"
 
+# load config
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
 with open(os.path.join(_conf_dir, "default_config.json")) as f:
     config = json.load(f)["harvcheck"]
@@ -48,13 +49,16 @@ simulate = config.get("simulate", True)
 session = requests.Session()
 session.headers.update(
     {
-        "User-Agent": "harvcheck" + toolforge.set_user_agent("AntiCompositeBot")
+        "User-Agent": config.get(
+            "summary", "harvcheck" + toolforge.set_user_agent(config["tool"])
+        )
     }
 )
 site = pywikibot.Site("en", "wikipedia")
 
 
 def get_html(title: str, revision: str = "") -> Tuple[str, str]:
+    """Get Parsoid HTML for a page (and optional revision)"""
     url = "https://en.wikipedia.org/api/rest_v1/page/html/" + "/".join(
         urllib.parse.quote(i.replace(" ", "_"), safe="") for i in (title, revision) if i
     )
@@ -65,6 +69,7 @@ def get_html(title: str, revision: str = "") -> Tuple[str, str]:
 
 
 def parse_citeref_ids(soup: BeautifulSoup) -> Set[str]:
+    """Parse Parsoid HTML and return html ids for citations"""
     ids = set()
     for element in soup.find_all(class_="citation"):
         el_id = element["id"]
@@ -75,12 +80,15 @@ def parse_citeref_ids(soup: BeautifulSoup) -> Set[str]:
 
 
 def parse_citeref_links(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]:
-    """The inline footnote boxes have "cite_ref" ids and link to "cite_note" ids.
-    The reference list items have "cite_note" ids and link to "cite_ref" ids.
-    sfn inline boxes link to cite_note-FOOTNOTE ids
-    Harvard citations link to CITENOTE ids
-    ref=harv references have CITENOTE ids
+    """Parse Parsoid HTML for same-page CITEREF links
+    Returns a dict of fragments and HTML a tags
     """
+    # The inline footnote boxes have "cite_ref" ids and link to "cite_note" ids.
+    # The reference list items have "cite_note" ids and link to "cite_ref" ids.
+    # sfn inline boxes link to cite_note-FOOTNOTE ids
+    # Harvard citations link to CITENOTE ids
+    # ref=harv references have CITENOTE ids
+
     links: Dict[str, List[Tag]] = {}
     for link in soup.find_all("a"):
         link_page, sep, fragment = link.get("href").partition("#")
@@ -91,6 +99,9 @@ def parse_citeref_links(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]
 
 
 def parse_refs(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]:
+    """Parse Parsoid HTML for reflist citations
+    Returns a dict of fragments and HTML citations
+    """
     refs: Dict[str, List[Tag]] = {}
     for ref in soup.find_all(class_="mw-ref"):
         link_page, sep, fragment = ref.find("a").get("href").partition("#")
@@ -101,15 +112,18 @@ def parse_refs(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]:
 
 
 def find_mismatch(ids: Set[str], links: Dict[str, Any]) -> Dict[str, Any]:
+    """Returns dict of links where links are all in ids"""
     return {key: value for key, value in links.items() if key not in ids}
 
 
 def find_note_id(element: Tag) -> str:
+    """Finds the HTML ID for a citation"""
     note_id = element.parent.parent["id"]
     return note_id
 
 
 def find_ref_for_note(note: Tag, page_refs: Dict[str, Any]) -> Any:
+    """Finds the corresponding [1] refs for the reflist note"""
     note_id = find_note_id(note)
     ref = page_refs.get(note_id)
     return ref
@@ -117,7 +131,9 @@ def find_ref_for_note(note: Tag, page_refs: Dict[str, Any]) -> Any:
 
 def find_wikitext_for_ref(ref: Tag, note: Tag, title: str, etag: str) -> str:
     wikitext = html_to_wikitext(str(ref), title, etag)
+    # if the ref is a template, it gets returned
     if not wikitext:
+        # if the ref is not a template, it must be a tag
         raw_wikitext = html_to_wikitext(str(ref) + str(note.parent), title, etag)
         wikitext = "".join(raw_wikitext.partition("</ref>")[0:2])
 
@@ -125,6 +141,7 @@ def find_wikitext_for_ref(ref: Tag, note: Tag, title: str, etag: str) -> str:
 
 
 def html_to_wikitext(html: str, title: str, etag: str) -> str:
+    """Converts html to wikitext in a page and etag context using the Parsoid API"""
     url = (
         "https://en.wikipedia.org/api/rest_v1/transform/html/to/wikitext/"
         + urllib.parse.quote(title.replace(" ", "_"), safe="")
@@ -137,8 +154,9 @@ def html_to_wikitext(html: str, title: str, etag: str) -> str:
 
 
 def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
-    tag = "{{subst:broken footnote}}"
-    skip_tags = ["subst:broken footnote", "Broken footnote", "citation not found"]
+    """Appends a tag for occurances of target in wikitext"""
+    tag = config["tag"]
+    skip_tags = config["skip_tags"]
 
     if target.startswith("<"):
         matches = wikitext.filter_tags(matches=target)
@@ -162,6 +180,7 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
 
 
 def broken_anchors(title: str, revision: str = "") -> Dict[str, Set[str]]:
+    """Returns a dict of broken anchors and the refs that contain them"""
     raw_html, etag = get_html(title, revision)
     soup = BeautifulSoup(raw_html, "html.parser")
 
@@ -189,6 +208,7 @@ def broken_anchors(title: str, revision: str = "") -> Dict[str, Set[str]]:
 
 
 def save_page(page: BasePage, wikitext: str, summary: str) -> None:
+    """Saves wikitext to the on-wiki page, unless simulate is set"""
     if not wikitext:
         raise ValueError
     if wikitext == page.text:
@@ -204,6 +224,7 @@ def save_page(page: BasePage, wikitext: str, summary: str) -> None:
 
 
 def check_runpage() -> None:
+    """Raises pywikibot.UserBlocked if on-wiki runpage is not True"""
     page = pywikibot.Page(site, config["runpage"])
     if not page.endswith("True"):
         raise pywikibot.UserBlocked("Runpage is false, quitting")
