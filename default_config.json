@@ -1,0 +1,7 @@
+{
+    "harvcheck":{
+        "runpage": "User:AntiCompositeBot/HarvCheck/Run",
+        "summary": "Tagging Harvard references with broken anchors, see [[Template:Harvard citation#Wikilink_to_citation_does_not_work]]",
+        "simulate": true
+    }
+}
