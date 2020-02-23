@@ -129,11 +129,13 @@ def append_tags(wikitext, target):
 
     for obj in matches:
         index = wikitext.index(obj)
-        next_obj = wikitext.nodes[index + 1]
         try:
+            next_obj = wikitext.nodes[index + 1]
             skip = next_obj.name.matches(skip_tags)
-        except AttributeError:
+        except (AttributeError, IndexError):
             skip = False
+
+        skip = str(obj) != target
 
         if not skip:
             wikitext.insert_after(obj, tag)
