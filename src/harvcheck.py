@@ -120,7 +120,24 @@ def html_to_wikitext(element, title, etag):
 
 def append_tags(wikitext, target):
     tag = "{{subst:broken footnote}}"
-    wikitext.insert_after(target, tag)
+    skip_tags = ["subst:broken footnote", "Broken footnote", "citation not found"]
+
+    if target.startswith("<"):
+        matches = wikitext.filter_tags(matches=target)
+    elif target.startswith("{{"):
+        matches = wikitext.filter_templates(matches=target)
+
+    for obj in matches:
+        index = wikitext.index(obj)
+        next_obj = wikitext.nodes[index + 1]
+        try:
+            skip = next_obj.name.matches(skip_tags)
+        except AttributeError:
+            skip = False
+
+        if not skip:
+            wikitext.insert_after(obj, tag)
+
     return wikitext
 
 
