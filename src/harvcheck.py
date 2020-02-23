@@ -23,22 +23,35 @@ import requests
 import urllib.parse
 import pywikibot  # type: ignore
 import mwparserfromhell as mwph  # type: ignore
+import json
+import os
+import toolforge
 
 from mwparserfromhell.wikicode import Wikicode  # type: ignore
 from bs4.element import Tag  # type: ignore
 from pywikibot.page import BasePage  # type: ignore
 from typing import Dict, List, Set, Any, Optional, Tuple, overload
 
+__version__ = "0.1"
+
+_conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
+with open(os.path.join(_conf_dir, "default_config.json")) as f:
+    config = json.load(f)["harvcheck"]
+try:
+    with open(os.path.join(_conf_dir, "config.json")) as f:
+        config.update(json.load(f).get("harvcheck", {}))
+except FileNotFoundError:
+    pass
+
+simulate = config.get("simulate", True)
+
 session = requests.Session()
 session.headers.update(
     {
-        "User-Agent": (
-            "anticompositetools harvcheck (dev), contact User:AntiCompositeNumber"
-        )
+        "User-Agent": "harvcheck" + toolforge.set_user_agent("AntiCompositeBot")
     }
 )
 site = pywikibot.Site("en", "wikipedia")
-simulate = True
 
 
 def get_html(title: str, revision: str = "") -> Tuple[str, str]:
@@ -178,6 +191,8 @@ def broken_anchors(title: str, revision: str = "") -> Dict[str, Set[str]]:
 def save_page(page: BasePage, wikitext: str, summary: str) -> None:
     if not wikitext:
         raise ValueError
+    if wikitext == page.text:
+        return
     page.text = wikitext
 
     check_runpage()
@@ -189,8 +204,9 @@ def save_page(page: BasePage, wikitext: str, summary: str) -> None:
 
 
 def check_runpage() -> None:
-    # TODO: actually implement
-    pass
+    page = pywikibot.Page(site, config["runpage"])
+    if not page.endswith("True"):
+        raise pywikibot.UserBlocked("Runpage is false, quitting")
 
 
 @overload
@@ -203,7 +219,7 @@ def main(title: str, page: None) -> None:
     ...
 
 
-def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> None:
+def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
     assert page or title
 
     if page and not title:
@@ -224,10 +240,19 @@ def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> None:
         for ref_wikitext in ref_text_list:
             wikitext = append_tags(wikitext, ref_wikitext)
 
-    save_page(page, str(wikitext), "")
+    if not broken_harvs or wikitext == page.text:
+        return False
+    else:
+        save_page(page, str(wikitext), config["summary"])
+        return True
 
 
-def auto():
+def auto(limit: int = 0):
     check_runpage()
+    i = 0
     for page in site.allpages():
-        main(page=page)
+        if limit and i >= limit:
+            break
+        result = main(page=page)
+        if result:
+            i += 1

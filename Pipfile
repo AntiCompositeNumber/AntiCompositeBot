@@ -17,6 +17,7 @@ requests = "*"
 pywikibot = {git = "https://phabricator.wikimedia.org/diffusion/PWBC/pywikibot.git"}
 requests-oauthlib = "*"
 bs4 = "*"
+toolforge = "*"
 
 [requires]
 python_version = "3.7"
