@@ -1,0 +1,31 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anticompositebot.harvcheck
+  namespace: tool-anticompositebot
+  labels:
+    name: anticompositebot.harvcheck
+    # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
+    toolforge: tool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: anticompositebot.harvcheck
+      toolforge: tool
+  template:
+    metadata:
+      labels:
+        name: anticompositebot.harvcheck
+        toolforge: tool
+    spec:
+      containers:
+        - name: harvcheck
+          image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+          command: [ "/data/project/anticompositebot/AntiCompositeBot/harvcheck.py", "--auto", "random", "--limit", "25" ]
+          workingDir: /data/project/anticompositebot
+          env:
+            - name: HOME
+              value: /data/project/anticompositebot
+          imagePullPolicy: Always
