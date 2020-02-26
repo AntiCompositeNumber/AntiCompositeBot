@@ -288,11 +288,17 @@ def throttle(start_time: float) -> None:
         time.sleep(rate - length)
 
 
-def auto(limit: int = 0, start: str = "!"):
+def auto(method, limit: int = 0, start: str = "!"):
     logger.info("Starting up")
     check_runpage()
     i = 0
-    for page in site.allpages(start=start, content=True, filterredir=False):
+    if method == "alpha":
+        iterpages = site.allpages(start=start, filterredir=False)
+    elif method == "random":
+        iterpages = site.randompages(namespaces=0, redirects=False)
+    else:
+        raise KeyError("Method is invalid")
+    for page in iterpages:
         start_time = time.monotonic()
         if limit and i >= limit:
             break
@@ -308,20 +314,32 @@ def auto(limit: int = 0, start: str = "!"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     runtype = parser.add_mutually_exclusive_group(required=True)
+    dryrun = parser.add_mutually_exclusive_group()
     runtype.add_argument(
-        "--auto", help="runs the bot continuously", action="store_true"
+        "--auto",
+        help="runs the bot continuously",
+        action="store",
+        nargs="?",
+        const="alpha",
     )
     runtype.add_argument("--page", help="run the bot on this page only")
     parser.add_argument("--limit", type=int, help="how many pages to edit", default=0)
     parser.add_argument("--start", help="page to start iterating from", default="!")
-    parser.add_argument(
+    dryrun.add_argument(
         "--simulate", action="store_true", help="prevents bot from saving"
     )
+    dryrun.add_argument(
+        "--run", action="store_true", help="overrides config to force saving"
+    )
     args = parser.parse_args()
+    print(args)
     if args.simulate:
         simulate = True
+    elif args.run:
+        simulate = False
+
     if args.auto:
-        auto(limit=args.limit, start=args.start)
+        auto(args.auto, limit=args.limit, start=args.start)
     elif args.page:
         if main(title=args.page):
             print("Done")
