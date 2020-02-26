@@ -128,12 +128,14 @@ def find_mismatch(ids: Set[str], links: Dict[str, Any]) -> Dict[str, Any]:
 
 def find_note_id(element: Tag) -> str:
     """Finds the HTML ID for a citation"""
-    note_id = element.parent.parent["id"]
+    note_id = element.parent.parent.get("id", "")
     return note_id
 
 
 def find_ref_for_note(note: Tag, page_refs: Dict[str, Any]) -> Any:
     """Finds the corresponding [1] refs for the reflist note"""
+    if "mw-reference-text" not in note.parent.get("class", [""]):
+        return [note]
     note_id = find_note_id(note)
     ref = page_refs.get(note_id)
     return ref
@@ -168,10 +170,15 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
     tag = config["tag"]
     skip_tags = config["skip_tags"]
 
+    def match(n):
+        return n == target
+
     if target.startswith("<"):
-        matches = wikitext.filter_tags(matches=lambda n: n == target)
+        matches = wikitext.filter_tags(matches=match)
     elif target.startswith("{{"):
-        matches = wikitext.filter_templates(matches=lambda n: n == target)
+        matches = wikitext.filter_templates(matches=match)
+    else:
+        matches = wikitext.filter(matches=match)
 
     for obj in matches:
         index = wikitext.index(obj)
