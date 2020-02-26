@@ -35,9 +35,11 @@ from bs4.element import Tag  # type: ignore
 from pywikibot.page import BasePage  # type: ignore
 from typing import Dict, List, Set, Any, Optional, Tuple
 
-__version__ = "0.1"
+__version__ = "0.2"
 logging.basicConfig(
-    format="%(asctime)s %(levelname)s:%(name)s:%(message)s", level=logging.INFO,
+    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
+    level=logging.INFO,
+    filename="harvcheck.log",
 )
 pwl = logging.getLogger("pywiki")
 pwl.setLevel(logging.INFO)
@@ -298,17 +300,18 @@ def auto(method, limit: int = 0, start: str = "!"):
         iterpages = site.randompages(namespaces=0, redirects=False)
     else:
         raise KeyError("Method is invalid")
-    for page in iterpages:
-        start_time = time.monotonic()
-        if limit and i >= limit:
-            break
-        result = main(page=page)
-        if result:
-            i += 1
-            if i != limit:
-                throttle(start_time)
-
-    logger.info("Finished!")
+    try:
+        for j, page in enumerate(iterpages):
+            start_time = time.monotonic()
+            if limit and i >= limit:
+                break
+            result = main(page=page)
+            if result:
+                i += 1
+                if i != limit:
+                    throttle(start_time)
+    finally:
+        logger.info(f"Finished! {j} articles scanned, {i} articles edited.")
 
 
 if __name__ == "__main__":
@@ -332,7 +335,6 @@ if __name__ == "__main__":
         "--run", action="store_true", help="overrides config to force saving"
     )
     args = parser.parse_args()
-    print(args)
     if args.simulate:
         simulate = True
     elif args.run:
