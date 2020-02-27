@@ -62,7 +62,7 @@ session = requests.Session()
 session.headers.update(
     {
         "User-Agent": config.get(
-            "summary", "harvcheck" + toolforge.set_user_agent(config["tool"])
+            "useragent", "harvcheck" + toolforge.set_user_agent(config["tool"])
         )
     }
 )
@@ -274,10 +274,16 @@ def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
         for ref_wikitext in ref_text_list:
             wikitext = append_tags(wikitext, ref_wikitext)
 
-    if not broken_harvs or wikitext == page.text:
+    changes = len(broken_harvs)
+
+    if (not broken_harvs) or (wikitext == page.text):
         return False
     else:
-        save_page(page, str(wikitext), config["summary"])
+        save_page(
+            page,
+            str(wikitext),
+            config["summary"].format(version=__version__, changes=changes),
+        )
         return True
 
 
@@ -334,6 +340,7 @@ if __name__ == "__main__":
     dryrun.add_argument(
         "--run", action="store_true", help="overrides config to force saving"
     )
+    parser.add_argument("--version", action="version", version=__version__)
     args = parser.parse_args()
     if args.simulate:
         simulate = True

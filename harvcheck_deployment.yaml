@@ -23,7 +23,7 @@ spec:
       containers:
         - name: harvcheck
           image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
-          command: [ "/data/project/anticompositebot/AntiCompositeBot/harvcheck.py", "--auto", "random", "--limit", "25" ]
+          command: [ "/data/project/anticompositebot/AntiCompositeBot/harvcheck.py", "--auto", "random", "--limit", "25", "--run"]
           workingDir: /data/project/anticompositebot
           env:
             - name: HOME
