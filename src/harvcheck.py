@@ -35,7 +35,7 @@ from bs4.element import Tag  # type: ignore
 from pywikibot.page import BasePage  # type: ignore
 from typing import Dict, List, Set, Any, Optional, Tuple
 
-__version__ = "0.3"
+__version__ = "0.4"
 
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
 logging.basicConfig(
@@ -68,6 +68,15 @@ session.headers.update(
         )
     }
 )
+# check if on toolforge
+try:
+    f = open("/etc/wmcs-project")
+except FileNotFoundError:
+    wmcs = False
+else:
+    wmcs = True
+    f.close()
+
 site = pywikibot.Site("en", "wikipedia")
 last_edit = float()
 
@@ -302,6 +311,53 @@ def throttle() -> None:
     last_edit = time.monotonic()
 
 
+def query_templatelinks():
+    query = """
+USE enwiki_p;
+SELECT
+  page_namespace,
+  page_title
+FROM
+  templatelinks
+  JOIN page on tl_from = page_id
+WHERE
+  {randstart} < page_random AND page_random <= {randend}
+  AND tl_namespace = 10
+  AND tl_from_namespace = 0
+  AND tl_title IN (
+    "Sfn",
+    "Harvard_citation_no_brackets",
+    "Harvnb",
+    "Harvard_citation",
+    "Harv",
+    "Harvard_citation_text",
+    "Harvtxt",
+    "Harvcoltxt",
+    "Harvcol",
+    "Harvcolnb",
+    "Harvard_citations",
+    "Harvs",
+    "Harvp",
+    "Shortened_footnote_template",
+    "Sfn",
+    "Sfnp",
+    "Sfnm",
+    "Sfnmp"
+  )
+GROUP BY
+  page_id
+ORDER BY
+  page_random ASC
+"""
+    for i in range(0, 20):
+        randstart = i / 20
+        randend = randstart + 0.05
+        for page in pywikibot.pagegenerators.MySQLPageGenerator(
+            query.format(randstart=randstart, randend=randend), site=site
+        ):
+            yield page
+
+
 def auto(method, limit: int = 0, start: str = "!"):
     logger.info("Starting up")
     check_runpage()
@@ -310,6 +366,8 @@ def auto(method, limit: int = 0, start: str = "!"):
         iterpages = site.allpages(start=start, filterredir=False)
     elif method == "random":
         iterpages = site.randompages(namespaces=0, redirects=False)
+    elif method == "query":
+        iterpages = query_templatelinks()
     else:
         raise KeyError("Generator is invalid")
     try:
