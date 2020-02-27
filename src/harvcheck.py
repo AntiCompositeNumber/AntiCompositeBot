@@ -36,18 +36,20 @@ from pywikibot.page import BasePage  # type: ignore
 from typing import Dict, List, Set, Any, Optional, Tuple
 
 __version__ = "0.2"
+
+_conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
     level=logging.INFO,
-    filename="harvcheck.log",
+    filename=os.path.join(_conf_dir, "harvcheck.log"),
 )
-pwl = logging.getLogger("pywiki")
-pwl.setLevel(logging.INFO)
+# shut pywikibot up
+logging.getLogger("pywiki").setLevel(logging.INFO)
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # load config
-_conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
 with open(os.path.join(_conf_dir, "default_config.json")) as f:
     config = json.load(f)["harvcheck"]
 try:
