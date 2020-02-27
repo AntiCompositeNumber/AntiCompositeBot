@@ -35,7 +35,7 @@ from bs4.element import Tag  # type: ignore
 from pywikibot.page import BasePage  # type: ignore
 from typing import Dict, List, Set, Any, Optional, Tuple
 
-__version__ = "0.2"
+__version__ = "0.3"
 
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
 logging.basicConfig(
@@ -69,6 +69,7 @@ session.headers.update(
     }
 )
 site = pywikibot.Site("en", "wikipedia")
+last_edit = float()
 
 
 def get_html(title: str, revision: str = "") -> Tuple[str, str]:
@@ -244,6 +245,7 @@ def save_page(page: BasePage, wikitext: str, summary: str) -> None:
         print(page.title(), summary)
         print(page.text)
     else:
+        throttle()
         page.save(summary=summary)
 
 
@@ -289,13 +291,15 @@ def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
         return True
 
 
-def throttle(start_time: float) -> None:
-    end_time = time.monotonic()
-    length = end_time - start_time
+def throttle() -> None:
+    global last_edit
+    now = time.monotonic()
+    length = now - last_edit
     rate = config["rate"]
     if length < rate:
-        logger.info(f"Throttling for {rate - length} seconds")
+        logger.info(f"Throttling for {round(rate - length,1)} seconds")
         time.sleep(rate - length)
+    last_edit = time.monotonic()
 
 
 def auto(method, limit: int = 0, start: str = "!"):
@@ -307,17 +311,14 @@ def auto(method, limit: int = 0, start: str = "!"):
     elif method == "random":
         iterpages = site.randompages(namespaces=0, redirects=False)
     else:
-        raise KeyError("Method is invalid")
+        raise KeyError("Generator is invalid")
     try:
         for j, page in enumerate(iterpages):
-            start_time = time.monotonic()
             if limit and i >= limit:
                 break
             result = main(page=page)
             if result:
                 i += 1
-                if i != limit:
-                    throttle(start_time)
     finally:
         logger.info(f"Finished! {j} articles scanned, {i} articles edited.")
 
