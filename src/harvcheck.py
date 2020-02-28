@@ -313,7 +313,6 @@ def throttle() -> None:
 
 def query_templatelinks():
     query = """
-USE enwiki_p;
 SELECT
   page_namespace,
   page_title
@@ -352,6 +351,7 @@ ORDER BY
     for i in range(0, 20):
         randstart = i / 20
         randend = randstart + 0.05
+        logger.info("Querying for next set of pages")
         for page in pywikibot.pagegenerators.MySQLPageGenerator(
             query.format(randstart=randstart, randend=randend), site=site
         ):
