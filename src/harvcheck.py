@@ -22,6 +22,7 @@ from bs4 import BeautifulSoup  # type: ignore
 import requests
 import urllib.parse
 import pywikibot  # type: ignore
+import pywikibot.pagegenerators  # type: ignore
 import mwparserfromhell as mwph  # type: ignore
 import json
 import os

@@ -9,11 +9,6 @@ metadata:
     # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
     toolforge: tool
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      name: anticompositebot.harvcheck
-      toolforge: tool
   template:
     metadata:
       labels:
