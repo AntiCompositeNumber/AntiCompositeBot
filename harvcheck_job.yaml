@@ -1,6 +1,6 @@
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: anticompositebot.harvcheck
   namespace: tool-anticompositebot
@@ -23,9 +23,10 @@ spec:
       containers:
         - name: harvcheck
           image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
-          command: [ "/data/project/anticompositebot/AntiCompositeBot/harvcheck_start.sh", "continuous"]
+          command: [ "/data/project/anticompositebot/AntiCompositeBot/harvcheck_start.sh", "job"]
           workingDir: /data/project/anticompositebot
           env:
             - name: HOME
               value: /data/project/anticompositebot
           imagePullPolicy: Always
+        restartPolicy: Never
