@@ -200,11 +200,16 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
         try:
             index = wikitext.index(obj)
         except ValueError:
-            index = wikitext.index(obj, recursive=True)
-
+            # obj is inside something
+            parent = wikitext.get_parent(obj)
+            if isinstance(parent, mwph.nodes.tag.Tag):
+                index = parent.contents.index(obj)
+                nodes = parent.contents.nodes
+        else:
+            nodes = wikitext.nodes
         try:
             # skip if there's already an inline maint tag
-            next_obj = wikitext.nodes[index + 1]
+            next_obj = nodes[index + 1]
             skip = next_obj.name.matches(skip_tags)
         except (AttributeError, IndexError):
             # assume that it's the end of a section or something and tag anyway
