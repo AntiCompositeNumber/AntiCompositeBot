@@ -117,7 +117,7 @@ def parse_citeref_links(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]
 
     links: Dict[str, List[Tag]] = {}
     for link in soup.find_all("a"):
-        link_page, sep, fragment = link.get("href").partition("#")
+        link_page, sep, fragment = link.get("href", "").partition("#")
         if link_page.endswith(title) and sep and fragment.startswith("CITEREF"):
             links.setdefault(fragment, []).append(link)
 
@@ -130,7 +130,7 @@ def parse_refs(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]:
     """
     refs: Dict[str, List[Tag]] = {}
     for ref in soup.find_all(class_="mw-ref"):
-        link_page, sep, fragment = ref.find("a").get("href").partition("#")
+        link_page, sep, fragment = ref.find("a").get("href", "").partition("#")
         if link_page.endswith(title) and sep and fragment.startswith("cite_note"):
             refs.setdefault(fragment, []).append(ref)
 
