@@ -197,7 +197,11 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
         matches = wikitext.filter(matches=match)
 
     for obj in matches:
-        index = wikitext.index(obj)
+        try:
+            index = wikitext.index(obj)
+        except ValueError:
+            index = wikitext.index(obj, recursive=True)
+
         try:
             # skip if there's already an inline maint tag
             next_obj = wikitext.nodes[index + 1]
