@@ -30,6 +30,7 @@ import toolforge
 import argparse
 import time
 import logging
+import re
 
 from mwparserfromhell.wikicode import Wikicode  # type: ignore
 from bs4.element import Tag  # type: ignore
@@ -312,51 +313,38 @@ def throttle() -> None:
     last_edit = time.monotonic()
 
 
-def query_templatelinks():
-    query = """
-SELECT
-  page_namespace,
-  page_title
-FROM
-  templatelinks
-  JOIN page on tl_from = page_id
-WHERE
-  {randstart} < page_random AND page_random <= {randend}
-  AND tl_namespace = 10
-  AND tl_from_namespace = 0
-  AND tl_title IN (
-    "Sfn",
-    "Harvard_citation_no_brackets",
-    "Harvnb",
-    "Harvard_citation",
-    "Harv",
-    "Harvard_citation_text",
-    "Harvtxt",
-    "Harvcoltxt",
-    "Harvcol",
-    "Harvcolnb",
-    "Harvard_citations",
-    "Harvs",
-    "Harvp",
-    "Shortened_footnote_template",
-    "Sfn",
-    "Sfnp",
-    "Sfnm",
-    "Sfnmp"
-  )
-GROUP BY
-  page_id
-ORDER BY
-  page_random ASC
-"""
-    for i in range(0, 20):
-        randstart = i / 20
-        randend = randstart + 0.05
-        logger.info("Querying for next set of pages")
-        for page in pywikibot.pagegenerators.MySQLPageGenerator(
-            query.format(randstart=randstart, randend=randend), site=site
-        ):
-            yield page
+def iter_json_lines_pages(filename):
+    with open(filename) as f:
+        for line in f:
+            data = json.loads(line)
+            yield pywikibot.page(
+                site, title=data["page_title"], ns=data["page_namespace"]
+            )
+
+
+def query_quarry(url):
+    urldata = url.split("/")
+    if urldata[3] == "query":
+        run_url = quarry_get_run_url(url)
+    else:
+        run_url = url
+    req = session.get(run_url)
+    req.raise_for_status()
+    # json file can be big, write it to disk and remove from memory
+    filename = str(id(req)) + ".json-lines"
+    with open(filename, "x") as f:
+        f.write(req.text)
+    del req
+    yield iter_json_lines_pages(filename)
+    os.remove(filename)
+
+
+def quarry_get_run_url(query_url):
+    query = session.get(query_url)
+    query.raise_for_status()
+    regex = r"(?<=\"qrun_id\": )\d*"
+    run_id = re.search(query.text, regex)
+    return f"https://quarry.wmflabs.org/run/{run_id}/output/0/json-lines"
 
 
 def auto(method, limit: int = 0, start: str = "!"):
@@ -367,8 +355,8 @@ def auto(method, limit: int = 0, start: str = "!"):
         iterpages = site.allpages(start=start, filterredir=False)
     elif method == "random":
         iterpages = site.randompages(namespaces=0, redirects=False)
-    elif method == "query":
-        iterpages = query_templatelinks()
+    elif method == "quarry":
+        iterpages = query_quarry(config.get("quarry_url"))
     else:
         raise KeyError("Generator is invalid")
     try:
