@@ -37,7 +37,7 @@ from bs4.element import Tag  # type: ignore
 from pywikibot.page import BasePage  # type: ignore
 from typing import Dict, List, Set, Any, Optional, Tuple
 
-__version__ = "0.5"
+__version__ = "0.6"
 
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
 logging.basicConfig(
@@ -181,6 +181,26 @@ def html_to_wikitext(html: str, title: str, etag: str) -> str:
     return wikitext
 
 
+def index_nodes(wikitext, obj):
+    try:
+        index = wikitext.index(obj)
+    except ValueError:
+        # obj is inside something
+        parent = wikitext.get_parent(obj)
+        if isinstance(parent, mwph.nodes.tag.Tag):
+            if str(parent.tag) == "ref":
+                index, nodes, ret_obj = index_nodes(wikitext, parent)
+            else:
+                ret_obj = obj
+                index = parent.contents.index(obj)
+                nodes = parent.contents.nodes
+    else:
+        ret_obj = obj
+        nodes = wikitext.nodes
+
+    return index, nodes, ret_obj
+
+
 def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
     """Appends a tag for occurances of target in wikitext"""
     tag = config["tag"]
@@ -196,17 +216,8 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
     else:
         matches = wikitext.filter(matches=match)
 
-    for obj in matches:
-        try:
-            index = wikitext.index(obj)
-        except ValueError:
-            # obj is inside something
-            parent = wikitext.get_parent(obj)
-            if isinstance(parent, mwph.nodes.tag.Tag):
-                index = parent.contents.index(obj)
-                nodes = parent.contents.nodes
-        else:
-            nodes = wikitext.nodes
+    for raw_obj in matches:
+        index, nodes, obj = index_nodes(wikitext, raw_obj)
         try:
             # skip if there's already an inline maint tag
             next_obj = nodes[index + 1]
@@ -215,8 +226,8 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
             # assume that it's the end of a section or something and tag anyway
             skip = False
 
-        # make sure this is the right object
-        skip = skip or str(obj) != target
+        # make sure this is the right object unless we changed it already
+        skip = skip or (str(obj) != target and str(obj) == str(raw_obj))
 
         if not skip:
             wikitext.insert_after(obj, tag)
