@@ -9,6 +9,7 @@ metadata:
     # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
     toolforge: tool
 spec:
+  backoffLimit: 0
   template:
     metadata:
       labels:
