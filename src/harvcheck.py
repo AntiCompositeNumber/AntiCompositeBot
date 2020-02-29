@@ -347,27 +347,30 @@ def quarry_get_run_url(query_url):
     return f"https://quarry.wmflabs.org/run/{run_id}/output/0/json-lines"
 
 
-def auto(method, limit: int = 0, start: str = "!"):
+def auto(method, limit: int = 0, start: str = "!", url: str = ""):
     logger.info("Starting up")
     check_runpage()
-    i = 0
     if method == "alpha":
         iterpages = site.allpages(start=start, filterredir=False)
     elif method == "random":
         iterpages = site.randompages(namespaces=0, redirects=False)
     elif method == "quarry":
-        iterpages = query_quarry(config.get("quarry_url"))
+        if not url:
+            url = config["quarry_url"]
+        iterpages = query_quarry(url)
     else:
         raise KeyError("Generator is invalid")
     try:
-        for j, page in enumerate(iterpages):
-            if limit and i >= limit:
+        checked, edited = 0, 0
+        for page in iterpages:
+            checked += 1
+            if limit and edited >= limit:
                 break
             result = main(page=page)
             if result:
-                i += 1
+                edited += 1
     finally:
-        logger.info(f"Finished! {j} articles scanned, {i} articles edited.")
+        logger.info(f"Finished! {checked} articles scanned, {edited} articles edited.")
 
 
 if __name__ == "__main__":
@@ -391,6 +394,7 @@ if __name__ == "__main__":
         "--run", action="store_true", help="overrides config to force saving"
     )
     parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("--url", default="")
     args = parser.parse_args()
     if args.simulate:
         simulate = True
@@ -398,7 +402,7 @@ if __name__ == "__main__":
         simulate = False
 
     if args.auto:
-        auto(args.auto, limit=args.limit, start=args.start)
+        auto(args.auto, limit=args.limit, start=args.start, url=args.url)
     elif args.page:
         if main(title=args.page):
             print("Done")
