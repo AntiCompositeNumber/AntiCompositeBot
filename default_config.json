@@ -7,6 +7,7 @@
         "skip_tags": ["subst:broken footnote", "Broken footnote", "citation not found"],
         "tool": "anticompositebot",
         "rate": 60,
-        "quarry_url": "https://quarry.wmflabs.org/query/42383"
+        "quarry_url": "https://quarry.wmflabs.org/query/42383",
+        "auto_method": "quarry"
     }
 }

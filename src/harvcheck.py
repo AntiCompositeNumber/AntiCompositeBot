@@ -407,10 +407,18 @@ if __name__ == "__main__":
         help="runs the bot continuously",
         action="store",
         nargs="?",
-        const="alpha",
+        const=config.get("auto_method"),
     )
     runtype.add_argument("--page", help="run the bot on this page only")
-    parser.add_argument("--limit", type=int, help="how many pages to edit", default=0)
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="how many pages to edit",
+        action="store",
+        nargs="?",
+        const=config.get("limit", 0),
+        default=0,
+    )
     parser.add_argument("--start", help="page to start iterating from", default="!")
     dryrun.add_argument(
         "--simulate", action="store_true", help="prevents bot from saving"
