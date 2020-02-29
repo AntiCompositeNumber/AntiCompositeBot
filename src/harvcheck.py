@@ -37,7 +37,7 @@ from bs4.element import Tag  # type: ignore
 from pywikibot.page import BasePage  # type: ignore
 from typing import Dict, List, Set, Any, Optional, Tuple
 
-__version__ = "0.4"
+__version__ = "0.5"
 
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
 logging.basicConfig(
@@ -48,7 +48,7 @@ logging.basicConfig(
 # shut pywikibot up
 logging.getLogger("pywiki").setLevel(logging.INFO)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("harvcheck" if __name__ == "__main__" else __name__)
 logger.setLevel(logging.DEBUG)
 
 # load config
@@ -268,6 +268,7 @@ def check_runpage() -> None:
 
 
 def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
+    """Checks one page, returns True if problems found"""
     assert page or title
 
     if page and not title:
@@ -303,6 +304,7 @@ def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
 
 
 def throttle() -> None:
+    """Prevents edits from happening faster than configured"""
     global last_edit
     now = time.monotonic()
     length = now - last_edit
@@ -314,53 +316,64 @@ def throttle() -> None:
 
 
 def iter_json_lines_pages(filename):
+    """Iterates pages from a json lines file with page_title and page_namespace"""
     with open(filename) as f:
         for line in f:
             data = json.loads(line)
-            yield pywikibot.page(
+            yield pywikibot.Page(
                 site, title=data["page_title"], ns=data["page_namespace"]
             )
 
 
 def query_quarry(url):
+    """Gets a json lines file from a Quarry url and iterates pages from it"""
     urldata = url.split("/")
     if urldata[3] == "query":
         run_url = quarry_get_run_url(url)
     else:
         run_url = url
+    logger.info(f"Getting JSON lines from {run_url}")
     req = session.get(run_url)
     req.raise_for_status()
     # json file can be big, write it to disk and remove from memory
-    filename = str(id(req)) + ".json-lines"
+    filename = _conf_dir + str(id(req)) + ".json-lines"
     with open(filename, "x") as f:
         f.write(req.text)
     del req
-    yield iter_json_lines_pages(filename)
-    os.remove(filename)
+    try:
+        for page in iter_json_lines_pages(filename):
+            yield page
+    finally:
+        os.remove(filename)
 
 
 def quarry_get_run_url(query_url):
+    """Gets the Quarry runid from a Quarry query page"""
     query = session.get(query_url)
     query.raise_for_status()
     regex = r"(?<=\"qrun_id\": )\d*"
-    run_id = re.search(query.text, regex)
-    return f"https://quarry.wmflabs.org/run/{run_id}/output/0/json-lines"
+    match = re.search(regex, query.text)
+    if match:
+        run_id = match.group(0)
+        return f"https://quarry.wmflabs.org/run/{run_id}/output/0/json-lines"
+    else:
+        raise ValueError("No Quarry run id found")
 
 
 def auto(method, limit: int = 0, start: str = "!", url: str = ""):
+    """Checks multiple pages"""
     logger.info("Starting up")
-    check_runpage()
-    if method == "alpha":
-        iterpages = site.allpages(start=start, filterredir=False)
-    elif method == "random":
-        iterpages = site.randompages(namespaces=0, redirects=False)
-    elif method == "quarry":
-        if not url:
-            url = config["quarry_url"]
-        iterpages = query_quarry(url)
-    else:
-        raise KeyError("Generator is invalid")
     try:
+        check_runpage()
+        if method == "alpha":
+            iterpages = site.allpages(start=start, filterredir=False)
+        elif method == "random":
+            iterpages = site.randompages(namespaces=0, redirects=False)
+        elif method == "quarry":
+            iterpages = query_quarry(url if url else config["quarry_url"])
+        else:
+            raise KeyError("Generator is invalid")
+
         checked, edited = 0, 0
         for page in iterpages:
             checked += 1
@@ -369,6 +382,9 @@ def auto(method, limit: int = 0, start: str = "!", url: str = ""):
             result = main(page=page)
             if result:
                 edited += 1
+    except Exception as err:
+        logger.exception(err)
+        raise err
     finally:
         logger.info(f"Finished! {checked} articles scanned, {edited} articles edited.")
 
