@@ -211,10 +211,13 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
 
     if target.startswith("<"):
         matches = wikitext.filter_tags(matches=match)
+        target_type = "tag"
     elif target.startswith("{{"):
         matches = wikitext.filter_templates(matches=match)
+        target_type = "template"
     else:
         matches = wikitext.filter(matches=match)
+        target_type = ""
 
     for raw_obj in matches:
         index, nodes, obj = index_nodes(wikitext, raw_obj)
@@ -231,6 +234,12 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
 
         if not skip:
             wikitext.insert_after(obj, tag)
+
+    if not matches:
+        if target_type == "tag":
+            # strip tag out
+            new_target = target.partition(">")[2].rpartition("</ref>")[0]
+            wikitext = append_tags(wikitext, new_target)
 
     return wikitext
 
@@ -268,7 +277,7 @@ def save_page(page: BasePage, wikitext: str, summary: str) -> None:
     if not wikitext:
         raise ValueError
     if wikitext == page.text:
-        return
+        return False
     page.text = wikitext
 
     check_runpage()
@@ -278,6 +287,8 @@ def save_page(page: BasePage, wikitext: str, summary: str) -> None:
     else:
         throttle()
         page.save(summary=summary)
+
+    return True
 
 
 def check_runpage() -> None:
@@ -311,16 +322,11 @@ def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
             wikitext = append_tags(wikitext, ref_wikitext)
 
     changes = len(broken_harvs)
-
-    if (not broken_harvs) or (wikitext == page.text):
-        return False
-    else:
-        save_page(
+    return save_page(
             page,
             str(wikitext),
             config["summary"].format(version=__version__, changes=changes),
         )
-        return True
 
 
 def throttle() -> None:
