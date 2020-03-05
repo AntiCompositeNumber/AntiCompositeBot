@@ -89,13 +89,13 @@ def get_lint_errors(sig):
 def check_links(user, sig):
     wikitext = mwph.parse(sig)
     goodlinks = {
-        f"User:{user}",
-        f"User talk:{user}",
-        f"Special:Contribs/{user}",
-        f"Special:Contributions/{user}",
+        f"User:{user.lower()}",
+        f"User talk:{user.lower()}",
+        f"Special:Contribs/{user.lower()}",
+        f"Special:Contributions/{user.lower()}",
     }
     for link in wikitext.ifilter_wikilinks():
-        if str(link.title) in goodlinks:
+        if str(link.title).lower() in goodlinks:
             break
     else:
         return "no-user-links"
