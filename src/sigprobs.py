@@ -41,7 +41,7 @@ def iter_active_user_sigs():
                     user_properties
                     JOIN `user` ON user_id = up_user
                 WHERE
-                    RIGHT(up_user, 1) = 0 AND
+                    RIGHT(up_user, 1) = %s AND
                     up_property = "nickname" AND
                     user_name IN (SELECT actor_name
                                   FROM revision_userindex
@@ -52,7 +52,7 @@ def iter_active_user_sigs():
                                 WHERE up_property = "fancysig" AND up_value = 1) AND
                     up_value != user_name
             """,
-                args=(i),
+                args=(str(i)),
             )
             for username, signature in cur.fetchall_unbuffered():
                 yield username.decode(encoding="utf-8"), signature.decode(
@@ -123,7 +123,7 @@ def main():
         errors = check_sig(user, sig)
         if not errors:
             continue
-        error_sigs[user] = {"signature": sig, "errors": errors}
+        error_sigs[user] = {"signature": sig, "errors": list(errors)}
         i += 1
         if i % 25 == 0:
             print(i)
