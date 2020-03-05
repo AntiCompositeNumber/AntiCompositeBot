@@ -109,7 +109,7 @@ def main():
         errors = check_sig(user, sig)
         if not errors:
             continue
-        error_sigs[user] = errors
+        error_sigs[user] = {"signature": sig, "errors": errors}
         i += 1
         if i % 25 == 0:
             print(i)
