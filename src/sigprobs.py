@@ -123,7 +123,7 @@ def main():
         if not errors:
             continue
         sigerror = {"username": user, "signature": sig, "errors": list(errors)}
-        with open("/data/project/anticompositebot/www/static/sigprobs.jsonl", "w") as f:
+        with open("/data/project/anticompositebot/www/static/sigprobs.json", "a") as f:
             f.write(json.dumps(sigerror) + "\n")
         i += 1
         if i % 10 == 0:
