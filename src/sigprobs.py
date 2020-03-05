@@ -23,6 +23,7 @@ import mwparserfromhell as mwph
 import toolforge
 import json
 import pymysql
+import time
 
 session = requests.Session()
 session.headers.update(
@@ -62,7 +63,16 @@ def iter_active_user_sigs():
 
 def check_sig(user, sig):
     errors = set()
-    errors.update(get_lint_errors(sig))
+    try:
+        errors.update(get_lint_errors(sig))
+    except Exception:
+        for i in range(0, 5):
+            time.sleep(3**i)
+            errors.update(get_lint_errors(sig))
+            break
+        else:
+            raise
+
     errors.add(check_tildes(sig))
     errors.add(check_links(user, sig))
     errors.add(check_length(sig))
@@ -96,7 +106,8 @@ def check_links(user, sig):
     if compare_links(goodlinks, sig):
         return ""
     else:
-        if sig.startswith("{{subst:"):
+        if sig.lower().startswith("{{subst:"):
+            # assume they know what they're doing
             return ""
         return "no-user-links"
 
