@@ -22,6 +22,7 @@ import requests
 import mwparserfromhell as mwph
 import toolforge
 import json
+import pymysql
 
 session = requests.Session()
 session.headers.update(
@@ -31,7 +32,7 @@ session.headers.update(
 
 def iter_active_user_sigs():
     conn = toolforge.connect('enwiki_p')
-    with conn.cursor() as cur:
+    with conn.cursor(cursor=pymysql.curosors.SSCursor) as cur:
         cur.execute(
             """
             SELECT user_name, up_value
@@ -50,7 +51,7 @@ def iter_active_user_sigs():
                 up_value != user_name
         """
         )
-        for username, signature in cur.fetchall():
+        for username, signature in cur.fetchall_unbuffered():
             yield username.decode(encoding="utf-8"), signature.decode(encoding="utf-8")
 
 
