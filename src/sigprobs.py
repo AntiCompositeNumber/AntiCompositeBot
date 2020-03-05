@@ -89,10 +89,10 @@ def get_lint_errors(sig):
 def check_links(user, sig):
     wikitext = mwph.parse(sig)
     goodlinks = {
-        f"User:{user.lower()}",
-        f"User talk:{user.lower()}",
-        f"Special:Contribs/{user.lower()}",
-        f"Special:Contributions/{user.lower()}",
+        f"User:{user}".lower(),
+        f"User talk:{user}".lower(),
+        f"Special:Contribs/{user}".lower(),
+        f"Special:Contributions/{user}".lower(),
     }
     for link in wikitext.ifilter_wikilinks():
         if str(link.title).lower() in goodlinks:
@@ -118,12 +118,15 @@ def check_length(sig):
 
 def main():
     i = 0
+    filename = "/data/project/anticompositebot/www/static/sigprobs.json"
+    with open(filename, "w") as f:
+        f.write("")
     for user, sig in iter_active_user_sigs():
         errors = check_sig(user, sig)
         if not errors:
             continue
         sigerror = {"username": user, "signature": sig, "errors": list(errors)}
-        with open("/data/project/anticompositebot/www/static/sigprobs.json", "a") as f:
+        with open(filename, "a") as f:
             f.write(json.dumps(sigerror) + "\n")
         i += 1
         if i % 10 == 0:
