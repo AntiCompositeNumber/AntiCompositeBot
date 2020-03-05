@@ -87,23 +87,31 @@ def get_lint_errors(sig):
 
 
 def check_links(user, sig):
-    wikitext = mwph.parse(sig)
     goodlinks = {
         f"User:{user}".lower(),
         f"User talk:{user}".lower(),
         f"Special:Contribs/{user}".lower(),
         f"Special:Contributions/{user}".lower(),
     }
+    if compare_links(goodlinks, sig):
+        return ""
+    else:
+        if sig.startswith("{{subst:"):
+            return ""
+        return "no-user-links"
+
+
+def compare_links(goodlinks, sig):
+    wikitext = mwph.parse(sig)
     for link in wikitext.ifilter_wikilinks():
         if str(link.title).lower() in goodlinks:
-            break
+            return True
     else:
-        return "no-user-links"
-    return ""
+        return False
 
 
 def check_tildes(sig):
-    if "~~" in sig:
+    if sig.count("~") >= 3:
         return "nested-subst"
     else:
         return ""
