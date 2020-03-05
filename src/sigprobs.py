@@ -33,7 +33,7 @@ session.headers.update(
 def iter_active_user_sigs():
     conn = toolforge.connect("enwiki_p")
     with conn.cursor(cursor=pymysql.cursors.SSCursor) as cur:
-        for i in range(0, 10):
+        for i in range(0, 100):
             cur.execute(
                 """
                 SELECT user_name, up_value
@@ -41,7 +41,7 @@ def iter_active_user_sigs():
                     user_properties
                     JOIN `user` ON user_id = up_user
                 WHERE
-                    RIGHT(up_user, 1) = %s AND
+                    RIGHT(up_user, 2) = %s AND
                     up_property = "nickname" AND
                     user_name IN (SELECT actor_name
                                   FROM revision_userindex
@@ -51,7 +51,7 @@ def iter_active_user_sigs():
                                 FROM user_properties
                                 WHERE up_property = "fancysig" AND up_value = 1) AND
                     up_value != user_name
-            """,
+                ORDER BY up_user ASC""",
                 args=(str(i)),
             )
             for username, signature in cur.fetchall_unbuffered():
@@ -117,21 +117,18 @@ def check_length(sig):
 
 
 def main():
-    error_sigs = {}
     i = 0
     for user, sig in iter_active_user_sigs():
         errors = check_sig(user, sig)
         if not errors:
             continue
-        error_sigs[user] = {"signature": sig, "errors": list(errors)}
+        sigerror = {"username": user, "signature": sig, "errors": list(errors)}
+        with open("/data/project/anticompositebot/www/static/sigprobs.jsonl", "w") as f:
+            f.write(json.dumps(sigerror) + "\n")
         i += 1
-        if i % 25 == 0:
+        if i % 10 == 0:
             print(i)
-
-    return error_sigs
 
 
 if __name__ == "__main__":
     error_sigs = main()
-    with open("/data/project/anticompositebot/www/static/sigprobs.json", "w") as f:
-        json.dump(error_sigs, f, sort_keys=True, indent=4)
