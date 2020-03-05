@@ -31,28 +31,33 @@ session.headers.update(
 
 
 def iter_active_user_sigs():
-    conn = toolforge.connect('enwiki_p')
-    with conn.cursor(cursor=pymysql.curosors.SSCursor) as cur:
-        cur.execute(
-            """
-            SELECT user_name, up_value
-            FROM
-                user_properties
-                JOIN `user` ON user_id = up_user
-            WHERE
-                up_property = "nickname" AND
-                user_name IN (SELECT actor_name
-                              FROM revision_userindex
-                              JOIN actor ON rev_actor = actor_id
-                              WHERE rev_timestamp > 20190304000000) AND
-                up_user IN (SELECT up_user
-                            FROM user_properties
-                            WHERE up_property = "fancysig" AND up_value = 1) AND
-                up_value != user_name
-        """
-        )
-        for username, signature in cur.fetchall_unbuffered():
-            yield username.decode(encoding="utf-8"), signature.decode(encoding="utf-8")
+    conn = toolforge.connect("enwiki_p")
+    with conn.cursor(cursor=pymysql.cursors.SSCursor) as cur:
+        for i in range(0, 10):
+            cur.execute(
+                """
+                SELECT user_name, up_value
+                FROM
+                    user_properties
+                    JOIN `user` ON user_id = up_user
+                WHERE
+                    RIGHT(up_user, 1) = 0 AND
+                    up_property = "nickname" AND
+                    user_name IN (SELECT actor_name
+                                  FROM revision_userindex
+                                  JOIN actor_revision ON rev_actor = actor_id
+                                  WHERE rev_timestamp > 20190304000000) AND
+                    up_user IN (SELECT up_user
+                                FROM user_properties
+                                WHERE up_property = "fancysig" AND up_value = 1) AND
+                    up_value != user_name
+            """,
+                args=(i),
+            )
+            for username, signature in cur.fetchall_unbuffered():
+                yield username.decode(encoding="utf-8"), signature.decode(
+                    encoding="utf-8"
+                )
 
 
 def check_sig(user, sig):
@@ -60,6 +65,7 @@ def check_sig(user, sig):
     errors.update(get_lint_errors(sig))
     errors.add(check_tildes(sig))
     errors.add(check_links(user, sig))
+    errors.add(check_length(sig))
     return errors - {""}
 
 
@@ -99,6 +105,13 @@ def check_links(user, sig):
 def check_tildes(sig):
     if "~~" in sig:
         return "nested-subst"
+    else:
+        return ""
+
+
+def check_length(sig):
+    if len(sig) > 255:
+        return "sig-too-long"
     else:
         return ""
 
