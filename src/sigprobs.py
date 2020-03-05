@@ -68,6 +68,7 @@ def check_sig(user, sig):
         errors.update(get_lint_errors(sig))
     except Exception:
         for i in range(0, 5):
+            print(f"Request failed, sleeping for {3**i}")
             time.sleep(3**i)
             errors.update(get_lint_errors(sig))
             break
