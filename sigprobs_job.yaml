@@ -1,0 +1,28 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: anticompositebot.sigprobs
+  namespace: tool-anticompositebot
+  labels:
+    name: anticompositebot.sigprobs
+    # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
+    toolforge: tool
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        name: anticompositebot.sigprobs
+        toolforge: tool
+    spec:
+      containers:
+        - name: sigprobs
+          image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+          command: [ "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", "/data/project/anticompositebot/AntiCompositeBot/src/sigprobs.py"]
+          workingDir: /data/project/anticompositebot
+          env:
+            - name: HOME
+              value: /data/project/anticompositebot
+          imagePullPolicy: Always
+      restartPolicy: OnFailure
