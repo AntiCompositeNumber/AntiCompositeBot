@@ -31,10 +31,10 @@ session.headers.update(
 )
 
 
-def iter_active_user_sigs():
+def iter_active_user_sigs(startblock=0):
     conn = toolforge.connect("enwiki_p")
     with conn.cursor(cursor=pymysql.cursors.SSCursor) as cur:
-        for i in range(0, 100):
+        for i in range(startblock, 100):
             cur.execute(
                 """
                 SELECT user_name, up_value
@@ -55,6 +55,7 @@ def iter_active_user_sigs():
                 ORDER BY up_user ASC""",
                 args=(str(i)),
             )
+            print(f"Block {i}")
             for username, signature in cur.fetchall_unbuffered():
                 yield username.decode(encoding="utf-8"), signature.decode(
                     encoding="utf-8"
@@ -135,21 +136,24 @@ def check_length(sig):
         return ""
 
 
-def main():
-    i = 0
+def main(startblock=0):
+    bad = 0
+    total = 0
     filename = "/data/project/anticompositebot/www/static/sigprobs.json"
-    with open(filename, "w") as f:
-        f.write("")
-    for user, sig in iter_active_user_sigs():
+    if not startblock:
+        with open(filename, "w") as f:
+            f.write("")
+    for user, sig in iter_active_user_sigs(startblock):
+        total += 1
         errors = check_sig(user, sig)
         if not errors:
             continue
         sigerror = {"username": user, "signature": sig, "errors": list(errors)}
         with open(filename, "a") as f:
             f.write(json.dumps(sigerror) + "\n")
-        i += 1
-        if i % 10 == 0:
-            print(i)
+        bad += 1
+        if bad % 10 == 0:
+            print(f"{bad} bad sigs found in {total} so far")
 
 
 if __name__ == "__main__":
