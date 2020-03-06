@@ -168,7 +168,7 @@ def main(startblock=0):
     # Read back data, collect stats, and generate json file
     fulldata = {}
     stats = {}
-    stats["total"] = total
+    stats["total"] = bad
     with open(filename + "l") as f:
         for rawline in f:
             line = json.loads(rawline)
