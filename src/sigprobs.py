@@ -31,6 +31,10 @@ session.headers.update(
 )
 
 
+def foo(bar):
+    print(bar)
+
+
 def iter_active_user_sigs(startblock=0):
     conn = toolforge.connect("enwiki_p")
     with conn.cursor(cursor=pymysql.cursors.SSCursor) as cur:
