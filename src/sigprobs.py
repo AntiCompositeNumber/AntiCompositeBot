@@ -36,7 +36,7 @@ def foo(bar):
 
 
 def iter_active_user_sigs(startblock=0):
-    conn = toolforge.connect("enwiki_p")
+    conn = toolforge.connect("metawiki_p")
     with conn.cursor(cursor=pymysql.cursors.SSCursor) as cur:
         for i in range(startblock, 100):
             cur.execute(
@@ -73,7 +73,7 @@ def check_sig(user, sig):
     except Exception:
         for i in range(0, 5):
             print(f"Request failed, sleeping for {3**i}")
-            time.sleep(3**i)
+            time.sleep(3 ** i)
             errors.update(get_lint_errors(sig))
             break
         else:
@@ -144,21 +144,40 @@ def check_length(sig):
 def main(startblock=0):
     bad = 0
     total = 0
-    filename = "/data/project/anticompositebot/www/static/sigprobs.json"
+    filename = "/data/project/anticompositebot/www/static/meta_sigprobs.json"
+
+    # Clear file to begin
     if not startblock:
-        with open(filename, "w") as f:
+        with open(filename + "l", "w") as f:
             f.write("")
+
+    # Collect data into json lines file
+    # Data is written directly as json lines to prevent data loss on database error
     for user, sig in iter_active_user_sigs(startblock):
         total += 1
         errors = check_sig(user, sig)
         if not errors:
             continue
         sigerror = {"username": user, "signature": sig, "errors": list(errors)}
-        with open(filename, "a") as f:
+        with open(filename + "l", "a") as f:
             f.write(json.dumps(sigerror) + "\n")
         bad += 1
         if bad % 10 == 0:
             print(f"{bad} bad sigs found in {total} so far")
+
+    # Read back data, collect stats, and generate json file
+    fulldata = {}
+    stats = {}
+    stats["total"] = total
+    with open(filename + "l") as f:
+        for rawline in f:
+            line = json.loads(rawline)
+            for error in line.get("errors"):
+                stats[error] = stats.setdefault(error, 0) + 1
+            fulldata[line.pop("username")] = line
+
+    with open(filename, "w") as f:
+        json.dump({"1": stats, "2": fulldata}, f, sort_keys=True, indent=4)
 
 
 if __name__ == "__main__":
