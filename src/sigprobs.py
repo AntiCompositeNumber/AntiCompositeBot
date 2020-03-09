@@ -31,10 +31,6 @@ session.headers.update(
 )
 
 
-def foo(bar):
-    print(bar)
-
-
 def iter_active_user_sigs(startblock=0):
     conn = toolforge.connect("metawiki_p")
     with conn.cursor(cursor=pymysql.cursors.SSCursor) as cur:
@@ -81,6 +77,7 @@ def check_sig(user, sig):
 
     errors.add(check_tildes(sig))
     errors.add(check_links(user, sig))
+    errors.add(check_fanciness(sig))
     errors.add(check_length(sig))
     return errors - {""}
 
@@ -118,6 +115,15 @@ def check_links(user, sig):
         return "no-user-links"
 
 
+def check_fanciness(sig):
+    fancychars = {"'", "<", "[", "{"}
+    for letter in sig:
+        if letter in fancychars:
+            return ""
+    else:
+        return "plain-fancy-sig"
+
+
 def compare_links(goodlinks, sig):
     wikitext = mwph.parse(sig)
     for link in wikitext.ifilter_wikilinks():
@@ -144,7 +150,7 @@ def check_length(sig):
 def main(startblock=0):
     bad = 0
     total = 0
-    filename = "/data/project/anticompositebot/www/static/meta_sigprobs.json"
+    filename = "/data/project/anticompositebot/www/static/sigprobs.json"
 
     # Clear file to begin
     if not startblock:
