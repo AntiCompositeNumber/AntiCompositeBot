@@ -115,12 +115,12 @@ def get_site_data(hostname):
 def check_sig(user, sig, sitedata, hostname):
     errors = set()
     try:
-        errors.update(get_lint_errors(sig))
+        errors.update(get_lint_errors(sig, hostname))
     except Exception:
         for i in range(0, 5):
             print(f"Request failed, sleeping for {3**i}")
             time.sleep(3 ** i)
-            errors.update(get_lint_errors(sig))
+            errors.update(get_lint_errors(sig, hostname))
             break
         else:
             raise
