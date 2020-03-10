@@ -207,11 +207,13 @@ def main(startblock=0):
         with open(filename + "l", "w") as f:
             f.write("")
 
+    sitedata = get_site_data(hostname)
+
     # Collect data into json lines file
     # Data is written directly as json lines to prevent data loss on database error
     for user, sig in iter_active_user_sigs(startblock):
         total += 1
-        errors = check_sig(user, sig)
+        errors = check_sig(user, sig, sitedata)
         if not errors:
             continue
         sigerror = {"username": user, "signature": sig, "errors": list(errors)}
