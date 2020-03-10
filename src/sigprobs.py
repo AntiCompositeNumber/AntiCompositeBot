@@ -153,10 +153,13 @@ def check_links(user, sig, sitedata, hostname):
     goodlinks = set(
         itertools.chain(
             *(
-                [f"{ns}:{user}".lower() for ns in sitedata[key]]
+                [f"{ns}:{user}".lower().replace(" ", "_") for ns in sitedata[key]]
                 for key in ["user", "user talk"]
             ),
-            (f"{cont}/{user}".lower() for cont in sitedata["contribs"]),
+            (
+                f"{cont}/{user}".lower().replace(" ", "_")
+                for cont in sitedata["contribs"]
+            ),
         )
     )
 
@@ -195,7 +198,7 @@ def check_fanciness(sig):
 def compare_links(goodlinks, sig):
     wikitext = mwph.parse(sig)
     for link in wikitext.ifilter_wikilinks():
-        if str(link.title).lower() in goodlinks:
+        if str(link.title).lower().replace(" ", "_") in goodlinks:
             return True
     else:
         return False
