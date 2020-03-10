@@ -200,7 +200,7 @@ def check_length(sig):
 def main(startblock=0):
     bad = 0
     total = 0
-    filename = "/data/project/anticompositebot/www/static/sigprobs.json"
+    filename = f"/data/project/anticompositebot/www/static/{dbname}_sigprobs.json"
 
     # Clear file to begin
     if not startblock:
