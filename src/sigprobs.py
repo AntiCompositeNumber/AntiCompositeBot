@@ -94,13 +94,13 @@ def get_site_data(hostname):
             for special in [namespaces["-1"]["name"], namespaces["-1"]["canonical"]]
         )
 
-    subst = [
+    subst = list(
         itertools.chain(
-            magicwords.get("SUBST", ["SUBST"]),
-            [item.lower() for item in magicwords.get("SUBST", ["SUBST"])],
-            [item[0] + item[1:].lower() for item in magicwords.get("SUBST", ["SUBST"])],
+            magicwords.get("subst", ["SUBST"]),
+            [item.lower() for item in magicwords.get("subst", ["SUBST"])],
+            [item[0] + item[1:].lower() for item in magicwords.get("subst", ["SUBST"])],
         )
-    ]
+    )
 
     sitedata = {
         "user": {namespaces["2"]["name"], namespaces["2"]["canonical"]},
@@ -137,8 +137,6 @@ def get_lint_errors(sig, hostname):
     data = {"wikitext": sig}
     res = session.post(url, json=data)
     res.raise_for_status()
-    if not res.json() and hostname != "en.wikipedia.org":
-        return get_lint_errors(sig, "en.wikipedia.org")
     errors = set()
     for error in res.json():
         if (
