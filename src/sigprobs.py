@@ -236,7 +236,11 @@ def main(hostname, startblock=0):
     # Data is written directly as json lines to prevent data loss on database error
     for user, sig in iter_active_user_sigs(dbname, startblock):
         total += 1
-        errors = check_sig(user, sig, sitedata, hostname)
+        try:
+            errors = check_sig(user, sig, sitedata, hostname)
+        except Exception:
+            print(user, sig)
+            raise
         if not errors:
             continue
         sigerror = {"username": user, "signature": sig, "errors": list(errors)}
