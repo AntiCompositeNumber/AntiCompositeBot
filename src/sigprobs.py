@@ -76,6 +76,7 @@ def get_site_data(hostname):
     )
     res = session.get(url, params=data)
     res.raise_for_status()
+
     namespaces = res.json()["query"]["namespaces"]
     specialpages = {
         item["realname"]: item["aliases"]
@@ -85,6 +86,7 @@ def get_site_data(hostname):
         item["name"]: item["aliases"] for item in res.json()["query"]["magicwords"]
     }
     general = res.json()["query"]["general"]
+
     contribs = set()
     for name in specialpages["Contributions"]:
         contribs.update(
@@ -92,16 +94,19 @@ def get_site_data(hostname):
             for special in [namespaces["-1"]["name"], namespaces["-1"]["canonical"]]
         )
 
+    subst = [
+        itertools.chain(
+            magicwords.get("SUBST", ["SUBST"]),
+            [item.lower() for item in magicwords.get("SUBST", ["SUBST"])],
+            [item[0] + item[1:].lower() for item in magicwords.get("SUBST", ["SUBST"])],
+        )
+    ]
+
     sitedata = {
         "user": {namespaces["2"]["name"], namespaces["2"]["canonical"]},
         "user talk": {namespaces["3"]["name"], namespaces["3"]["canonical"]},
         "contribs": contribs,
-        "subst": [
-            itertools.chain(
-                magicwords.get("SUBST", ["SUBST"]),
-                [item.lower() for item in magicwords.get("SUBST", ["SUBST"])],
-            )
-        ],
+        "subst": subst,
         "dbname": general["wikiid"],
     }
     return sitedata
@@ -158,15 +163,16 @@ def check_links(user, sig, sitedata, hostname):
     )
 
     if compare_links(goodlinks, sig) or compare_links(
-        goodlinks, evaluate_subst(sig, hostname)
+        goodlinks, evaluate_subst(sig, sitedata, hostname)
     ):
         return ""
     else:
         return "no-user-links"
 
 
-def evaluate_subst(text, hostname):
-    text = text.replace("subst:", "").replace("SUBST:", "")
+def evaluate_subst(text, sitedata, hostname):
+    for subst in sitedata["subst"]:
+        text = text.replace(subst, "")
     data = {
         "action": "expandtemplates",
         "format": "json",
