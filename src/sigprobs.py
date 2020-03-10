@@ -137,7 +137,7 @@ def get_lint_errors(sig, hostname):
     data = {"wikitext": sig}
     res = session.post(url, json=data)
     res.raise_for_status()
-    if not res.json():
+    if not res.json() and hostname != "en.wikipedia.org":
         return get_lint_errors(sig, "en.wikipedia.org")
     errors = set()
     for error in res.json():
