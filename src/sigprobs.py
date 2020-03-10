@@ -24,6 +24,10 @@ import toolforge
 import json
 import pymysql
 import time
+import datetime
+import itertools
+
+hostname, dbname = "en.wikipedia.org", "enwiki"
 
 session = requests.Session()
 session.headers.update(
@@ -32,7 +36,7 @@ session.headers.update(
 
 
 def iter_active_user_sigs(startblock=0):
-    conn = toolforge.connect("enwiki_p")
+    conn = toolforge.connect(f"{dbname}_p")
     with conn.cursor(cursor=pymysql.cursors.SSCursor) as cur:
         for i in range(startblock, 100):
             cur.execute(
@@ -62,7 +66,38 @@ def iter_active_user_sigs(startblock=0):
                 )
 
 
-def check_sig(user, sig):
+def get_site_data(hostname):
+    url = f"https://{hostname}/w/api.php"
+    data = dict(
+        action="query",
+        meta="siteinfo",
+        siprop="namespaces|specialpagealiases",
+        formatversion="2",
+        format="json",
+    )
+    res = session.get(url, params=data)
+    res.raise_for_status()
+    namespaces = res.json()["query"]["namespaces"]
+    specialpages = {
+        item["realname"]: item["aliases"]
+        for item in res.json()["query"]["specialpagealiases"]
+    }
+    contribs = set()
+    for name in specialpages["Contributions"]:
+        contribs.update(
+            (special + ":" + name)
+            for special in [namespaces["-1"]["name"], namespaces["-1"]["canonical"]]
+        )
+
+    sitedata = {
+        "user": {namespaces["2"]["name"], namespaces["2"]["canonical"]},
+        "user talk": {namespaces["3"]["name"], namespaces["3"]["canonical"]},
+        "contribs": contribs,
+    }
+    return sitedata
+
+
+def check_sig(user, sig, sitedata):
     errors = set()
     try:
         errors.update(get_lint_errors(sig))
@@ -76,7 +111,7 @@ def check_sig(user, sig):
             raise
 
     errors.add(check_tildes(sig))
-    errors.add(check_links(user, sig))
+    errors.add(check_links(user, sig, sitedata))
     errors.add(check_fanciness(sig))
     errors.add(check_length(sig))
     return errors - {""}
@@ -99,20 +134,35 @@ def get_lint_errors(sig):
     return errors
 
 
-def check_links(user, sig):
-    goodlinks = {
-        f"User:{user}".lower(),
-        f"User talk:{user}".lower(),
-        f"Special:Contribs/{user}".lower(),
-        f"Special:Contributions/{user}".lower(),
-    }
-    if compare_links(goodlinks, sig):
+def check_links(user, sig, sitedata):
+    goodlinks = set(
+        itertools.chain(
+            *(
+                [f"{ns}:{user}".lower() for ns in sitedata[key]]
+                for key in ["user", "user talk"]
+            ),
+            (f"{cont}/{user}".lower() for cont in sitedata["contribs"]),
+        )
+    )
+
+    if compare_links(goodlinks, sig) or compare_links(goodlinks, evaluate_subst(sig)):
         return ""
     else:
-        if sig.lower().startswith("{{subst:"):
-            # assume they know what they're doing
-            return ""
         return "no-user-links"
+
+
+def evaluate_subst(text):
+    text = text.replace("subst:", "").replace("SUBST:", "")
+    data = {
+        "action": "expandtemplates",
+        "format": "json",
+        "text": text,
+        "prop": "wikitext",
+    }
+    url = f"https://{hostname}/w/api.php"
+    res = session.get(url, params=data)
+    res.raise_for_status()
+    return res.json()["expandtemplates"]["wikitext"]
 
 
 def check_fanciness(sig):
@@ -182,8 +232,14 @@ def main(startblock=0):
                 stats[error] = stats.setdefault(error, 0) + 1
             fulldata[line.pop("username")] = line
 
+    meta = {"last_update": datetime.datetime.utcnow().isoformat(), "site": hostname}
     with open(filename, "w") as f:
-        json.dump({"1": stats, "2": fulldata}, f, sort_keys=True, indent=4)
+        json.dump(
+            {"errors": stats, "meta": meta, "sigs": fulldata},
+            f,
+            sort_keys=True,
+            indent=4,
+        )
 
 
 if __name__ == "__main__":
