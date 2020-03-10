@@ -114,6 +114,8 @@ def get_site_data(hostname):
 
 def check_sig(user, sig, sitedata, hostname):
     errors = set()
+    if not sig:
+        return {"blank-sig"}
     try:
         errors.update(get_lint_errors(sig, hostname))
     except Exception:
