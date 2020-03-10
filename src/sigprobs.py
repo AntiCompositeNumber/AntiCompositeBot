@@ -26,8 +26,7 @@ import pymysql
 import time
 import datetime
 import itertools
-
-hostname, dbname = "en.wikipedia.org", "enwiki"
+import sys
 
 session = requests.Session()
 session.headers.update(
@@ -35,7 +34,7 @@ session.headers.update(
 )
 
 
-def iter_active_user_sigs(startblock=0):
+def iter_active_user_sigs(dbname, startblock=0):
     conn = toolforge.connect(f"{dbname}_p")
     with conn.cursor(cursor=pymysql.cursors.SSCursor) as cur:
         for i in range(startblock, 100):
@@ -71,7 +70,7 @@ def get_site_data(hostname):
     data = dict(
         action="query",
         meta="siteinfo",
-        siprop="namespaces|specialpagealiases",
+        siprop="namespaces|specialpagealiases|magicwords|general",
         formatversion="2",
         format="json",
     )
@@ -82,6 +81,10 @@ def get_site_data(hostname):
         item["realname"]: item["aliases"]
         for item in res.json()["query"]["specialpagealiases"]
     }
+    magicwords = {
+        item["name"]: item["aliases"] for item in res.json()["query"]["magicwords"]
+    }
+    general = res.json()["query"]["general"]
     contribs = set()
     for name in specialpages["Contributions"]:
         contribs.update(
@@ -93,11 +96,18 @@ def get_site_data(hostname):
         "user": {namespaces["2"]["name"], namespaces["2"]["canonical"]},
         "user talk": {namespaces["3"]["name"], namespaces["3"]["canonical"]},
         "contribs": contribs,
+        "subst": [
+            itertools.chain(
+                magicwords.get("SUBST", ["SUBST"]),
+                [item.lower() for item in magicwords.get("SUBST", ["SUBST"])],
+            )
+        ],
+        "dbname": general["wikiid"],
     }
     return sitedata
 
 
-def check_sig(user, sig, sitedata):
+def check_sig(user, sig, sitedata, hostname):
     errors = set()
     try:
         errors.update(get_lint_errors(sig))
@@ -111,17 +121,19 @@ def check_sig(user, sig, sitedata):
             raise
 
     errors.add(check_tildes(sig))
-    errors.add(check_links(user, sig, sitedata))
+    errors.add(check_links(user, sig, sitedata, hostname))
     errors.add(check_fanciness(sig))
     errors.add(check_length(sig))
     return errors - {""}
 
 
-def get_lint_errors(sig):
-    url = "https://en.wikipedia.org/api/rest_v1/transform/wikitext/to/lint"
+def get_lint_errors(sig, hostname):
+    url = f"https://{hostname}/api/rest_v1/transform/wikitext/to/lint"
     data = {"wikitext": sig}
     res = session.post(url, json=data)
     res.raise_for_status()
+    if not res.json():
+        return get_lint_errors(sig, "en.wikipedia.org")
     errors = set()
     for error in res.json():
         if (
@@ -134,7 +146,7 @@ def get_lint_errors(sig):
     return errors
 
 
-def check_links(user, sig, sitedata):
+def check_links(user, sig, sitedata, hostname):
     goodlinks = set(
         itertools.chain(
             *(
@@ -145,13 +157,15 @@ def check_links(user, sig, sitedata):
         )
     )
 
-    if compare_links(goodlinks, sig) or compare_links(goodlinks, evaluate_subst(sig)):
+    if compare_links(goodlinks, sig) or compare_links(
+        goodlinks, evaluate_subst(sig, hostname)
+    ):
         return ""
     else:
         return "no-user-links"
 
 
-def evaluate_subst(text):
+def evaluate_subst(text, hostname):
     text = text.replace("subst:", "").replace("SUBST:", "")
     data = {
         "action": "expandtemplates",
@@ -197,23 +211,25 @@ def check_length(sig):
         return ""
 
 
-def main(startblock=0):
+def main(hostname, startblock=0):
     bad = 0
     total = 0
-    filename = f"/data/project/anticompositebot/www/static/{dbname}_sigprobs.json"
 
+    sitedata = get_site_data(hostname)
+
+    dbname = sitedata["dbname"]
+
+    filename = f"/data/project/anticompositebot/www/static/{dbname}_sigprobs.json"
     # Clear file to begin
     if not startblock:
         with open(filename + "l", "w") as f:
             f.write("")
 
-    sitedata = get_site_data(hostname)
-
     # Collect data into json lines file
     # Data is written directly as json lines to prevent data loss on database error
-    for user, sig in iter_active_user_sigs(startblock):
+    for user, sig in iter_active_user_sigs(dbname, startblock):
         total += 1
-        errors = check_sig(user, sig, sitedata)
+        errors = check_sig(user, sig, sitedata, hostname)
         if not errors:
             continue
         sigerror = {"username": user, "signature": sig, "errors": list(errors)}
@@ -245,4 +261,4 @@ def main(startblock=0):
 
 
 if __name__ == "__main__":
-    error_sigs = main()
+    error_sigs = main(sys.argv[1])
