@@ -246,6 +246,7 @@ def append_tags(wikitext: Wikicode, target: str) -> Wikicode:
 
 def broken_anchors(title: str, revision: str = "") -> Dict[str, Set[str]]:
     """Returns a dict of broken anchors and the refs that contain them"""
+    title = title.replace(" ", "_")
     raw_html, etag = get_html(title, revision)
     soup = BeautifulSoup(raw_html, "html.parser")
 
@@ -296,6 +297,12 @@ def check_runpage() -> None:
     page = pywikibot.Page(site, config["runpage"])
     if not page.text.endswith("True"):
         raise pywikibot.UserBlocked("Runpage is false, quitting")
+
+
+def check_many_nosave(pages: List[str]) -> None:
+    for page in pages:
+        broken_harvs = broken_anchors(page)
+        print(f"* [[{page}]] - <code><nowiki>{broken_harvs}</nowiki></code>")
 
 
 def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
