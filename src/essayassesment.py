@@ -103,7 +103,7 @@ def iter_project_pages():
         data = cur.fetchall()
 
     # XXX: Work around pywikibot bug T67262
-    namespaces = {2: "User", 4: "Wikipedia", 12: "Help"}
+    namespaces = {2: "User:", 4: "Wikipedia:", 12: "Help:"}
     for ns, title in data:
         yield pywikibot.Page(site, title=namespaces[ns] + str(title, encoding="utf-8"))
 
