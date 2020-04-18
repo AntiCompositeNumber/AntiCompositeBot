@@ -19,7 +19,7 @@
 
 
 import pywikibot
-import toolforge
+import pywikibot.pagegenerators
 import re
 import sys
 import time
@@ -29,9 +29,8 @@ last_edit = 0
 
 
 def iter_files():
-    conn = toolforge.connect("commonswiki")
     query = """
-        SELECT CONCAT("File:", page_title)
+        SELECT page_namespace, page_title
         FROM page
         JOIN categorylinks ON cl_from = page_id
         WHERE
@@ -52,10 +51,8 @@ def iter_files():
             )
             and page_namespace = 6
     """
-    with conn.cursor() as cur:
-        cur.execute(query)
-        for title in cur.fetchall():
-            yield pywikibot.Page(site, title[0])
+    for page in pywikibot.pagegenerators.MySQLPageGenerator(query, site=site):
+        yield site
 
 
 def do_replacements(text):
