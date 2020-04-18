@@ -29,8 +29,7 @@ site = pywikibot.Site("commons", "commons")
 last_edit = 0
 
 logging.basicConfig(
-    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
-    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s:%(name)s:%(message)s", level=logging.DEBUG,
 )
 logging.getLogger("pywiki").setLevel(logging.INFO)
 logger = logging.getLogger("wla_append")
@@ -68,11 +67,17 @@ def iter_files():
 
 def do_replacements(text):
     text = re.sub(
-        r"\n\n\[\[ *Category:",
-        "\n{{Wiki Loves Africa 2020}}\n\n"
-        "[[Category:Images from Wiki Loves Africa 2020 to check]]\n[[Category:",
-        text,
+        r"\n\n\[\[ *Category:", "\n{{Wiki Loves Africa 2020}}\n\n" "[[Category:", text,
     )
+    if not re.search(
+        r"\[\[ *Category:Images from Wiki Loves Africa 2020 to check *\]\]"
+    ):
+        text = re.sub(
+            r"\n\n\[\[ *Category:",
+            "\n\n[[Category:Images from Wiki Loves Africa 2020 to check\n[[Category:",
+            text,
+        )
+
     return text
 
 
