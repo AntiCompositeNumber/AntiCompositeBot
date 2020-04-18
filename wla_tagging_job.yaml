@@ -1,19 +1,14 @@
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: anticompositebot.harvcheck
+  name: anticompositebot.wlatagging
   namespace: tool-anticompositebot
   labels:
-    name: anticompositebot.harvcheck
-    # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
+    name: anticompositebot.wlatagging
     toolforge: tool
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      name: anticompositebot.wlatagging
-      toolforge: tool
+  backoffLimit: 0
   template:
     metadata:
       labels:
@@ -27,9 +22,9 @@ spec:
             "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
             "/data/project/anticompositebot/AntiCompositeBot/src/wla_append.py",
             "30"
-          ]
           workingDir: /data/project/anticompositebot
           env:
             - name: HOME
               value: /data/project/anticompositebot
           imagePullPolicy: Always
+      restartPolicy: Never
