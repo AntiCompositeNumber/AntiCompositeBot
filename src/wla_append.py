@@ -104,7 +104,7 @@ def main(limit=0):
     for i, page in enumerate(iter_files()):
         if limit and i >= limit:
             break
-        logger.info(i, page.title())
+        logger.info(f"i: page.title()")
         new_wikitext = do_replacements(page.text)
         if new_wikitext and new_wikitext != page.text:
             page.text = new_wikitext
