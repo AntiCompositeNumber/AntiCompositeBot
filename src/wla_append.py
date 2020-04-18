@@ -110,7 +110,12 @@ def main(limit=0):
             page.text = new_wikitext
             throttle()
             run_check()
-            page.save(summary="Wiki Loves Africa 2020 tagging and categorization (bot)")
+            page.save(
+                summary="Wiki Loves Africa 2020 tagging and categorization (bot)",
+                watch="nochange",
+                minor=False,
+                # botflag=True,
+            )
 
     logger.info("Done")
 
