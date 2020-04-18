@@ -23,9 +23,17 @@ import toolforge
 import re
 import sys
 import time
+import logging
 
 site = pywikibot.Site("commons", "commons")
 last_edit = 0
+
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
+    level=logging.DEBUG,
+)
+logging.getLogger("pywiki").setLevel(logging.INFO)
+logger = logging.getLogger("wla_append")
 
 
 def iter_files():
@@ -73,9 +81,9 @@ def throttle():
     now = time.monotonic()
     diff = round(60 - (now - last_edit), 2)
     if diff > 0:
-        print(f"Sleeping for {diff} seconds")
+        logger.debug(f"Sleeping for {diff} seconds")
         time.sleep(diff)
-    last_edit = now
+    last_edit = time.monotonic()
 
 
 def run_check():
@@ -89,7 +97,7 @@ def main(limit=0):
     for i, page in enumerate(iter_files()):
         if limit and i >= limit:
             break
-        print(i, page.title())
+        logger.info(i, page.title())
         new_wikitext = do_replacements(page.text)
         if new_wikitext and new_wikitext != page.text:
             page.text = new_wikitext
@@ -97,7 +105,7 @@ def main(limit=0):
             run_check()
             page.save(summary="Wiki Loves Africa 2020 tagging and categorization (bot)")
 
-    print("Done")
+    logger.info("Done")
 
 
 if __name__ == "__main__":
