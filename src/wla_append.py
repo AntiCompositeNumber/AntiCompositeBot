@@ -76,7 +76,7 @@ def do_replacements(text):
     ):
         text = re.sub(
             r"\n\n\[\[ *Category:",
-            "\n\n[[Category:Images from Wiki Loves Africa 2020 to check\n[[Category:",
+            "\n\n[[Category:Images from Wiki Loves Africa 2020 to check]]\n[[Category:",
             text,
         )
 
