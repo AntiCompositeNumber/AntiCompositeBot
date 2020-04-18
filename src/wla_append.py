@@ -69,10 +69,10 @@ def iter_files():
 
 def do_replacements(text):
     text = re.sub(
-        r"\n\n\[\[ *Category:", "\n{{Wiki Loves Africa 2020}}\n\n" "[[Category:", text,
+        r"\n\n\[\[ *Category:", "\n{{Wiki Loves Africa 2020}}\n\n[[Category:", text,
     )
     if not re.search(
-        r"\[\[ *Category:Images from Wiki Loves Africa 2020 to check *\]\]"
+        r"\[\[ *Category:Images from Wiki Loves Africa 2020 to check *\]\]", text
     ):
         text = re.sub(
             r"\n\n\[\[ *Category:",
