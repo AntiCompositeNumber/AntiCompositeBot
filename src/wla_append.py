@@ -32,6 +32,8 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s:%(message)s", level=logging.DEBUG,
 )
 logging.getLogger("pywiki").setLevel(logging.INFO)
+logging.getLogger("requests_oauthlib").setLevel(logging.INFO)
+logging.getLogger("oauthlib").setLevel(logging.INFO)
 logger = logging.getLogger("wla_append")
 
 
