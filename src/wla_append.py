@@ -55,7 +55,7 @@ def iter_files():
     with conn.cursor() as cur:
         cur.execute(query)
         for title in cur.fetchall():
-            yield pywikibot.Page(site, title)
+            yield pywikibot.Page(site, title[0])
 
 
 def do_replacements(text):
