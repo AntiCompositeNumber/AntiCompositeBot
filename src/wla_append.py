@@ -25,6 +25,8 @@ import sys
 import time
 import logging
 
+__version__ = "0.4"
+
 site = pywikibot.Site("commons", "commons")
 last_edit = 0
 
@@ -111,7 +113,10 @@ def main(limit=0):
             throttle()
             run_check()
             page.save(
-                summary="Wiki Loves Africa 2020 tagging and categorization (bot)",
+                summary=(
+                    "Wiki Loves Africa 2020 tagging and categorization "
+                    f"(Task 3 v{__version__})"
+                ),
                 watch="nochange",
                 minor=False,
                 # botflag=True,
