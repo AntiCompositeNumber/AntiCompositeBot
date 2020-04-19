@@ -26,9 +26,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+__version__ = 0.1
+
 site = pywikibot.Site("en", "wikipedia")
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
+simulate = True
 
 
 @dataclass
@@ -155,6 +158,26 @@ Last updated {datetime.utcnow().strftime("%H:%M, %d %B %Y (UTC)")}
     return table
 
 
+def check_runpage() -> None:
+    """Raises pywikibot.UserBlocked if on-wiki runpage is not True"""
+    page = pywikibot.Page(site, "User:AntiCompositeBot/EssayImpact/Run")
+    if not page.text.endswith("True"):
+        raise pywikibot.UserBlocked("Runpage is false, quitting")
+
+
+def save_page(text):
+    page = pywikibot.Page(
+        site, "Wikipedia:WikiProject Wikipedia essays/Assessment/Links"
+    )
+    if text and page.text != text:
+        page.text = text
+        page.save(
+            summary=f"Updating assesment table (Bot) (EssayImpact {__version__}",
+            minor=False,
+            botflag=False,
+        )
+
+
 def main():
     data = []
     for page in iter_project_pages():
@@ -162,7 +185,11 @@ def main():
         essay.calculate_score()
         data.append(essay)
     table = construct_table(data)
-    print(table)
+    if not simulate:
+        check_runpage()
+        save_page(table)
+    else:
+        print(table)
 
 
 if __name__ == "__main__":
