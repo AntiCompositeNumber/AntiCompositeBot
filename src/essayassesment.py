@@ -22,6 +22,8 @@ import pywikibot
 import toolforge
 import requests
 import itertools
+import logging
+import math
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
@@ -32,6 +34,16 @@ site = pywikibot.Site("en", "wikipedia")
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
 simulate = True
+
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
+    level=logging.INFO,
+    filename="essayimpact.log",
+)
+# shut pywikibot up
+logging.getLogger("pywiki").setLevel(logging.INFO)
+logger = logging.getLogger("essayassesment")
+logger.setLevel(logging.DEBUG)
 
 
 @dataclass
@@ -119,16 +131,26 @@ def iter_project_pages():
         """
     conn = toolforge.connect("enwiki_p")
     with conn.cursor() as cur:
-        cur.execute(query)
+        rows = cur.execute(query)
+        logger.info(f"{rows} pages found")
         data = cur.fetchall()
 
     # XXX: Work around pywikibot bug T67262
     namespaces = {2: "User:", 4: "Wikipedia:", 12: "Help:"}
-    for ns, title in data:
+
+    progress = -1
+    for i, ns, title in enumerate(data):
+        percent = math.floor(i / rows * 100)
+        if (percent > progress) and (percent % 5 == 0):
+            logger.info(f"Analyzing pages: {percent}% complete")
+            progress = percent
         yield pywikibot.Page(site, title=namespaces[ns] + str(title, encoding="utf-8"))
+
+    logger.info("Analyzing pages: 100% complete")
 
 
 def construct_table(data):
+    logger.info("Constructing table")
     table = f"""Pages where the talk page transcludes {{{{tl|WikiProject Essays}}}} sorted
 by [[Wikipedia:WikiProject_Wikipedia_essays/Assessment#Impact_scale|impact score]].
 Number of watchers is included if the result is greater than 29.
@@ -169,16 +191,20 @@ def save_page(text):
     page = pywikibot.Page(
         site, "Wikipedia:WikiProject Wikipedia essays/Assessment/Links"
     )
+    logger.info(f"Saving to {page.title()}")
     if text and page.text != text:
         page.text = text
         page.save(
             summary=f"Updating assesment table (Bot) (EssayImpact {__version__}",
             minor=False,
             botflag=False,
+            quiet=True,
         )
+        logging.info(f"Page {page.title(as_link=True)} saved")
 
 
 def main():
+    logger.info("Starting up")
     data = []
     for page in iter_project_pages():
         essay = Essay(page)
@@ -190,6 +216,7 @@ def main():
         save_page(table)
     else:
         print(table)
+    logger.info("Finished")
 
 
 if __name__ == "__main__":
