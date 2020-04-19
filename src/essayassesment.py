@@ -18,7 +18,7 @@
 # limitations under the License.
 
 
-import pywikibot
+import pywikibot  # type: ignore
 import toolforge
 import requests
 import itertools
@@ -26,7 +26,7 @@ import logging
 import math
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple, Iterator, Iterable, cast
 
 __version__ = 0.1
 
@@ -52,9 +52,9 @@ class Essay:
     links: Optional[int] = None
     watchers: Optional[int] = None
     views: Optional[int] = None
-    score: Optional[int] = None
+    score: Optional[float] = None
 
-    def get_views_and_watchers(self):
+    def get_views_and_watchers(self) -> Tuple[int, int]:
         title = self.page.title()
         url = "https://en.wikipedia.org/w/api.php"
         params = {
@@ -75,7 +75,7 @@ class Essay:
         self.views, self.watchers = views, watchers
         return views, watchers
 
-    def get_page_links(self):
+    def get_page_links(self) -> int:
         page = self.page
         query = """
         SELECT COUNT(pl_from)
@@ -86,19 +86,20 @@ class Essay:
             cur.execute(
                 query, (page.title(underscore=True, with_ns=False), page.namespace().id)
             )
-            self.links = cur.fetchall()[0][0]
+            self.links = cast(Tuple[Tuple[int]], cur.fetchall())[0][0]
         return self.links
 
-    def calculate_score(self):
+    def calculate_score(self) -> float:
         if self.views is None or self.watchers is None:
             self.get_views_and_watchers()
         if self.links is None:
             self.get_page_links()
+        assert self.links and self.watchers and self.views
 
         self.score = round(self.watchers * 10 + self.views * 2 + self.links / 100, 2)
         return self.score
 
-    def row(self, rank=0):
+    def row(self, rank: int = 0) -> str:
         wikitext = "|-\n| "
         wikitext += " || ".join(
             str(o)
@@ -119,7 +120,7 @@ class Essay:
         return wikitext
 
 
-def iter_project_pages():
+def iter_project_pages() -> Iterator[pywikibot.Page]:
     query = """
         SELECT page_namespace - 1, page_title
         FROM templatelinks
@@ -133,13 +134,13 @@ def iter_project_pages():
     with conn.cursor() as cur:
         rows = cur.execute(query)
         logger.info(f"{rows} pages found")
-        data = cur.fetchall()
+        data = cast(Iterable[Tuple[int, bytes]], cur.fetchall())
 
     # XXX: Work around pywikibot bug T67262
     namespaces = {2: "User:", 4: "Wikipedia:", 12: "Help:"}
 
     progress = -1
-    for i, ns, title in enumerate(data):
+    for i, (ns, title) in enumerate(data):
         percent = math.floor(i / rows * 100)
         if (percent > progress) and (percent % 5 == 0):
             logger.info(f"Analyzing pages: {percent}% complete")
@@ -149,7 +150,7 @@ def iter_project_pages():
     logger.info("Analyzing pages: 100% complete")
 
 
-def construct_table(data):
+def construct_table(data: Iterable[Essay]) -> str:
     logger.info("Constructing table")
     table = f"""Pages where the talk page transcludes {{{{tl|WikiProject Essays}}}} sorted
 by [[Wikipedia:WikiProject_Wikipedia_essays/Assessment#Impact_scale|impact score]].
@@ -187,7 +188,7 @@ def check_runpage() -> None:
         raise pywikibot.UserBlocked("Runpage is false, quitting")
 
 
-def save_page(text):
+def save_page(text: str) -> None:
     page = pywikibot.Page(
         site, "Wikipedia:WikiProject Wikipedia essays/Assessment/Links"
     )
@@ -203,7 +204,7 @@ def save_page(text):
         logging.info(f"Page {page.title(as_link=True)} saved")
 
 
-def main():
+def main() -> None:
     logger.info("Starting up")
     data = []
     for page in iter_project_pages():
