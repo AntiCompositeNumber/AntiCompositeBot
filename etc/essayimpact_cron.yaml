@@ -1,0 +1,31 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: anticompositebot.essayimpact
+  labels:
+    name: anticompositebot.essayimpact
+    toolforge: tool
+spec:
+  schedule: "15 5 */14 * *"
+  concurrencyPolicy: Replace
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            toolforge: tool
+        spec:
+          containers:
+          - name: essayimpact
+            image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+            command: [
+              "/data/project/anticompositebot/AntiCompositeBot/venv/python3",
+              "/data/project/anticompositebot/AntiCompositeBot/src/essayassesment.py"
+            ] 
+            workingDir: /data/project/anticompositebot
+            env:
+              - name: HOME
+                value: /data/project/anticompositebot
+            imagePullPolicy: Always
+          restartPolicy: OnFailure
