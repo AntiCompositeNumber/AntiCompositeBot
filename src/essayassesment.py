@@ -30,12 +30,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Tuple, Iterator, Iterable, cast, Dict, Union
 
-__version__ = 0.1
+__version__ = 0.2
 
 site = pywikibot.Site("en", "wikipedia")
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
-simulate = False
+simulate = True
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
@@ -103,7 +103,7 @@ class Essay:
             self.get_views_and_watchers()
         if self.links is None:
             self.get_page_links()
-        assert self.links and self.watchers and self.views
+        assert all(val is not None for val in [self.views, self.watchers, self.links])
 
         self.score = round(
             self.watchers * weights["watchers"]
