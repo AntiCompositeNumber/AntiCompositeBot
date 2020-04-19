@@ -24,9 +24,11 @@ import requests
 import itertools
 import logging
 import math
+import json
+from string import Template
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Tuple, Iterator, Iterable, cast
+from typing import Optional, Tuple, Iterator, Iterable, cast, Dict, Union
 
 __version__ = 0.1
 
@@ -89,14 +91,26 @@ class Essay:
             self.links = cast(Tuple[Tuple[int]], cur.fetchall())[0][0]
         return self.links
 
-    def calculate_score(self) -> float:
+    def calculate_score(
+        self,
+        weights: Dict[str, Union[int, float]] = {
+            "watchers": 10,
+            "views": 2,
+            "links": 0.01,
+        },
+    ) -> float:
         if self.views is None or self.watchers is None:
             self.get_views_and_watchers()
         if self.links is None:
             self.get_page_links()
         assert self.links and self.watchers and self.views
 
-        self.score = round(self.watchers * 10 + self.views * 2 + self.links / 100, 2)
+        self.score = round(
+            self.watchers * weights["watchers"]
+            + self.views * weights["views"]
+            + self.links * weights["links"],
+            2,
+        )
         return self.score
 
     def row(self, rank: int = 0) -> str:
@@ -150,12 +164,14 @@ def iter_project_pages() -> Iterator[pywikibot.Page]:
     logger.info("Analyzing pages: 100% complete")
 
 
-def construct_table(data: Iterable[Essay]) -> str:
+def construct_table(data: Iterable[Essay], intro_r: str) -> str:
     logger.info("Constructing table")
-    table = f"""Pages where the talk page transcludes {{{{tl|WikiProject Essays}}}} sorted
-by [[Wikipedia:WikiProject_Wikipedia_essays/Assessment#Impact_scale|impact score]].
-Number of watchers is included if the result is greater than 29.
-Last updated {datetime.utcnow().strftime("%H:%M, %d %B %Y (UTC)")}
+
+    intro_t = Template(intro_r)
+    intro = intro_t.substitute(
+        date=datetime.utcnow().strftime("%H:%M, %d %B %Y (UTC)"), bot="AntiCompositeBot"
+    )
+    table = """
 {{| class="wikitable sortable plainlinks" style="width:100%; margin:auto"
 |- style="white-space:nowrap;"
 ! No.
@@ -167,7 +183,7 @@ Last updated {datetime.utcnow().strftime("%H:%M, %d %B %Y (UTC)")}
 """
     table = "".join(
         itertools.chain(
-            [table],
+            [intro, table],
             [
                 essay.row(rank=i + 1)
                 for i, essay in enumerate(
@@ -204,14 +220,27 @@ def save_page(text: str) -> None:
         logging.info(f"Page {page.title(as_link=True)} saved")
 
 
+def load_wiki_config() -> Tuple[Dict[str, Union[int, float]], str]:
+    page = pywikibot.Page(site, "User:AntiCompositeBot/EssayImpact/config.json")
+    logger.info(f"Retrieving config from {page.title()}")
+    data = json.loads(page.text)
+    assert set(data["weights"].keys()).issubset({"watchers", "views", "links"})
+    return data["weights"], data["intro"]
+
+
 def main() -> None:
     logger.info("Starting up")
+    check_runpage()
+    weights, intro = load_wiki_config()
+
     data = []
     for page in iter_project_pages():
         essay = Essay(page)
-        essay.calculate_score()
+        essay.calculate_score(weights)
         data.append(essay)
-    table = construct_table(data)
+
+    table = construct_table(data, intro)
+
     if not simulate:
         check_runpage()
         save_page(table)
