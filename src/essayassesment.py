@@ -172,7 +172,7 @@ def construct_table(data: Iterable[Essay], intro_r: str) -> str:
         date=datetime.utcnow().strftime("%H:%M, %d %B %Y (UTC)"), bot="AntiCompositeBot"
     )
     table = """
-{{| class="wikitable sortable plainlinks" style="width:100%; margin:auto"
+{| class="wikitable sortable plainlinks" style="width:100%; margin:auto"
 |- style="white-space:nowrap;"
 ! No.
 ! Page
