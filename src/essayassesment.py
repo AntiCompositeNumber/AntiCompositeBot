@@ -35,7 +35,7 @@ __version__ = 0.2
 site = pywikibot.Site("en", "wikipedia")
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
-simulate = True
+simulate = False
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
