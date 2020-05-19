@@ -207,23 +207,23 @@ def construct_table(data: Iterable[Essay], intro_r: str) -> str:
 def construct_data_page(data: Iterable[Essay]) -> str:
     keys = ["rank", "score"]
     key_line = "|%s={{#switch:{{{2|{{{page|}}}}}}"
-    lines = itertools.chain(
+    lines = list(itertools.chain(
         ["{{#switch:{{{1|{{{key|}}}}}}"],
-        itertools.chain(
-            itertools.chain(
+        list(itertools.chain(
+            list(itertools.chain(
                 [key_line % key],
                 [essay.data_row(key=key, rank=i + 1) for i, essay in enumerate(data)],
                 ["  }}"],
-            )
+            ))
             for key in keys
-        ),
+        )),
         [
             f"|lastupdate = {datetime.utcnow().isoformat(timespec='minutes')}",
             "|¬ =",
             "|#default={{error|Key does not exist}}",
             "}}",
         ],
-    )
+    ))
     return "\n".join(lines)
 
 
