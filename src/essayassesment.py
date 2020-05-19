@@ -137,7 +137,7 @@ class Essay:
         wikitext = "".join(
             str(o)
             for o in (
-                "  |",
+                "    |",
                 self.page.title(insite=site),
                 " = ",
                 rank if (key == "rank") else getattr(self, key, ""),
@@ -206,7 +206,7 @@ def construct_table(data: Iterable[Essay], intro_r: str) -> str:
 
 def construct_data_page(data: Iterable[Essay]) -> str:
     keys = ["rank", "score"]
-    key_line = "|%s={{#switch:{{{2|{{{page|}}}}}}"
+    key_line = "  |%s={{#switch:{{{2|{{{page|}}}}}}"
     lines = list(itertools.chain(
         ["{{#switch:{{{1|{{{key|}}}}}}"],
         list(itertools.chain.from_iterable(
@@ -218,13 +218,13 @@ def construct_data_page(data: Iterable[Essay]) -> str:
             for key in keys
         )),
         [
-            f"|lastupdate = {datetime.utcnow().isoformat(timespec='minutes')}",
-            "|¬ =",
-            "|#default = {{error|Key does not exist}}",
+            f"  |lastupdate = {datetime.utcnow().isoformat(timespec='minutes')}",
+            "  |¬ =",
+            "  |#default = {{error|Key does not exist}}",
             "}}",
         ],
     ))
-    return "\n  ".join(lines)
+    return "\n".join(lines)
 
 
 def check_runpage() -> None:
