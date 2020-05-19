@@ -25,6 +25,7 @@ import itertools
 import logging
 import math
 import json
+import utils
 from string import Template
 from dataclasses import dataclass
 from datetime import datetime
@@ -207,23 +208,32 @@ def construct_table(data: Iterable[Essay], intro_r: str) -> str:
 def construct_data_page(data: Iterable[Essay]) -> str:
     keys = ["rank", "score"]
     key_line = "  |%s={{#switch:{{{2|{{{page|}}}}}}"
-    lines = list(itertools.chain(
-        ["{{#switch:{{{1|{{{key|}}}}}}"],
-        list(itertools.chain.from_iterable(
-            list(itertools.chain(
-                [key_line % key],
-                [essay.data_row(key=key, rank=i + 1) for i, essay in enumerate(data)],
-                ["  }}"],
-            ))
-            for key in keys
-        )),
-        [
-            f"  |lastupdate = {datetime.utcnow().isoformat(timespec='minutes')}",
-            "  |¬ =",
-            "  |#default = {{error|Key does not exist}}",
-            "}}",
-        ],
-    ))
+    lines = list(
+        itertools.chain(
+            ["{{#switch:{{{1|{{{key|}}}}}}"],
+            list(
+                itertools.chain.from_iterable(
+                    list(
+                        itertools.chain(
+                            [key_line % key],
+                            [
+                                essay.data_row(key=key, rank=i + 1)
+                                for i, essay in enumerate(data)
+                            ],
+                            ["  }}"],
+                        )
+                    )
+                    for key in keys
+                )
+            ),
+            [
+                f"  |lastupdate = {datetime.utcnow().isoformat(timespec='minutes')}",
+                "  |¬ =",
+                "  |#default = {{error|Key does not exist}}",
+                "}}",
+            ],
+        )
+    )
     return "\n".join(lines)
 
 
@@ -238,16 +248,24 @@ def write_table(text: str) -> None:
     page = pywikibot.Page(
         site, "Wikipedia:WikiProject Wikipedia essays/Assessment/Links"
     )
-    logger.info(f"Saving to {page.title()}")
-    if text and page.text != text:
-        page.text = text
-        page.save(
-            summary=f"Updating assesment table (Bot) (EssayImpact {__version__}",
-            minor=False,
-            botflag=False,
-            quiet=True,
-        )
-        logging.info(f"Page {page.title(as_link=True)} saved")
+    utils.save_page(
+        text=text,
+        page=page,
+        summary=f"Updating assesment table (Bot) (EssayImpact {__version__}",
+        minor=False,
+        bot=False,
+    )
+
+
+def write_data_page(text: str) -> None:
+    page = pywikibot.Page(site, "User:AntiCompositeBot/EssayImpact/data")
+    utils.save_page(
+        text=text,
+        page=page,
+        summary=f"Updating assesment data (Bot) (EssayImpact {__version__}",
+        minor=False,
+        bot=False,
+    )
 
 
 def load_wiki_config() -> Tuple[Dict[str, Union[int, float]], str]:
@@ -271,10 +289,12 @@ def main() -> None:
 
     data.sort(key=lambda e: e.score, reverse=True)
     table = construct_table(data, intro)
+    datapage = construct_data_page(data)
 
     if not simulate:
         check_runpage()
         write_table(table)
+        write_data_page(datapage)
     else:
         print(table)
     logger.info("Finished")
