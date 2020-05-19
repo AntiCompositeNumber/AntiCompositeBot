@@ -139,7 +139,7 @@ class Essay:
             for o in (
                 "  |",
                 self.page.title(insite=site),
-                "=",
+                " = ",
                 rank if (key == "rank") else getattr(self, key, ""),
             )
         )
@@ -220,11 +220,11 @@ def construct_data_page(data: Iterable[Essay]) -> str:
         [
             f"|lastupdate = {datetime.utcnow().isoformat(timespec='minutes')}",
             "|¬ =",
-            "|#default={{error|Key does not exist}}",
+            "|#default = {{error|Key does not exist}}",
             "}}",
         ],
     ))
-    return "\n".join(lines)
+    return "\n  ".join(lines)
 
 
 def check_runpage() -> None:
