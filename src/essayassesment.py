@@ -210,7 +210,7 @@ def construct_data_page(data: Iterable[Essay]) -> str:
     key_line = "  |%s={{#switch:{{{2|{{{page|}}}}}}"
     lines = list(
         itertools.chain(
-            ["{{#switch:{{{1|{{{key|}}}}}}"],
+            ["{{#switch:{{{1|{{{key|¬}}}}}}"],
             list(
                 itertools.chain.from_iterable(
                     list(
