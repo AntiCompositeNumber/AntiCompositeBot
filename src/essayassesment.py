@@ -133,6 +133,18 @@ class Essay:
         wikitext += "\n"
         return wikitext
 
+    def data_row(self, key: str, rank: int = 0) -> str:
+        wikitext = "".join(
+            str(o)
+            for o in (
+                "  |",
+                self.page.title(insite=site),
+                "=",
+                rank if (key == "rank") else getattr(self, key, ""),
+            )
+        )
+        return wikitext
+
 
 def iter_project_pages() -> Iterator[pywikibot.Page]:
     query = """
@@ -184,17 +196,27 @@ def construct_table(data: Iterable[Essay], intro_r: str) -> str:
     table = "".join(
         itertools.chain(
             [intro, table],
-            [
-                essay.row(rank=i + 1)
-                for i, essay in enumerate(
-                    sorted(data, key=lambda e: e.score, reverse=True)
-                )
-            ],
+            [essay.row(rank=i + 1) for i, essay in enumerate(data)],
             ["|}"],
         )
     )
 
     return table
+
+
+def construct_data_page(data: Iterable[Essay]) -> str:
+    keys = ["rank", "score"]
+    key_line = "|%s={{#switch:{{{2|{{{page|}}}}}}"
+
+    lines = ["{{#switch:{{{1|{{{key|}}}}}}"]
+    for key in keys:
+        lines.append(key_line % key)
+        lines.extend(
+            essay.data_row(key=key, rank=i + 1) for i, essay in enumerate(data)
+        )
+        lines.append("}}")
+    lines.extend("|#default={{error|Key does not exist}}", "}}")
+    return "\n".join(lines)
 
 
 def check_runpage() -> None:
@@ -204,7 +226,7 @@ def check_runpage() -> None:
         raise pywikibot.UserBlocked("Runpage is false, quitting")
 
 
-def save_page(text: str) -> None:
+def write_table(text: str) -> None:
     page = pywikibot.Page(
         site, "Wikipedia:WikiProject Wikipedia essays/Assessment/Links"
     )
@@ -239,11 +261,12 @@ def main() -> None:
         essay.calculate_score(weights)
         data.append(essay)
 
+    data.sort(key=lambda e: e.score, reverse=True)
     table = construct_table(data, intro)
 
     if not simulate:
         check_runpage()
-        save_page(table)
+        write_table(table)
     else:
         print(table)
     logger.info("Finished")
