@@ -28,7 +28,13 @@ import string
 from typing import Tuple, Iterator
 
 site = pywikibot.Site("commons", "commons")
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
+    level=logging.INFO,
+    # filename="nolicense.log",
+)
 logger = logging.getLogger("NoLicense")
+logger.setLevel(logging.DEBUG)
 simulate = True
 
 __version__ = 0.1
@@ -41,7 +47,6 @@ def iter_files_and_users(days) -> Iterator[Tuple[pywikibot.Page, pywikibot.Page]
         .strftime("%Y%m%d%H%M%S")
     )
     query = """
-USE commonswiki_p;
 SELECT p0.page_namespace, p0.page_title, CONCAT("User talk:", actor_name)
 FROM categorylinks
 JOIN page p0 ON cl_from = p0.page_id
@@ -52,18 +57,21 @@ JOIN logging_logindex
 JOIN actor_logging ON log_actor = actor_id
 WHERE
     cl_to = "Files_with_no_machine-readable_license"
-    AND log_timestamp > %(ts)i
+    AND log_timestamp > %(ts)s
     AND "Deletion_template_tag" NOT IN (
         SELECT tl_title
         FROM templatelinks
         WHERE tl_namespace = 10 AND tl_from = p0.page_id
     )"""
-    conn = toolforge.connect("commonswiki_p", args={"ts": ts})
+    conn = toolforge.connect("commonswiki_p")
     with conn.cursor() as cur:
-        cur.execute(query)
+        cur.execute(query, args={"ts": ts})
         data = cur.fetchall()
     for ns, title, user in data:
-        yield pywikibot.Page(site, title=title, ns=ns), pywikibot.Page(site, title=user)
+        yield (
+            pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=ns),
+            pywikibot.Page(site, title=str(user, encoding="utf-8")),
+        )
 
 
 def check_templates(page: pywikibot.Page) -> bool:
@@ -89,7 +97,7 @@ def tag_page(page: pywikibot.Page) -> bool:
 
 def warn_user(page: pywikibot.Page, filepage: pywikibot.Page) -> bool:
     tag_template = (
-        "{{subst:Image license |1=$title }} "
+        "\n\n{{subst:Image license |1=$title }} "
         "This action was performed automatically by ~~~~"
     )
     tag = string.Template(tag_template).substitute(title=filepage.title())
@@ -103,9 +111,9 @@ def warn_user(page: pywikibot.Page, filepage: pywikibot.Page) -> bool:
 
 def edit_page(page: pywikibot.Page, text: str, summary: str) -> bool:
     if simulate:
-        logging.debug(f"Simulating {page.title()}")
-        logging.debug(f"  Summary: {summary}")
-        logging.debug(f"  New text: {text}")
+        logger.debug(f"Simulating {page.title()}")
+        logger.debug(f"  Summary: {summary}")
+        logger.debug(f"  New text: {text}")
         return True
     utils.check_runpage(site, "NoLicense")
     try:
@@ -130,10 +138,12 @@ def main(limit: int = 0, days: int = 30) -> None:
     utils.check_runpage(site, "NoLicense")
     total = 0
     for page, user in iter_files_and_users(days):
+        logger.debug(total)
         if limit and total >= limit:
             logger.info(f"Limit of {limit} pages reached")
+            break
         elif check_templates(page) and tag_page(page):
-            warn_user(user)
+            warn_user(user, page)
             total += 1
     else:
         logger.info(f"Queue is empty")
@@ -141,7 +151,7 @@ def main(limit: int = 0, days: int = 30) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--days", type=int, help="Files uploaded in the last DAYS days", default=30
     )
