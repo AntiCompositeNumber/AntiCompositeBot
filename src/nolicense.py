@@ -25,7 +25,7 @@ import utils
 import logging
 import argparse
 import string
-from typing import Tuple, Iterator
+from typing import Tuple, Iterator, Optional
 
 site = pywikibot.Site("commons", "commons")
 logging.basicConfig(
@@ -85,17 +85,21 @@ def check_templates(page: pywikibot.Page) -> bool:
     )
 
 
-def tag_page(page: pywikibot.Page) -> bool:
+def tag_page(page: pywikibot.Page, throttle: Optional[utils.Throttle] = None) -> bool:
     tag = "{{subst:nld}}\n"
     text = tag + page.text
     summary = (
         "No license found, tagging with {{[[Template:No license since|]]}} "
-        f"(Bot) (NoLicense __version__)"
+        f"(Bot) (NoLicense {__version__})"
     )
     return edit_page(page, text, summary)
 
 
-def warn_user(page: pywikibot.Page, filepage: pywikibot.Page) -> bool:
+def warn_user(
+    page: pywikibot.Page,
+    filepage: pywikibot.Page,
+    throttle: Optional[utils.Throttle] = None,
+) -> bool:
     tag_template = (
         "\n\n{{subst:Image license |1=$title }} "
         "This action was performed automatically by ~~~~"
@@ -109,12 +113,19 @@ def warn_user(page: pywikibot.Page, filepage: pywikibot.Page) -> bool:
     return edit_page(page, text, summary)
 
 
-def edit_page(page: pywikibot.Page, text: str, summary: str) -> bool:
+def edit_page(
+    page: pywikibot.Page,
+    text: str,
+    summary: str,
+    throttle: Optional[utils.Throttle] = None,
+) -> bool:
     if simulate:
         logger.debug(f"Simulating {page.title()}")
         logger.debug(f"  Summary: {summary}")
         logger.debug(f"  New text: {text}")
         return True
+    if throttle is not None:
+        throttle.throttle()
     utils.check_runpage(site, "NoLicense")
     try:
         utils.retry(
@@ -136,14 +147,15 @@ def edit_page(page: pywikibot.Page, text: str, summary: str) -> bool:
 def main(limit: int = 0, days: int = 30) -> None:
     logger.info(f"Starting up")
     utils.check_runpage(site, "NoLicense")
+    throttle = utils.Throttle(1 * 60)
     total = 0
     for page, user in iter_files_and_users(days):
         logger.debug(total)
         if limit and total >= limit:
             logger.info(f"Limit of {limit} pages reached")
             break
-        elif check_templates(page) and tag_page(page):
-            warn_user(user, page)
+        elif check_templates(page) and tag_page(page, throttle=throttle):
+            warn_user(user, page, throttle=throttle)
             total += 1
     else:
         logger.info(f"Queue is empty")

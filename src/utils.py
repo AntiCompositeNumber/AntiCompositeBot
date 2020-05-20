@@ -19,6 +19,7 @@
 
 import pywikibot
 import logging
+import time
 from typing import Callable, Any
 
 logger = logging.getLogger(__name__)
@@ -65,3 +66,17 @@ def retry(function: Callable, retries: int, *args, **kwargs) -> Any:
     else:
         raise err
     return out
+
+
+class Throttle:
+    def __init__(self, delay: int):
+        self.delay = delay
+        self.last_edit = 0
+
+    def throttle(self):
+        now = time.monotonic()
+        diff = round(self.delay - (now - self.last_edit), 2)
+        if diff > 0:
+            logger.debug(f"Sleeping for {diff} seconds")
+            time.sleep(diff)
+        self.last_edit = time.monotonic()
