@@ -25,6 +25,7 @@ import utils
 import logging
 import argparse
 import string
+import json
 from typing import Tuple, Iterator, Optional
 
 site = pywikibot.Site("commons", "commons")
@@ -38,6 +39,14 @@ logger.setLevel(logging.DEBUG)
 simulate = True
 
 __version__ = 0.1
+
+
+def get_config():
+    page = pywikibot.Page(site, "User:AntiCompositeBot/NoLicense/Config.json")
+    conf_json = json.loads(page.text)
+    logger.info(f"Loaded config from {page.title(as_link=True)}")
+    logger.debug(conf_json)
+    return conf_json
 
 
 def iter_files_and_users(days) -> Iterator[Tuple[pywikibot.Page, pywikibot.Page]]:
@@ -86,31 +95,28 @@ def check_templates(page: pywikibot.Page) -> bool:
 
 
 def tag_page(page: pywikibot.Page, throttle: Optional[utils.Throttle] = None) -> bool:
-    tag = "{{subst:nld}}\n"
+    tag = config["tag_text"]
     text = tag + page.text
     summary = (
         "No license found, tagging with {{[[Template:No license since|]]}} "
         f"(Bot) (NoLicense {__version__})"
     )
-    return edit_page(page, text, summary)
+    return edit_page(page, text, summary, throttle=throttle)
 
 
 def warn_user(
-    page: pywikibot.Page,
+    user_talk: pywikibot.Page,
     filepage: pywikibot.Page,
     throttle: Optional[utils.Throttle] = None,
 ) -> bool:
-    tag_template = (
-        "\n\n{{subst:Image license |1=$title }} "
-        "This action was performed automatically by ~~~~"
-    )
+    tag_template = config["warn_text"]
     tag = string.Template(tag_template).substitute(title=filepage.title())
-    text = page.text + tag
+    text = user_talk.text + tag
     summary = (
         "Notifying about file tagged for deletion with no license "
-        f"(Bot) (NoLicense __version__)"
+        f"(Bot) (NoLicense {__version__})"
     )
-    return edit_page(page, text, summary)
+    return edit_page(user_talk, text, summary, throttle=throttle)
 
 
 def edit_page(
@@ -119,13 +125,13 @@ def edit_page(
     summary: str,
     throttle: Optional[utils.Throttle] = None,
 ) -> bool:
-    if simulate:
-        logger.debug(f"Simulating {page.title()}")
-        logger.debug(f"  Summary: {summary}")
-        logger.debug(f"  New text: {text}")
-        return True
     if throttle is not None:
         throttle.throttle()
+    if simulate:
+        logger.debug(f"Simulating {page.title()}")
+        logger.debug(f"Summary: {summary}")
+        logger.debug(f"New text:\n{text}")
+        return True
     utils.check_runpage(site, "NoLicense")
     try:
         utils.retry(
@@ -147,7 +153,8 @@ def edit_page(
 def main(limit: int = 0, days: int = 30) -> None:
     logger.info(f"Starting up")
     utils.check_runpage(site, "NoLicense")
-    throttle = utils.Throttle(1 * 60)
+    throttle = utils.Throttle(config["edit_rate"])
+
     total = 0
     for page, user in iter_files_and_users(days):
         logger.debug(total)
@@ -155,7 +162,7 @@ def main(limit: int = 0, days: int = 30) -> None:
             logger.info(f"Limit of {limit} pages reached")
             break
         elif check_templates(page) and tag_page(page, throttle=throttle):
-            warn_user(user, page, throttle=throttle)
+            warn_user(user, page)
             total += 1
     else:
         logger.info(f"Queue is empty")
@@ -172,5 +179,6 @@ if __name__ == "__main__":
         "--simulate", action="store_true", help="Simulate operation, do not edit"
     )
     args = parser.parse_args()
-    simulate = args.simulate
+    config = get_config()
+    simulate = args.simulate or config.get("simulate", False)
     main(limit=args.limit, days=args.days)
