@@ -57,7 +57,7 @@ class Essay:
     views: Optional[int] = None
     score: Optional[float] = None
 
-    def get_views_and_watchers(self) -> Tuple[int, int]:
+    def get_views_and_watchers(self) -> None:
         title = self.page.title()
         url = "https://en.wikipedia.org/w/api.php"
         params = {
@@ -76,9 +76,8 @@ class Essay:
         watchers = data.get("watchers", 0)
         views = sum(i if i else 0 for i in list(data["pageviews"].values())[0:30])
         self.views, self.watchers = views, watchers
-        return views, watchers
 
-    def get_page_links(self) -> int:
+    def get_page_links(self) -> None:
         page = self.page
         query = """
         SELECT COUNT(pl_from)
@@ -90,7 +89,21 @@ class Essay:
                 query, (page.title(underscore=True, with_ns=False), page.namespace().id)
             )
             self.links = cast(Tuple[Tuple[int]], cur.fetchall())[0][0]
-        return self.links
+
+    def get_count_authors(self) -> None:
+        page = self.page
+        query = """
+        SELECT COUNT(rev_actor)
+        FROM page
+        JOIN revision_userindex ON page_id = rev_page
+        WHERE page_title = %s and page_namespace = %s
+        """
+        conn = toolforge.connect("enwiki_p")
+        with conn.cursor() as cur:
+            cur.execute(
+                query, (page.title(underscore=True, with_ns=False), page.namespace().id)
+            )
+            self.links = cast(Tuple[Tuple[int]], cur.fetchall())[0][0]
 
     def calculate_score(
         self,
@@ -99,20 +112,23 @@ class Essay:
             "views": 2,
             "links": 0.01,
         },
-    ) -> float:
+    ) -> None:
         if self.views is None or self.watchers is None:
             self.get_views_and_watchers()
         if self.links is None:
             self.get_page_links()
-        assert all(val is not None for val in [self.views, self.watchers, self.links])
+        assert (
+            self.watchers is not None
+            and self.views is not None
+            and self.links is not None
+        )
 
         self.score = round(
-            self.watchers * weights["watchers"]
-            + self.views * weights["views"]
-            + self.links * weights["links"],
+            float(self.watchers) * weights["watchers"]
+            + float(self.views) * weights["views"]
+            + float(self.links) * weights["links"],
             2,
         )
-        return self.score
 
     def row(self, rank: int = 0) -> str:
         wikitext = "|-\n| "
