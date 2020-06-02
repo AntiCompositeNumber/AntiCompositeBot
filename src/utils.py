@@ -52,7 +52,7 @@ def save_page(
             botflag=bot,
             quiet=True,
         )
-        logging.info(f"Page {page.title(as_link=True)} saved")
+        logger.info(f"Page {page.title(as_link=True)} saved")
 
 
 def retry(function: Callable, retries: int, *args, **kwargs) -> Any:
