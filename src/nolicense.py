@@ -32,11 +32,10 @@ site = pywikibot.Site("commons", "commons")
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
     level=logging.INFO,
-    # filename="nolicense.log",
+    filename="nolicense.log",
 )
 logger = logging.getLogger("NoLicense")
 logger.setLevel(logging.DEBUG)
-simulate = True
 
 __version__ = 0.2
 
