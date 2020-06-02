@@ -1,0 +1,30 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: anticompositebot.nolicense-cron
+  labels:
+    name: anticompositebot.nolicense-cron
+    # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
+    toolforge: tool
+spec:
+  schedule: "5 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            toolforge: tool
+        spec:
+          containers:
+          - name: nolicense-cron
+            image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+            command: ["python3", "src/nolicense.py"]
+            args: ["--limit", "10"]
+            workingDir: /data/project/anticompositebot
+            env: 
+            - name: HOME 
+              value: /data/project/anticompositebot
+            imagePullPolicy: Always
+          restartPolicy: OnFailure
