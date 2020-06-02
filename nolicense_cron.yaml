@@ -20,7 +20,10 @@ spec:
           containers:
           - name: nolicense-cron
             image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
-            command: ["python3", "src/nolicense.py"]
+            command: [
+              "python3", 
+              "/data/project/anticompositebot/AntiCompositeBot/src/nolicense.py"
+            ]
             args: ["--limit", "10"]
             workingDir: /data/project/anticompositebot
             env: 
