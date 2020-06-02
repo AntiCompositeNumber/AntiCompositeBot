@@ -96,10 +96,8 @@ def check_templates(page: pywikibot.Page) -> bool:
 def tag_page(page: pywikibot.Page, throttle: Optional[utils.Throttle] = None) -> bool:
     tag = config["tag_text"]
     text = tag + page.text
-    summary = (
-        "No license found, tagging with {{[[Template:No license since|]]}} "
-        f"(Bot) (NoLicense {__version__})"
-    )
+    summary_template = config["warn_summary"]
+    summary = string.Template(summary_template).substitute(version=__version__)
     return edit_page(page, text, summary, throttle=throttle)
 
 
@@ -111,10 +109,8 @@ def warn_user(
     tag_template = config["warn_text"]
     tag = string.Template(tag_template).substitute(title=filepage.title())
     text = user_talk.text + tag
-    summary = (
-        "Notifying about file tagged for deletion with no license "
-        f"(Bot) (NoLicense {__version__})"
-    )
+    summary_template = config["warn_summary"]
+    summary = string.Template(summary_template).substitute(version=__version__)
     return edit_page(user_talk, text, summary, throttle=throttle)
 
 
@@ -149,10 +145,12 @@ def edit_page(
         return True
 
 
-def main(limit: int = 0, days: int = 30) -> None:
+def main(limit: int = 0, days: int = 0) -> None:
     logger.info("Starting up")
     utils.check_runpage(site, "NoLicense")
     throttle = utils.Throttle(config["edit_rate"])
+    if not days:
+        days = config.get("max_age", 30)
 
     total = 0
     for page, user in iter_files_and_users(days):
@@ -171,7 +169,7 @@ def main(limit: int = 0, days: int = 30) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--days", type=int, help="Files uploaded in the last DAYS days", default=30
+        "--days", type=int, help="Files uploaded in the last DAYS days", default=0
     )
     parser.add_argument("--limit", type=int, help="Maximum pages to edit", default=0)
     parser.add_argument(
