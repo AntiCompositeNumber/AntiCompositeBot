@@ -38,7 +38,7 @@ logger = logging.getLogger("NoLicense")
 logger.setLevel(logging.DEBUG)
 simulate = True
 
-__version__ = 0.1
+__version__ = 0.2
 
 
 def get_config():
@@ -84,14 +84,13 @@ WHERE
 
 
 def check_templates(page: pywikibot.Page) -> bool:
-    cats = set(page.categories())
-    templates = set(page.itertemplates())
-    return (
-        pywikibot.Page(site, "Template:Deletion_template_tag") not in templates
-    ) and (
-        pywikibot.Category(site, "Category:Files_with_no_machine-readable_license")
-        in cats
-    )
+    """Returns true if page has no license tag and is not tagged for deletion"""
+    templates = {
+        pywikibot.Page(site, "Template:Deletion_template_tag"),
+        pywikibot.Page(site, "Template:License template tag"),
+    }
+    page_templates = set(page.itertemplates())
+    return page_templates.isdisjoint(templates)
 
 
 def tag_page(page: pywikibot.Page, throttle: Optional[utils.Throttle] = None) -> bool:
@@ -151,7 +150,7 @@ def edit_page(
 
 
 def main(limit: int = 0, days: int = 30) -> None:
-    logger.info(f"Starting up")
+    logger.info("Starting up")
     utils.check_runpage(site, "NoLicense")
     throttle = utils.Throttle(config["edit_rate"])
 
@@ -165,7 +164,7 @@ def main(limit: int = 0, days: int = 30) -> None:
             warn_user(user, page)
             total += 1
     else:
-        logger.info(f"Queue is empty")
+        logger.info("Queue is empty")
     logger.info(f"Shutting down, {total} files tagged")
 
 
