@@ -21,7 +21,7 @@ spec:
           - name: nolicense-cron
             image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
             command: [
-              "python3", 
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
               "/data/project/anticompositebot/AntiCompositeBot/src/nolicense.py"
             ]
             args: ["--limit", "10"]
