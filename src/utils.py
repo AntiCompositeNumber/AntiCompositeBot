@@ -82,8 +82,8 @@ def logger_config(module: str, level: str = "INFO", filename: str = "") -> Dict:
         conf["handlers"]["smtp"] = {
             "class": "logging.handlers.SMTPHandler",
             "mailhost": "mail.tools.wmflabs.org",
-            "fromaddr": "tools.anticompositebot@wmflabs.org",
-            "toaddrs": ["tools.anticompositebot@wmflabs.org"],
+            "fromaddr": "tools.anticompositebot@tools.wmflabs.org",
+            "toaddrs": ["tools.anticompositebot@tools.wmflabs.org"],
             "subject": f"AntiCompositeBot {module} error",
             "level": "ERROR",
             "formatter": "log",
