@@ -167,7 +167,7 @@ def main(limit: int = 0, days: int = 30) -> None:
 
     total = 0
     current_user = None
-    queue = collections.deque()
+    queue: Deque[pywikibot.Page] = collections.deque()
     for page, user in iter_files_and_users(days):
         logger.info(f"{page.title()}: File {total + 1} of {limit}")
         if current_user is None:

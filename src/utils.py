@@ -22,12 +22,12 @@ import logging
 import logging.handlers
 import time
 import os
-from typing import Callable, Any
+from typing import Callable, Any, Dict
 
 logger = logging.getLogger(__name__)
 
 
-def logger_config(module: str, level: str = "INFO", filename: str = "") -> dict:
+def logger_config(module: str, level: str = "INFO", filename: str = "") -> Dict:
     loglevel = os.environ.get("LOG_LEVEL", level)
     if loglevel == "VERBOSE":
         module_level = "DEBUG"
@@ -43,7 +43,7 @@ def logger_config(module: str, level: str = "INFO", filename: str = "") -> dict:
     else:
         _filename = f"{module}.log"
 
-    conf = {
+    conf: Dict = {
         "version": 1,
         "formatters": {
             "log": {
@@ -57,7 +57,7 @@ def logger_config(module: str, level: str = "INFO", filename: str = "") -> dict:
     }
     if _filename == "stderr":
         conf["handlers"]["console"] = {"class": logging.StreamHandler}
-        conf["root"].setdefault("handlers").append("console")
+        conf["root"].setdefault("handlers", []).append("console")
     elif on_toolforge():
         conf["handlers"]["file"] = {
             "class": logging.handlers.TimedRotatingFileHandler,
@@ -66,13 +66,13 @@ def logger_config(module: str, level: str = "INFO", filename: str = "") -> dict:
             "interval": 30,
             "backupCount": 3,
         }
-        conf["root"].setdefault("handlers").append("file")
+        conf["root"].setdefault("handlers", []).append("file")
     else:
         conf["handlers"]["file"] = {
             "class": logging.FileHandler,
             "filename": get_log_location(_filename),
         }
-        conf["root"].setdefault("handlers").append("file")
+        conf["root"].setdefault("handlers", []).append("file")
     if os.environ.get("LOG_SMTP"):
         conf["handlers"]["smtp"] = {
             "class": logging.handlers.SMTPHandler,
@@ -82,7 +82,7 @@ def logger_config(module: str, level: str = "INFO", filename: str = "") -> dict:
             "subject": f"AntiCompositeBot {module} error",
             "level": "ERROR",
         }
-        conf["root"].setdefault("handlers").append("smtp")
+        conf["root"].setdefault("handlers", []).append("smtp")
 
     return conf
 
