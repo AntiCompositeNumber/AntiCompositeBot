@@ -106,7 +106,7 @@ def warn_user(
     user_talk: pywikibot.Page,
     queue: Deque[pywikibot.Page],
     throttle: Optional[utils.Throttle] = None,
-) -> bool:
+) -> Deque:
     logger.debug(f"Processing warning queue for {user_talk.title()}: {queue}")
     if len(queue) == 0:
         return False
@@ -126,7 +126,8 @@ def warn_user(
     text = user_talk.text + tag
     summary_template = config["warn_summary"]
     summary = string.Template(summary_template).safe_substitute(version=__version__)
-    return edit_page(user_talk, text, summary, throttle=throttle)
+    edit_page(user_talk, text, summary, throttle=throttle)
+    return queue
 
 
 def edit_page(
@@ -168,24 +169,29 @@ def main(limit: int = 0, days: int = 30) -> None:
     total = 0
     current_user = None
     queue: Deque[pywikibot.Page] = collections.deque()
-    for page, user in iter_files_and_users(days):
-        logger.info(f"{page.title()}: File {total + 1} of {limit}")
-        if current_user is None:
-            current_user = user
-        elif user != current_user or not config["group_warnings"]:
+    try:
+        for page, user in iter_files_and_users(days):
+            logger.info(f"{page.title()}: File {total + 1} of {limit}")
+            if current_user is None:
+                current_user = user
+            elif user != current_user or not config["group_warnings"]:
+                queue = warn_user(current_user, queue)
+                current_user = user
+            if limit and total >= limit:
+                logger.info(f"Limit of {limit} pages reached")
+                break
+            if check_templates(page) and tag_page(page, throttle=throttle):
+                queue.append(page)
+                total += 1
+        else:
+            queue = warn_user(current_user, queue)
+            logger.info("No more files to check")
+    finally:
+        if len(queue) > 0:
+            logger.warn("Can not shut down, warnings left in queue!")
             warn_user(current_user, queue)
-            current_user = user
-            queue.clear()
-        if limit and total >= limit:
-            logger.info(f"Limit of {limit} pages reached")
-            break
-        if check_templates(page) and tag_page(page, throttle=throttle):
-            queue.append(page)
-            total += 1
-    else:
-        warn_user(current_user, queue)
-        logger.info("No more files to check")
-    logger.info(f"Shutting down, {total} files tagged")
+
+        logger.info(f"Shutting down, {total} files tagged")
 
 
 config = get_config()
@@ -211,4 +217,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     simulate = args.simulate
-    main(limit=args.limit, days=args.days)
+    try:
+        main(limit=args.limit, days=args.days)
+    except Exception as err:
+        logger.exception(err)
+        raise err
