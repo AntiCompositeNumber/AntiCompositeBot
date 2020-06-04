@@ -174,7 +174,9 @@ def main(limit: int = 0, days: int = 0) -> None:
     queue = collections.deque()
     for page, user in iter_files_and_users(days):
         logger.debug(total)
-        if user != current_user:
+        if current_user is None:
+            current_user = user
+        elif user != current_user:
             warn_user(current_user, queue)
             current_user = user
             queue.clear()
