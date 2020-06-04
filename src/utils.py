@@ -56,31 +56,37 @@ def logger_config(module: str, level: str = "INFO", filename: str = "") -> Dict:
         "root": {"level": root_level},
     }
     if _filename == "stderr":
-        conf["handlers"]["console"] = {"class": logging.StreamHandler}
+        conf["handlers"]["console"] = {
+            "class": "logging.StreamHandler",
+            "formatter": "log",
+        }
         conf["root"].setdefault("handlers", []).append("console")
     elif on_toolforge():
         conf["handlers"]["file"] = {
-            "class": logging.handlers.TimedRotatingFileHandler,
+            "class": "logging.handlers.TimedRotatingFileHandler",
             "filename": get_log_location(_filename),
             "when": "D",
             "interval": 30,
             "backupCount": 3,
+            "formatter": "log",
         }
         conf["root"].setdefault("handlers", []).append("file")
     else:
         conf["handlers"]["file"] = {
-            "class": logging.FileHandler,
+            "class": "logging.FileHandler",
             "filename": get_log_location(_filename),
+            "formatter": "log",
         }
         conf["root"].setdefault("handlers", []).append("file")
     if os.environ.get("LOG_SMTP"):
         conf["handlers"]["smtp"] = {
-            "class": logging.handlers.SMTPHandler,
+            "class": "logging.handlers.SMTPHandler",
             "mailhost": "mail.tools.wmflabs.org",
             "fromaddr": "tools.anticompositebot@wmflabs.org",
             "toaddrs": ["tools.anticompositebot@wmflabs.org"],
             "subject": f"AntiCompositeBot {module} error",
             "level": "ERROR",
+            "formatter": "log",
         }
         conf["root"].setdefault("handlers", []).append("smtp")
 
