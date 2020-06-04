@@ -26,7 +26,8 @@ import logging
 import argparse
 import string
 import json
-from typing import Tuple, Iterator, Optional
+import collections
+from typing import Tuple, Iterator, Optional, cast, Deque
 
 site = pywikibot.Site("commons", "commons")
 logging.basicConfig(
@@ -34,10 +35,11 @@ logging.basicConfig(
     level=logging.INFO,
     filename="nolicense.log",
 )
+logging.getLogger("pywiki").setLevel(logging.INFO)
 logger = logging.getLogger("NoLicense")
 logger.setLevel(logging.DEBUG)
 
-__version__ = 0.2
+__version__ = 0.3
 
 
 def get_config():
@@ -70,11 +72,13 @@ WHERE
         SELECT tl_title
         FROM templatelinks
         WHERE tl_namespace = 10 AND tl_from = p0.page_id
-    )"""
+    )
+ORDER BY actor_id
+"""
     conn = toolforge.connect("commonswiki_p")
     with conn.cursor() as cur:
         cur.execute(query, args={"ts": ts})
-        data = cur.fetchall()
+        data = cast(Iterator[Tuple[int, bytes, bytes]], cur.fetchall())
     for ns, title, user in data:
         yield (
             pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=ns),
@@ -96,20 +100,34 @@ def tag_page(page: pywikibot.Page, throttle: Optional[utils.Throttle] = None) ->
     tag = config["tag_text"]
     text = tag + page.text
     summary_template = config["warn_summary"]
-    summary = string.Template(summary_template).substitute(version=__version__)
+    summary = string.Template(summary_template).safe_substitute(version=__version__)
     return edit_page(page, text, summary, throttle=throttle)
 
 
 def warn_user(
     user_talk: pywikibot.Page,
-    filepage: pywikibot.Page,
+    queue: Deque[pywikibot.Page],
     throttle: Optional[utils.Throttle] = None,
 ) -> bool:
-    tag_template = config["warn_text"]
-    tag = string.Template(tag_template).substitute(title=filepage.title())
+    logger.debug(f"Processing warning queue for {user_talk.title()}: {queue}")
+    if len(queue) == 0:
+        return False
+    filepage = queue.popleft()
+    also = ""
+    if len(queue) > 0:
+        also = config["warn_also"]
+        also_line = string.Template(config["warn_also_line"])
+        for page in queue:
+            also += also_line.safe_substitute(
+                link=page.title(as_link=True, textlink=True, insite=site)
+            )
+            queue.remove(page)
+
+    tag_template = string.Template(config["warn_text"])
+    tag = tag_template.safe_substitute(title=filepage.title(), also=also)
     text = user_talk.text + tag
     summary_template = config["warn_summary"]
-    summary = string.Template(summary_template).substitute(version=__version__)
+    summary = string.Template(summary_template).safe_substitute(version=__version__)
     return edit_page(user_talk, text, summary, throttle=throttle)
 
 
@@ -152,15 +170,22 @@ def main(limit: int = 0, days: int = 0) -> None:
         days = config.get("max_age", 30)
 
     total = 0
+    current_user = None
+    queue = collections.deque()
     for page, user in iter_files_and_users(days):
         logger.debug(total)
+        if user != current_user:
+            warn_user(current_user, queue)
+            current_user = user
+            queue.clear()
         if limit and total >= limit:
             logger.info(f"Limit of {limit} pages reached")
             break
-        elif check_templates(page) and tag_page(page, throttle=throttle):
-            warn_user(user, page)
+        if check_templates(page) and tag_page(page, throttle=throttle):
+            queue.append(page)
             total += 1
     else:
+        warn_user(current_user, queue)
         logger.info("Queue is empty")
     logger.info(f"Shutting down, {total} files tagged")
 
