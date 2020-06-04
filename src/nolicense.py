@@ -99,7 +99,7 @@ def check_templates(page: pywikibot.Page) -> bool:
 def tag_page(page: pywikibot.Page, throttle: Optional[utils.Throttle] = None) -> bool:
     tag = config["tag_text"]
     text = tag + page.text
-    summary_template = config["warn_summary"]
+    summary_template = config["tag_summary"]
     summary = string.Template(summary_template).safe_substitute(version=__version__)
     return edit_page(page, text, summary, throttle=throttle)
 
@@ -117,7 +117,7 @@ def warn_user(
     if len(queue) > 0:
         also = config["warn_also"]
         also_line = string.Template(config["warn_also_line"])
-        for page in queue:
+        for page in queue.copy():
             also += also_line.safe_substitute(
                 link=page.title(as_link=True, textlink=True, insite=site)
             )
