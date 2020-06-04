@@ -30,7 +30,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = 0.3
+__version__ = 0.4
 
 logging.config.dictConfig(
     utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")
@@ -160,12 +160,10 @@ def edit_page(
         return True
 
 
-def main(limit: int = 0, days: int = 0) -> None:
-    logger.info("Starting up")
+def main(limit: int = 0, days: int = 30) -> None:
+    logger.info("NoLicense {__version__} starting up")
     utils.check_runpage(site, "NoLicense")
     throttle = utils.Throttle(config["edit_rate"])
-    if not days:
-        days = config.get("max_age", 30)
 
     total = 0
     current_user = None
@@ -174,7 +172,7 @@ def main(limit: int = 0, days: int = 0) -> None:
         logger.info(f"{page.title()}: File {total + 1} of {limit}")
         if current_user is None:
             current_user = user
-        elif user != current_user:
+        elif user != current_user or not config["group_warnings"]:
             warn_user(current_user, queue)
             current_user = user
             queue.clear()
@@ -186,20 +184,31 @@ def main(limit: int = 0, days: int = 0) -> None:
             total += 1
     else:
         warn_user(current_user, queue)
-        logger.info("Queue is empty")
+        logger.info("No more files to check")
     logger.info(f"Shutting down, {total} files tagged")
 
 
+config = get_config()
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--days", type=int, help="Files uploaded in the last DAYS days", default=0
+        "--days",
+        type=int,
+        help="Files uploaded in the last DAYS days",
+        default=config.get("max_age", 30),
     )
-    parser.add_argument("--limit", type=int, help="Maximum pages to edit", default=0)
     parser.add_argument(
-        "--simulate", action="store_true", help="Simulate operation, do not edit"
+        "--limit",
+        type=int,
+        help="Maximum pages to edit, 0 is no limit",
+        default=config.get("batch_size", 0),
+    )
+    parser.add_argument(
+        "--simulate",
+        action="store_true",
+        help="Simulate operation, do not edit",
+        default=config.get("simulate", False),
     )
     args = parser.parse_args()
-    config = get_config()
-    simulate = args.simulate or config.get("simulate", False)
+    simulate = args.simulate
     main(limit=args.limit, days=args.days)
