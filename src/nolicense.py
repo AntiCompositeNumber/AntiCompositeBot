@@ -33,7 +33,7 @@ site = pywikibot.Site("commons", "commons")
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
     level=logging.INFO,
-    filename="nolicense.log",
+    # filename="nolicense.log",
 )
 logging.getLogger("pywiki").setLevel(logging.INFO)
 logger = logging.getLogger("NoLicense")
