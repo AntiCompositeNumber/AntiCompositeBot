@@ -47,7 +47,7 @@ def logger_config(module: str, level: str = "INFO", filename: str = "") -> Dict:
         "version": 1,
         "formatters": {
             "log": {
-                "fmt": "%(asctime)s %(name)s %(levelname)s: %(message)s",
+                "format": "%(asctime)s %(name)s %(levelname)s: %(message)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             }
         },
