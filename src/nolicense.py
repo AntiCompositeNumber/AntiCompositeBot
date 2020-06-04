@@ -23,23 +23,21 @@ import toolforge
 import datetime
 import utils
 import logging
+import logging.config
 import argparse
 import string
 import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-site = pywikibot.Site("commons", "commons")
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
-    level=logging.INFO,
-    filename="nolicense.log",
-)
-logging.getLogger("pywiki").setLevel(logging.INFO)
-logger = logging.getLogger("NoLicense")
-logger.setLevel(logging.DEBUG)
-
 __version__ = 0.3
+
+logging.config.dictConfig(
+    utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")
+)
+logger = logging.getLogger("NoLicense")
+
+site = pywikibot.Site("commons", "commons")
 
 
 def get_config():
@@ -173,7 +171,7 @@ def main(limit: int = 0, days: int = 0) -> None:
     current_user = None
     queue = collections.deque()
     for page, user in iter_files_and_users(days):
-        logger.debug(total)
+        logger.info(f"{page.title()}: File {total + 1} of {limit}")
         if current_user is None:
             current_user = user
         elif user != current_user:

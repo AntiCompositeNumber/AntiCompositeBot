@@ -19,10 +19,110 @@
 
 import pywikibot
 import logging
+import logging.handlers
 import time
+import os
 from typing import Callable, Any
 
 logger = logging.getLogger(__name__)
+
+
+def logger_config(module: str, level: str = "INFO", filename: str = "") -> dict:
+    loglevel = os.environ.get("LOG_LEVEL", level)
+    if loglevel == "VERBOSE":
+        module_level = "DEBUG"
+        root_level = "INFO"
+    else:
+        module_level = loglevel
+        root_level = loglevel
+
+    if os.environ.get("LOG_FILE"):
+        _filename = os.environ["LOG_FILE"]
+    elif filename:
+        _filename = filename
+    else:
+        _filename = f"{module}.log"
+
+    conf = {
+        "version": 1,
+        "formatters": {
+            "log": {
+                "fmt": "%(asctime)s %(name)s %(levelname)s: %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+            }
+        },
+        "handlers": {},
+        "loggers": {"pywiki": {"level": root_level}, module: {"level": module_level}},
+        "root": {"level": root_level},
+    }
+    if _filename == "stderr":
+        conf["handlers"]["console"] = {"class": logging.StreamHandler}
+        conf["root"].setdefault("handlers").append("console")
+    elif on_toolforge():
+        conf["handlers"]["file"] = {
+            "class": logging.handlers.TimedRotatingFileHandler,
+            "filename": get_log_location(_filename),
+            "when": "D",
+            "interval": 30,
+            "backupCount": 3,
+        }
+        conf["root"].setdefault("handlers").append("file")
+    else:
+        conf["handlers"]["file"] = {
+            "class": logging.FileHandler,
+            "filename": get_log_location(_filename),
+        }
+        conf["root"].setdefault("handlers").append("file")
+    if os.environ.get("LOG_SMTP"):
+        conf["handlers"]["smtp"] = {
+            "class": logging.handlers.SMTPHandler,
+            "mailhost": "mail.tools.wmflabs.org",
+            "fromaddr": "tools.anticompositebot@wmflabs.org",
+            "toaddrs": ["tools.anticompositebot@wmflabs.org"],
+            "subject": f"AntiCompositeBot {module} error",
+            "level": "ERROR",
+        }
+        conf["root"].setdefault("handlers").append("smtp")
+
+    return conf
+
+
+def get_log_location(filename: str) -> str:
+    """Returns a log location depending on system
+
+    On Toolforge, uses $HOME/logs, creating if needed.
+    If $HOME is not set or the bot is not running on Toolforge,
+    the current directiory is used instead.
+
+    Absolute paths (starting with "/") are returned without modification.
+    """
+    if filename.startswith("/"):
+        return filename
+    if on_toolforge() and os.environ.get("HOME"):
+        logdir = os.path.join(os.environ["HOME"], "logs")
+        try:
+            os.mkdir(logdir)
+        except FileExistsError:
+            pass
+    else:
+        logdir = os.getcwd()
+
+    return os.path.join(logdir, filename)
+
+
+def on_toolforge() -> bool:
+    """Detects if this is a Wikimedia Cloud Services environment.
+
+    While this function is on_toolforge, it will also detect Cloud VPS
+    """
+    try:
+        f = open("/etc/wmcs-project")
+    except FileNotFoundError:
+        wmcs = False
+    else:
+        wmcs = True
+        f.close()
+    return wmcs
 
 
 def check_runpage(site: pywikibot.Site, task: str) -> None:
@@ -47,10 +147,7 @@ def save_page(
     else:
         page.text = text
         page.save(
-            summary=summary,
-            minor=minor,
-            botflag=bot,
-            quiet=True,
+            summary=summary, minor=minor, botflag=bot, quiet=True,
         )
         logger.info(f"Page {page.title(as_link=True)} saved")
 
