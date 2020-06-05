@@ -23,6 +23,7 @@ import toolforge
 import requests
 import itertools
 import logging
+import logging.config
 import math
 import json
 import utils
@@ -38,7 +39,7 @@ session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
 simulate = False
 
-logging.dictConfig(
+logging.config.dictConfig(
     utils.logger_config("essayassesment", level="VERBOSE", filename="essayimpact.lg")
 )
 logger = logging.getLogger("essayassesment")

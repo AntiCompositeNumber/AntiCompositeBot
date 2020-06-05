@@ -30,6 +30,7 @@ import toolforge
 import argparse
 import time
 import logging
+import logging.config
 import re
 import utils
 
@@ -41,7 +42,7 @@ from typing import Dict, List, Set, Any, Optional, Tuple
 __version__ = "0.6"
 
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
-logging.dictConfig(
+logging.config.dictConfig(
     utils.logger_config(
         "harvcheck" if __name__ == "__main__" else __name__,
         level="VERBOSE",

@@ -25,10 +25,11 @@ import sys
 import time
 import utils
 import logging
+import logging.config
 
 __version__ = "0.4"
 
-logging.dictConfig(
+logging.config.dictConfig(
     utils.logger_config("wla_append", filename="stderr", level="VERBOSE")
 )
 logger = logging.getLogger("wla_append")
