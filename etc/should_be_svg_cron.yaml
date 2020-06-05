@@ -1,9 +1,9 @@
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: anticompositebot.ShouldBeSVG
+  name: anticompositebot.should-be-svg
   labels:
-    name: anticompositebot.ShouldBeSVG
+    name: anticompositebot.should-be-svg
     # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
     toolforge: tool
 spec:
@@ -17,7 +17,7 @@ spec:
             toolforge: tool
         spec:
           containers:
-          - name: ShouldBeSVG
+          - name: should-be-svg
             image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
             command: [
               "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
