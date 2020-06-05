@@ -160,7 +160,7 @@ def construct_gallery(cat: pywikibot.Category, usage: UsageResult, depth: int) -
         ][1:]
     )
     gallery_lines = "\n".join(
-        image.galery_line(i + 1) for i, image in enumerate(usage.files[:200])
+        image.gallery_line(i + 1) for i, image in enumerate(usage.files[:200])
     )
 
     # If any files were skipped, write an explanatory message and the files.
