@@ -74,7 +74,7 @@ WHERE
     AND img_minor_mime != "svg+xml"
 GROUP BY page_title
 ORDER BY count(*) DESC
-    """
+"""
     conn = toolforge.connect("commonswiki")
     with conn.cursor() as cur:
         total = cur.execute(
@@ -91,7 +91,7 @@ ORDER BY count(*) DESC
         [
             FileUsage(f"File:{str(page, encoding='utf-8')}", count)
             for page, count in data
-            ][200:],
+            ][:200],
         total,
         [],
     )
