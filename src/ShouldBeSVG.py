@@ -32,7 +32,7 @@ from pymysql.err import OperationalError
 from pywikibot import pagegenerators
 from typing import Dict, Iterator, NamedTuple, List, cast, Tuple
 
-__version__ = "2.0"
+__version__ = "2.1"
 logging.config.dictConfig(
     utils.logger_config("ShouldBeSVG", level="VERBOSE", filename="ShouldBeSVG.log")
 )
@@ -208,7 +208,7 @@ def save_page(target: pywikibot.Page, gallery: str) -> None:
         page=target,
         summary=f"Updating gallery (Bot) (#ShouldBeSVG {__version__})",
         bot=False,
-        minor=False,
+        minor=True,
     )
 
 
