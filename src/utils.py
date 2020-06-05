@@ -131,10 +131,10 @@ def on_toolforge() -> bool:
     return wmcs
 
 
-def check_runpage(site: pywikibot.Site, task: str) -> None:
+def check_runpage(site: pywikibot.Site, task: str, override: bool = False) -> None:
     """Raises pywikibot.UserBlocked if on-wiki runpage is not True"""
     page = pywikibot.Page(site, f"User:AntiCompositeBot/{task}/Run")
-    if not page.text.endswith("True"):
+    if not page.text.endswith("True") and not override:
         raise pywikibot.UserBlocked("Runpage is false, quitting")
 
 

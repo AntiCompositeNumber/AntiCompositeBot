@@ -23,41 +23,28 @@ import datetime
 import argparse
 import re
 import json
-import time
-import subprocess
-import os
 import pywikibot
+import logging
+import utils
+from collections import namedtuple
 from pywikibot import pagegenerators
 
-version = 'ShouldBeSVG 1.2.2'
-toolforge = None
-
-
-def check_toolforge():
-    """Check if the script is running on the grid"""
-    job = os.getenv('JOB_ID')
-    if job is not None:
-        print('Toolforge grid detected, job number', job)
-        return job
-
-    print('Toolforge grid not detected, errors will not be reported')
-    return False
-
-
-def grid_handle_error():
-    """If there's an exception, I want to know about it."""
-    if bool(toolforge):
-        subprocess.run(['qalter', '-m', 'e', toolforge])
-        print('Grid set to send mail')
+__version__ = "1.3"
+logging.dictConfig(
+    utils.logger_config("ShouldBeSVG", level="VERBOSE", filename="ShouldBeSVG.log")
+)
+logger = logging.getLogger("ShouldBeSVG")
+UsageResult = namedtuple("UsageResult", ["gallery", "total", "skipped"])
 
 
 def get_usage(cat, depth, total):
     """Get usage information for every file in the supplied category"""
-    gen = pagegenerators.CategorizedPageGenerator(cat, recurse=depth,
-                                                  namespaces=6, total=total)
+    gen = pagegenerators.CategorizedPageGenerator(
+        cat, recurse=depth, namespaces=6, total=total
+    )
 
     # Generate a dictionary with diagrams that should be SVG.
-    usageCounts = {}
+    usage_counts = {}
     skipped = []
 
     for page in gen:
@@ -67,200 +54,175 @@ def get_usage(cat, depth, total):
             mimetype = pywikibot.FilePage(page).latest_file_info.mime
         except (pywikibot.PageRelatedError, AttributeError):
             skipped.append(page.title())
-            print('Skipping', page)
+            logger.info("Skipping", page)
         else:
             # The categories are a bit messy, so make sure the image isn't
             # already an SVG.
-            if mimetype != 'image/svg+xml':
+            if mimetype != "image/svg+xml":
                 try:
-                    # Grab the global usage of the file, then count the items
-                    # and save them in the dictionary.
                     usage = pywikibot.FilePage.globalusage(page)
-                    usageCounts[page] = len(list(usage))
+                    usage_counts[page] = len(list(usage))
                 except (pywikibot.NoUsername, pywikibot.PageRelatedError):
                     # Pywikibot complains if the bot doesn't have an account
                     # on a wiki where a file is used. If that happens,
                     # skip the file.
                     skipped.append(page.title())
-                    print('Skipping', page)
+                    logger.info("Skipping", page)
 
     # Sort from greatest to least
-    usageCountsSorted = sorted(usageCounts, key=usageCounts.__getitem__,
-                               reverse=True)
+    usage_counts_sorted = sorted(
+        usage_counts, key=usage_counts.__getitem__, reverse=True
+    )
 
     # Count the global usage for the top 200 files
     i = 0
     j = 200
-    sortedPages = ''
-    for page in usageCountsSorted:
+    sorted_pages = ""
+    for page in usage_counts_sorted:
         if i < j:
             i += 1
-            sortedPages += '{title}|{i}. Used {count} times.\n'.format(
-                title=page.title(), i=i, count=usageCounts[page])
-    print('Scanning finished')
-    return sortedPages, len(usageCounts), skipped
+            sorted_pages += f"{page.title()}|{i}. Used {usage_counts[page]} times.\n"
+
+    logger.info("Scanning finished")
+    return UsageResult(sorted_pages, len(usage_counts), skipped)
 
 
 def construct_gallery(cat, usage_result, depth):
     """Take the output from get_usage() and turn it into a wikitext gallery"""
     date = datetime.date.today()
-    cats = "'''[[:{maincat}]]''' ({num} files) \n".format(
-        maincat=cat.title(), num=cat.categoryinfo['files'])
-    pageCats = ('{maincat}\n'
-                '[[Category:Images that should use vector graphics]]').format(
-                    maincat=cat.aslink())
+    cats = "'''[[:{cat.title()}]]''' ({cat.categoryinfo['files']} files) \n"
+    page_cats = "{cat.aslink()}\n" "[[Category:Images that should use vector graphics]]"
 
     # Figure out which subcategories were scanned and turn those into a list
     if depth > 0:
         for subcat in cat.subcategories(recurse=depth - 1):
-            cats += "* [[:{subcat}]] ({num} files) \n".format(
-                subcat=subcat.title(), num=subcat.categoryinfo['files'])
+            cats += f"* [[:{subcat.title()}]] ({subcat.categoryinfo['files']} files) \n"
 
     # If any files were skipped, write an explanatory message and the files.
-    skipped = usage_result[2]
+    skipped = usage_result.skipped
     if skipped != []:
-        skippedFiles = ('The following files were skipped due to errors '
-                        'during the generation of this report:\n')\
-                        .format(skipped=skipped)
+        skipped_files = (
+            "The following files were skipped due to errors "
+            "during the generation of this report:\n"
+        )
         for page in skipped:
-            skippedFiles += '* [[:{title}]]\n'.format(title=page.title())
+            skipped_files += f"* [[:{page.title()}]]\n"
     else:
-        skippedFiles = '\n'
+        skipped_files = "\n"
 
     # Now we construct the gallery itself. Everything is formatted by now,
     # it just needs to be slotted into the right spot.
-    gallery = """\
+    gallery = f"""\
 Last update: {{{{ISODate|1={date}}}}}.
 
 This report includes the following categories while counting only the usage \
 of each file in the main namespace.
 
 {cats}
-Total number of scanned files: {totalScanned}
+Total number of scanned files: {usage_result.total}
 <gallery showfilename=yes>
-{sortedPages}
+{usage_result.gallery}
 </gallery>
 
-This report was generated by AntiCompositeBot {version}. {skippedFiles}
-{pageCats}""".format(date=date, cats=cats, totalScanned=usage_result[1],
-                     sortedPages=usage_result[0], skippedFiles=skippedFiles,
-                     pageCats=pageCats, version=version)
+This report was generated by AntiCompositeBot {__version__}. {usage_result.skipped}
+{page_cats}"""
     return gallery
 
 
 def save_page(target, gallery):
     """Saves the page to Commons, making sure to leave text above the line"""
-    oldWikitext = target.text
+    old_wikitext = target.text
     regex = re.compile(
-        '(?<=<!-- Only text ABOVE this line '
-        'will be preserved on updates -->\n).*', re.M | re.S)
-    newWikitext = re.sub(regex, gallery, oldWikitext)
-    target.text = newWikitext
-    try:
-        target.save(summary='Updating gallery (Bot) (#{version})'.format(
-            version=version), botflag=False)
-    except pywikibot.PageNotSaved:
-        print('Save failed, trying again soon')
-        time.sleep(15)
-        try:
-            target.save(summary='Updating gallery (Bot) ({version})'.format(
-                version=version), botflag=False)
-        except pywikibot.PageNotSaved:
-            print(target.text)
-            raise
+        "(?<=<!-- Only text ABOVE this line " "will be preserved on updates -->\n).*",
+        re.M | re.S,
+    )
+    new_wikitext = re.sub(regex, gallery, old_wikitext)
+
+    utils.retry(
+        utils.save_page,
+        2,
+        text=new_wikitext,
+        page=target,
+        summary=f"Updating gallery (Bot) (#ShouldBeSVG{__version__})",
+        bot=False,
+        minor=False,
+    )
 
 
 def handle_args():
     # Handle command line arguments. See ShouldBeSVG.py --help for details
     parser = argparse.ArgumentParser(
-        description=('Generate global usage reports'
-                     'for vectorization categories.'))
-    parser.add_argument('key')
-    parser.add_argument('--total', help="maximum number of files to scan",
-                        type=int, default=None)
-    parser.add_argument('--simulate', action="store_true",
-                        help="prints output to SDOUT instead of saving it",)
-    parser.add_argument('--run_override', action='store_true',
-                        help='force the bot to ignore the runpage')
-    parser.add_argument('--version', action='version', version=version)
+        description=("Generate global usage reports" "for vectorization categories.")
+    )
+    parser.add_argument("key")
+    parser.add_argument(
+        "--total", help="maximum number of files to scan", type=int, default=None
+    )
+    parser.add_argument(
+        "--simulate",
+        action="store_true",
+        help="prints output to stdout instead of saving it",
+    )
+    parser.add_argument(
+        "--run_override",
+        action="store_true",
+        help="force the bot to ignore the runpage",
+    )
+    parser.add_argument("--version", action="version", version=__version__)
     return parser.parse_args()
 
 
 def find_report(args, times):
-    if args.key == 'auto':
+    if args.key == "auto":
         dt = datetime.datetime.utcnow()
-        now = dt.strftime('%u%H')
+        now = dt.strftime("%u%H")
         try:
             report = times[now]
         except KeyError:
-            print("Check your timing, there's no report to run this hour", now)
+            logger.error("Check your timing, there's no report to run this hour", now)
             raise
     else:
         report = args.key
 
-    if bool(toolforge):
-        subprocess.run(['qalter', '-N',
-                        'ShouldBeSVG-{report}'.format(report=report),
-                        toolforge])
     return report
 
 
-def run_check(site, runOverride):
-    runpage = pywikibot.Page(site, 'User:AntiCompositeBot/ShouldBeSVG/Run')
-    run = runpage.text.endswith('True')
-    if run is False and runOverride is False:
-        print('Runpage is false, quitting...')
-        raise pywikibot.UserBlocked
-
-
 def main():
-    global toolforge
-    toolforge = check_toolforge()
     args = handle_args()
 
-    # Set up pywikibot to operate off of Commons
-    site = pywikibot.Site('commons', 'commons')
+    site = pywikibot.Site("commons", "commons")
+    utils.check_runpage(site, "ShouldBeSVG", args.run_override)
 
-    run_check(site, args.run_override)
-
-    # Log the version and the start time
-    print('AntiCompositeBot {version} started at {starttime}'.format(
-        version=version, starttime=datetime.datetime.now().isoformat()))
+    logger.info("Starting up")
 
     # Download a dict relating keys to galleries, categories, and depth values.
-    reportsPage = pywikibot.Page(
-        site, 'User:AntiCompositeBot/ShouldBeSVG/reports.json')
-    reports = json.loads(reportsPage.text)['reports']
-    times = json.loads(reportsPage.text)['times']
+    reports_page = pywikibot.Page(
+        site, "User:AntiCompositeBot/ShouldBeSVG/reports.json"
+    )
+    reports = json.loads(reports_page.text)["reports"]
+    times = json.loads(reports_page.text)["times"]
 
-    # Collect information from arguments
     key = find_report(args, times)
-    cat = pywikibot.Category(site, reports[key]['category'])
-    target = pywikibot.Page(site, reports[key]['gallery'])
-    depth = reports[key]['depth']
+    cat = pywikibot.Category(site, reports[key]["category"])
+    target = pywikibot.Page(site, reports[key]["gallery"])
+    depth = reports[key]["depth"]
     total = args.total
 
-    # Run get_usage() with the cat based on the input. Returns the files with
-    # their usage, the total number scanned, and any that were skipped.
     usage_result = get_usage(cat, depth, total)
 
-    # Construct the report gallery from the usage data.
     gallery = construct_gallery(cat, usage_result, depth)
 
-    # Check if we're actually writing to the report gallery. If not, just print
-    # the gallery wikitext to SDOUT. If we are, send it to save_page().
     if args.simulate:
-        print(gallery)
+        logger.debug(gallery)
     else:
         save_page(target, gallery)
 
-    # We're done here.
-    print('Finished')
+    logger.info("Finished")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        grid_handle_error()
-        raise
+    except Exception as err:
+        logger.exception(err)
+        raise err
