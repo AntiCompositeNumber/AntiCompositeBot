@@ -30,6 +30,6 @@ spec:
             - name: HOME 
               value: /data/project/anticompositebot
             - name: LOG_SMTP
-              value: True
+              value: "True"
             imagePullPolicy: Always
           restartPolicy: OnFailure
