@@ -38,6 +38,7 @@ logging.config.dictConfig(
 logger = logging.getLogger("NoLicense")
 
 site = pywikibot.Site("commons", "commons")
+simulate = None
 
 
 def get_config():
@@ -109,7 +110,12 @@ def warn_user(
 ) -> Deque:
     logger.debug(f"Processing warning queue for {user_talk.title()}: {queue}")
     if len(queue) == 0:
-        return False
+        return queue
+    elif len(queue) > 1 and not config["group_warnings"]:
+        raise IndexError(
+            "Grouped warnings are disabled but warn_user() "
+            f"was called with {len(queue)} pages"
+        )
     filepage = queue.popleft()
     also = ""
     if len(queue) > 0:
@@ -184,11 +190,9 @@ def main(limit: int = 0, days: int = 30) -> None:
                 queue.append(page)
                 total += 1
         else:
-            queue = warn_user(current_user, queue)
             logger.info("No more files to check")
     finally:
         if len(queue) > 0:
-            logger.warn("Can not shut down, warnings left in queue!")
             warn_user(current_user, queue)
 
         logger.info(f"Shutting down, {total} files tagged")

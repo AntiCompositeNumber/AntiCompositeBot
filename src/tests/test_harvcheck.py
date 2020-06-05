@@ -17,9 +17,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import harvcheck
 import pytest
 import unittest.mock as mock
+import os
+import sys
+
+sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
+import harvcheck  # noqa: E402
 
 session = harvcheck.session
 
