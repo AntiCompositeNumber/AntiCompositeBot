@@ -24,36 +24,102 @@ import argparse
 import re
 import json
 import pywikibot  # type: ignore
+import toolforge
 import logging
 import logging.config
 import utils
-from collections import namedtuple
+from pymysql.err import OperationalError
 from pywikibot import pagegenerators
-from typing import Dict
+from typing import Dict, Iterator, NamedTuple, List, cast, Tuple
 
-__version__ = "1.3"
+__version__ = "2.0"
 logging.config.dictConfig(
     utils.logger_config("ShouldBeSVG", level="VERBOSE", filename="ShouldBeSVG.log")
 )
 logger = logging.getLogger("ShouldBeSVG")
-UsageResult = namedtuple("UsageResult", ["gallery", "total", "skipped"])
+
+
+class FileUsage(NamedTuple):
+    title: str
+    usage: int
+
+    def gallery_line(self, i: int) -> str:
+        return f"{self.title}|{i}. Used {self.usage} times."
+
+
+class UsageResult(NamedTuple):
+    files: List[FileUsage]
+    total: int
+    skipped: List[str]
 
 
 def get_usage(cat: pywikibot.Category, depth: int, total: int) -> UsageResult:
+    try:
+        usage = db_get_usage(cat, depth)
+    except OperationalError:
+        usage = api_get_usage(cat, depth, total)
+    return usage
+
+
+def db_get_usage(cat: pywikibot.Category, depth: int) -> UsageResult:
+    query = """
+SELECT gil_to, count(*)
+FROM globalimagelinks
+JOIN image ON img_name = gil_to
+JOIN page ON gil_to = page_title
+JOIN categorylinks ON page_id = cl_from
+WHERE
+    cl_to IN %(cats)s
+    AND img_major_mime = "image"
+    AND img_minor_mime != "svg+xml"
+GROUP BY gil_to
+ORDER BY count(*) DESC
+LIMIT 200
+    """
+    conn = toolforge.connect("commonswiki")
+    with conn.cursor() as cur:
+        total = cur.execute(
+            query,
+            args={
+                "cats": [
+                    cat.title(with_ns=False, underscore=True)
+                    for cat in list_cats(cat, depth)
+                ]
+            },
+        )
+        data = cast(List[Tuple[bytes, int]], cur.fetchall())
+    return UsageResult(
+        [
+            FileUsage(f"File:{str(page, encoding='utf-8')}", count)
+            for page, count in data
+        ],
+        total,
+        [],
+    )
+
+
+def list_cats(cat: pywikibot.Category, depth: int) -> Iterator[pywikibot.Category]:
+    yield cat
+    for subcat in cat.subcategories(recurse=depth):
+        yield subcat
+
+
+def api_get_usage(cat: pywikibot.Category, depth: int, total: int) -> UsageResult:
     """Get usage information for every file in the supplied category"""
     gen = pagegenerators.CategorizedPageGenerator(
         cat, recurse=depth, namespaces=6, total=total
     )
 
     # Generate a dictionary with diagrams that should be SVG.
-    usage_counts = {}
+    usage_counts = []
     skipped = []
 
     for page in gen:
+        page = pywikibot.FilePage(page)
         # First, grab the mimetype of the file.
         # If that's not possible, the file is broken and should be skipped.
         try:
-            mimetype = pywikibot.FilePage(page).latest_file_info.mime
+            mimetype = page.latest_file_info.mime
         except (pywikibot.PageRelatedError, AttributeError):
             skipped.append(page.title())
             logger.info("Skipping", page)
@@ -63,7 +129,7 @@ def get_usage(cat: pywikibot.Category, depth: int, total: int) -> UsageResult:
             if mimetype != "image/svg+xml":
                 try:
                     usage = pywikibot.FilePage.globalusage(page)
-                    usage_counts[page] = len(list(usage))
+                    usage_counts.append(FileUsage(page.title(), len(list(usage))))
                 except (pywikibot.NoUsername, pywikibot.PageRelatedError):
                     # Pywikibot complains if the bot doesn't have an account
                     # on a wiki where a file is used. If that happens,
@@ -73,46 +139,39 @@ def get_usage(cat: pywikibot.Category, depth: int, total: int) -> UsageResult:
 
     # Sort from greatest to least
     usage_counts_sorted = sorted(
-        usage_counts, key=usage_counts.__getitem__, reverse=True
+        usage_counts, key=lambda file: file.usage, reverse=True
     )
-
-    # Count the global usage for the top 200 files
-    i = 0
-    j = 200
-    sorted_pages = ""
-    for page in usage_counts_sorted:
-        if i < j:
-            i += 1
-            sorted_pages += f"{page.title()}|{i}. Used {usage_counts[page]} times.\n"
-
-    logger.info("Scanning finished")
-    return UsageResult(sorted_pages, len(usage_counts), skipped)
+    return UsageResult(usage_counts_sorted[:200], len(usage_counts), skipped)
 
 
-def construct_gallery(
-    cat: pywikibot.Category, usage_result: UsageResult, depth: int
-) -> str:
+def construct_gallery(cat: pywikibot.Category, usage: UsageResult, depth: int) -> str:
     """Take the output from get_usage() and turn it into a wikitext gallery"""
     date = datetime.date.today()
     cats = "'''[[:{cat.title()}]]''' ({cat.categoryinfo['files']} files) \n"
-    page_cats = "{cat.aslink()}\n" "[[Category:Images that should use vector graphics]]"
+    page_cats = "{cat.aslink()}\n[[Category:Images that should use vector graphics]]"
 
-    # Figure out which subcategories were scanned and turn those into a list
-    if depth > 0:
-        for subcat in cat.subcategories(recurse=depth - 1):
-            cats += f"* [[:{subcat.title()}]] ({subcat.categoryinfo['files']} files) \n"
+    cats += "\n".join(
+        [
+            (
+                f"* {subcat.title(as_link=True, textlink=True)} "
+                f"({subcat.categoryinfo['files']} files)"
+            )
+            for subcat in list_cats(cat, depth)
+        ][1:]
+    )
+    gallery_lines = "\n".join(
+        image.galery_line(i + 1) for i, image in enumerate(usage.files[:200])
+    )
 
     # If any files were skipped, write an explanatory message and the files.
-    skipped = usage_result.skipped
-    if skipped != []:
+    skipped = usage.skipped
+    if skipped:
         skipped_files = (
             "The following files were skipped due to errors "
             "during the generation of this report:\n"
-        )
-        for page in skipped:
-            skipped_files += f"* [[:{page.title()}]]\n"
+        ) + "\n".join(f"* [[:{page.title()}]]" for page in skipped)
     else:
-        skipped_files = "\n"
+        skipped_files = ""
 
     # Now we construct the gallery itself. Everything is formatted by now,
     # it just needs to be slotted into the right spot.
@@ -123,12 +182,12 @@ This report includes the following categories while counting only the usage \
 of each file in the main namespace.
 
 {cats}
-Total number of scanned files: {usage_result.total}
+Total number of scanned files: {usage.total}
 <gallery showfilename=yes>
-{usage_result.gallery}
+{gallery_lines}
 </gallery>
 
-This report was generated by AntiCompositeBot {__version__}. {usage_result.skipped}
+This report was generated by AntiCompositeBot {__version__}. {skipped_files}
 {page_cats}"""
     return gallery
 
