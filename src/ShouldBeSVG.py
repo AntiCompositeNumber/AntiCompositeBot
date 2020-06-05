@@ -63,7 +63,7 @@ def get_usage(cat: pywikibot.Category, depth: int, total: int) -> UsageResult:
 
 def db_get_usage(cat: pywikibot.Category, depth: int) -> UsageResult:
     query = """
-SELECT page_title, count(gil_page)
+SELECT page_title, count(*)
 FROM categorylinks
 JOIN page ON cl_from = page_id
 LEFT JOIN globalimagelinks ON page_title = gil_to
@@ -72,8 +72,8 @@ WHERE
     cl_to IN %(cats)s
     AND img_major_mime = "image"
     AND img_minor_mime != "svg+xml"
-GROUP BY page_title, gil_page
-ORDER BY count(gil_page) DESC
+GROUP BY page_title
+ORDER BY count(*) DESC
     """
     conn = toolforge.connect("commonswiki")
     with conn.cursor() as cur:
