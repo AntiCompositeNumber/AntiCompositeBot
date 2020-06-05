@@ -31,6 +31,7 @@ import argparse
 import time
 import logging
 import re
+import utils
 
 from mwparserfromhell.wikicode import Wikicode  # type: ignore
 from bs4.element import Tag  # type: ignore
@@ -40,16 +41,15 @@ from typing import Dict, List, Set, Any, Optional, Tuple
 __version__ = "0.6"
 
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
-    level=logging.INFO,
-    filename=os.path.join(_conf_dir, "harvcheck.log"),
+logging.dictConfig(
+    utils.logger_config(
+        "harvcheck" if __name__ == "__main__" else __name__,
+        level="VERBOSE",
+        filename="harvcheck.log",
+    )
 )
-# shut pywikibot up
-logging.getLogger("pywiki").setLevel(logging.INFO)
 
 logger = logging.getLogger("harvcheck" if __name__ == "__main__" else __name__)
-logger.setLevel(logging.DEBUG)
 
 # load config
 with open(os.path.join(_conf_dir, "default_config.json")) as f:
@@ -330,10 +330,10 @@ def main(title: Optional[str] = None, page: Optional[BasePage] = None) -> bool:
 
     changes = len(broken_harvs)
     return save_page(
-            page,
-            str(wikitext),
-            config["summary"].format(version=__version__, changes=changes),
-        )
+        page,
+        str(wikitext),
+        config["summary"].format(version=__version__, changes=changes),
+    )
 
 
 def throttle() -> None:

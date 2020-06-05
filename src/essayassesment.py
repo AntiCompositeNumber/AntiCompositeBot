@@ -38,15 +38,10 @@ session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
 simulate = False
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
-    level=logging.INFO,
-    filename="essayimpact.log",
+logging.dictConfig(
+    utils.logger_config("essayassesment", level="VERBOSE", filename="essayimpact.lg")
 )
-# shut pywikibot up
-logging.getLogger("pywiki").setLevel(logging.INFO)
 logger = logging.getLogger("essayassesment")
-logger.setLevel(logging.DEBUG)
 
 
 @dataclass

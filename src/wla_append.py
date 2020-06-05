@@ -23,20 +23,18 @@ import toolforge
 import re
 import sys
 import time
+import utils
 import logging
 
 __version__ = "0.4"
 
+logging.dictConfig(
+    utils.logger_config("wla_append", filename="stderr", level="VERBOSE")
+)
+logger = logging.getLogger("wla_append")
+
 site = pywikibot.Site("commons", "commons")
 last_edit = 0
-
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s:%(name)s:%(message)s", level=logging.DEBUG,
-)
-logging.getLogger("pywiki").setLevel(logging.INFO)
-logging.getLogger("requests_oauthlib").setLevel(logging.INFO)
-logging.getLogger("oauthlib").setLevel(logging.INFO)
-logger = logging.getLogger("wla_append")
 
 
 def iter_files():
