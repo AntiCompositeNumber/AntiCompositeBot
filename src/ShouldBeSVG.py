@@ -206,7 +206,7 @@ def save_page(target: pywikibot.Page, gallery: str) -> None:
         2,
         text=new_wikitext,
         page=target,
-        summary=f"Updating gallery (Bot) (#ShouldBeSVG{__version__})",
+        summary=f"Updating gallery (Bot) (#ShouldBeSVG {__version__})",
         bot=False,
         minor=False,
     )
