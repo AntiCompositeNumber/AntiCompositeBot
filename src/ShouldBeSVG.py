@@ -91,7 +91,7 @@ ORDER BY count(*) DESC
         [
             FileUsage(f"File:{str(page, encoding='utf-8')}", count)
             for page, count in data
-            ][:200],
+        ][:200],
         total,
         [],
     )
@@ -99,8 +99,9 @@ ORDER BY count(*) DESC
 
 def list_cats(cat: pywikibot.Category, depth: int) -> Iterator[pywikibot.Category]:
     yield cat
-    for subcat in cat.subcategories(recurse=depth):
-        yield subcat
+    if depth > 0:
+        for subcat in cat.subcategories(recurse=depth - 1):
+            yield subcat
 
 
 def api_get_usage(cat: pywikibot.Category, depth: int, total: int) -> UsageResult:
