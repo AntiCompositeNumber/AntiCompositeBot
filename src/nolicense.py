@@ -30,7 +30,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = 0.4
+__version__ = "1.0"
 
 logging.config.dictConfig(
     utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")
