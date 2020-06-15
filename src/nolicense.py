@@ -141,9 +141,9 @@ def warn_user(
     summary_template = config["warn_summary"]
     summary = string.Template(summary_template).safe_substitute(version=__version__)
     for i in range(3):
-        text = user_talk.text + tag
+        text = user_talk.get(force=True) + tag
         try:
-            edit_page(user_talk, text, summary, throttle=throttle)
+            edit_page(user_talk, text, summary, throttle=throttle, retries=0)
         except Exception as e:
             err = e
         else:
@@ -158,6 +158,7 @@ def edit_page(
     text: str,
     summary: str,
     throttle: Optional[utils.Throttle] = None,
+    retries: int = 3
 ) -> bool:
     if throttle is not None:
         throttle.throttle()
@@ -170,7 +171,7 @@ def edit_page(
     try:
         utils.retry(
             utils.save_page,
-            3,
+            retries,
             page=page,
             text=text,
             summary=summary,
