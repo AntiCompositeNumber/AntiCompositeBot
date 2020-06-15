@@ -178,7 +178,7 @@ def edit_page(
 
 
 def main(limit: int = 0, days: int = 30) -> None:
-    logger.info("NoLicense {__version__} starting up")
+    logger.info(f"NoLicense {__version__} starting up")
     utils.check_runpage(site, "NoLicense")
     throttle = utils.Throttle(config["edit_rate"])
 
@@ -199,6 +199,8 @@ def main(limit: int = 0, days: int = 30) -> None:
             if check_templates(page) and tag_page(page, throttle=throttle):
                 queue.append(page)
                 total += 1
+            else:
+                logger.info("Page not tagged")
         else:
             logger.info("No more files to check")
     finally:
