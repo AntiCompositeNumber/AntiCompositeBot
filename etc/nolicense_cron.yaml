@@ -24,7 +24,7 @@ spec:
               "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
               "/data/project/anticompositebot/AntiCompositeBot/src/nolicense.py"
             ]
-            args: ["--limit", "10"]
+            args: []
             workingDir: /data/project/anticompositebot
             env: 
             - name: HOME 

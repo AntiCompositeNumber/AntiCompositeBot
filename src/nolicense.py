@@ -225,7 +225,7 @@ if __name__ == "__main__":
         "--limit",
         type=int,
         help="Maximum pages to edit, 0 is no limit",
-        default=config.get("batch_size", 0),
+        default=config.get("batch_size", 10),
     )
     parser.add_argument(
         "--simulate",
