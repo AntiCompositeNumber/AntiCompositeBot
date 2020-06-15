@@ -93,10 +93,12 @@ ORDER BY actor_id
 
 def check_templates(page: pywikibot.Page) -> bool:
     """Returns true if page has no license tag and is not tagged for deletion"""
+    default_skip = ["Template:Deletion_template_tag", "Template:License template tag"]
     templates = {
-        pywikibot.Page(site, "Template:Deletion_template_tag"),
-        pywikibot.Page(site, "Template:License template tag"),
+        pywikibot.Page(site, title)
+        for title in config.get("skip_templates", default_skip)
     }
+    assert len(templates) >= 2
     page_templates = set(page.itertemplates())
     return page_templates.isdisjoint(templates)
 
@@ -114,7 +116,8 @@ def warn_user(
     queue: Deque[pywikibot.Page],
     throttle: Optional[utils.Throttle] = None,
 ) -> Deque:
-    logger.debug(f"Processing warning queue for {user_talk.title()}: {queue}")
+    logger.info(f"Processing warning queue for {user_talk.title()}: {len(queue)} pages")
+    logger.debug(str(queue))
     if len(queue) == 0:
         return queue
     elif len(queue) > 1 and not config["group_warnings"]:
