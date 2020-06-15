@@ -30,7 +30,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 logging.config.dictConfig(
     utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")
@@ -49,12 +49,17 @@ def get_config():
     return conf_json
 
 
-def iter_files_and_users(days) -> Iterator[Tuple[pywikibot.Page, pywikibot.Page]]:
-    ts = (
+def iter_files_and_users(
+    days, delay_mins=30
+) -> Iterator[Tuple[pywikibot.Page, pywikibot.Page]]:
+    start_ts = (
         (datetime.datetime.utcnow() - datetime.timedelta(days=days))
         .replace(hour=0, minute=0, second=0)
         .strftime("%Y%m%d%H%M%S")
     )
+    end_ts = (
+        datetime.datetime.utcnow() - datetime.timedelta(minutes=delay_mins)
+    ).strftime("%Y%m%d%H%M%S")
     query = """
 SELECT p0.page_namespace, p0.page_title, CONCAT("User talk:", actor_name)
 FROM categorylinks
@@ -66,7 +71,8 @@ JOIN logging_logindex
 JOIN actor_logging ON log_actor = actor_id
 WHERE
     cl_to = "Files_with_no_machine-readable_license"
-    AND log_timestamp > %(ts)s
+    AND log_timestamp > %(start_ts)s
+    AND log_timestamp < %(end_ts)s
     AND "Deletion_template_tag" NOT IN (
         SELECT tl_title
         FROM templatelinks
@@ -76,7 +82,7 @@ ORDER BY actor_id
 """
     conn = toolforge.connect("commonswiki_p")
     with conn.cursor() as cur:
-        cur.execute(query, args={"ts": ts})
+        cur.execute(query, args={"start_ts": start_ts, "end_ts": end_ts})
         data = cast(Iterator[Tuple[int, bytes, bytes]], cur.fetchall())
     for ns, title, user in data:
         yield (
