@@ -36,6 +36,20 @@ def test_get_config():
     assert conf
 
 
+def test_iter_fiels_and_users():
+    mock_cursor = mock.MagicMock()
+    mock_cursor.fetchall.return_value = [(6, b"Example.jpg", b"User talk:Example")]
+    mock_conn = mock.MagicMock()
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    with mock.patch("toolforge.connect", return_value=mock_conn):
+        assert list(nolicense.iter_files_and_users(30, 30)) == [
+            (
+                pywikibot.Page(nolicense.site, "File:Example.jpg"),
+                pywikibot.Page(nolicense.site, "User talk:Example"),
+            ),
+        ]
+
+
 @pytest.mark.parametrize(
     "pages,expected",
     [
@@ -69,14 +83,24 @@ def test_edit_page():
     throttle = mock.Mock(throttle=throttle_throttle)
     with mock.patch("utils.save_page") as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
+        page.get.return_value = page.text
         assert (
             nolicense.edit_page(
-                page, text="NewText", summary="Summary", throttle=throttle,
+                page,
+                text="NewText",
+                summary="Summary",
+                throttle=throttle,
+                mode=mock.sentinel.mode,
             )
             is True
         )
         save_page.assert_called_once_with(
-            page=page, text="NewText", summary="Summary", bot=False, minor=False
+            page=page,
+            text="NewText",
+            summary="Summary",
+            bot=False,
+            minor=False,
+            mode=mock.sentinel.mode,
         )
     throttle_throttle.assert_called_once()
 
@@ -84,11 +108,21 @@ def test_edit_page():
 def test_edit_page_nothrottle():
     with mock.patch("utils.save_page") as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
+        page.get.return_value = page.text
         nolicense.edit_page(
-            page, text="NewText", summary="Summary", throttle=None,
+            page,
+            text="NewText",
+            summary="Summary",
+            throttle=None,
+            mode=mock.sentinel.mode,
         )
         save_page.assert_called_once_with(
-            page=page, text="NewText", summary="Summary", bot=False, minor=False
+            page=page,
+            text="NewText",
+            summary="Summary",
+            bot=False,
+            minor=False,
+            mode=mock.sentinel.mode,
         )
 
 
@@ -96,6 +130,7 @@ def test_edit_page_simulate():
     nolicense.simulate = True
     with mock.patch("utils.save_page") as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
+        page.get.return_value = page.text
         nolicense.edit_page(
             page, text="NewText", summary="Summary", throttle=None,
         )
@@ -107,6 +142,7 @@ def test_edit_page_exception():
     throttle = mock.Mock()
     with mock.patch("utils.save_page", side_effect=pywikibot.UserBlocked) as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
+        page.get.return_value = page.text
         assert (
             nolicense.edit_page(
                 page, text="NewText", summary="Summary", throttle=throttle,
@@ -133,6 +169,7 @@ def test_warn_user(grouped, queue_titles):
         for queue_title in queue_titles
     )
     user_talk = mock.Mock(title=mock.Mock(return_value="user_talk"), text="old_text()")
+    user_talk.get.return_value = user_talk.text
     with mock.patch.dict("nolicense.config", test_config):
         with mock.patch("nolicense.edit_page") as edit_page:
             assert (
@@ -147,6 +184,7 @@ def test_warn_user(grouped, queue_titles):
                 mock.ANY,
                 f"warn_summary({nolicense.__version__})",
                 throttle=mock.sentinel.throttle,
+                mode="append",
             )
             assert f"warn_text({queue_titles[0]}," in text
             if grouped and len(queue_titles) > 1:
@@ -155,7 +193,6 @@ def test_warn_user(grouped, queue_titles):
                     assert f"warn_also_line({page}" in text
             else:
                 assert "warn_also()" not in text
-            assert "old_text()" in text
 
 
 def test_warn_user_ungrouped():
@@ -172,6 +209,7 @@ def test_warn_user_ungrouped():
         for queue_title in queue_titles
     )
     user_talk = mock.Mock(title=mock.Mock(return_value="user_talk"), text="old_text()")
+    user_talk.get.return_value = user_talk.text
     with mock.patch.dict("nolicense.config", test_config):
         with mock.patch("nolicense.edit_page") as edit_page:
             with pytest.raises(IndexError):
@@ -191,6 +229,7 @@ def test_warn_user_empty():
     }
     queue = collections.deque()
     user_talk = mock.Mock(title=mock.Mock(return_value="user_talk"), text="old_text()")
+    user_talk.get.return_value = user_talk.text
     with mock.patch.dict("nolicense.config", test_config):
         with mock.patch("nolicense.edit_page") as edit_page:
             nolicense.warn_user(
@@ -199,17 +238,39 @@ def test_warn_user_empty():
             edit_page.assert_not_called()
 
 
+def test_warn_user_conflict():
+    test_config = {
+        "warn_text": "warn_text($title, $also)",
+        "warn_also": "warn_also()",
+        "warn_also_line": "warn_also_line($link)",
+        "warn_summary": "warn_summary($version)",
+        "group_warnings": True,
+    }
+    queue = collections.deque(
+        [mock.Mock(spec=pywikibot.Page, title=mock.Mock(return_value="page_1"))]
+    )
+    user_talk = mock.Mock(title=mock.Mock(return_value="user_talk"), text="old_text()")
+    user_talk.get.side_effect = [user_talk.text, "new_old_text()"]
+    user_talk.save.side_effect = [pywikibot.exceptions.EditConflict(user_talk), None]
+    with mock.patch.dict("nolicense.config", test_config):
+        nolicense.warn_user(
+            user_talk=user_talk, queue=queue, throttle=None,
+        )
+
+
 def test_tag_page():
     test_config = {"tag_text": "tag_text()", "tag_summary": "tag_summary($version)"}
     page = mock.Mock(text="old_text()", spec=pywikibot.Page)
+    page.get.return_value = page.text
     with mock.patch.dict("nolicense.config", test_config):
         with mock.patch("nolicense.edit_page") as edit_page:
             nolicense.tag_page(page, mock.sentinel.throttle)
             edit_page.assert_called_once_with(
                 page,
-                "tag_text()old_text()",
+                "tag_text()",
                 f"tag_summary({nolicense.__version__})",
                 throttle=mock.sentinel.throttle,
+                mode="prepend",
             )
 
 

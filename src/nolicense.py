@@ -105,10 +105,9 @@ def check_templates(page: pywikibot.Page) -> bool:
 
 def tag_page(page: pywikibot.Page, throttle: Optional[utils.Throttle] = None) -> bool:
     tag = config["tag_text"]
-    text = tag + page.text
     summary_template = config["tag_summary"]
     summary = string.Template(summary_template).safe_substitute(version=__version__)
-    return edit_page(page, text, summary, throttle=throttle)
+    return edit_page(page, tag, summary, throttle=throttle, mode="prepend")
 
 
 def warn_user(
@@ -140,16 +139,7 @@ def warn_user(
     tag = tag_template.safe_substitute(title=filepage.title(), also=also)
     summary_template = config["warn_summary"]
     summary = string.Template(summary_template).safe_substitute(version=__version__)
-    for i in range(3):
-        text = user_talk.get(force=True) + tag
-        try:
-            edit_page(user_talk, text, summary, throttle=throttle, retries=0)
-        except Exception as e:
-            err = e
-        else:
-            break
-    else:
-        raise err
+    edit_page(user_talk, tag, summary, throttle=throttle, mode="append")
     return queue
 
 
@@ -158,14 +148,15 @@ def edit_page(
     text: str,
     summary: str,
     throttle: Optional[utils.Throttle] = None,
-    retries: int = 3
+    retries: int = 3,
+    mode: str = "replace"
 ) -> bool:
     if throttle is not None:
         throttle.throttle()
     if simulate:
         logger.debug(f"Simulating {page.title()}")
         logger.debug(f"Summary: {summary}")
-        logger.debug(f"New text:\n{text}")
+        logger.debug(f"New text ({mode}):\n{text}")
         return True
     utils.check_runpage(site, "NoLicense")
     try:
@@ -174,6 +165,7 @@ def edit_page(
             retries,
             page=page,
             text=text,
+            mode=mode,
             summary=summary,
             bot=False,
             minor=False,
