@@ -30,7 +30,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.0"
+__version__ = "1.1"
 
 logging.config.dictConfig(
     utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")
@@ -129,10 +129,18 @@ def warn_user(
 
     tag_template = string.Template(config["warn_text"])
     tag = tag_template.safe_substitute(title=filepage.title(), also=also)
-    text = user_talk.text + tag
     summary_template = config["warn_summary"]
     summary = string.Template(summary_template).safe_substitute(version=__version__)
-    edit_page(user_talk, text, summary, throttle=throttle)
+    for i in range(3):
+        text = user_talk.text + tag
+        try:
+            edit_page(user_talk, text, summary, throttle=throttle)
+        except Exception as e:
+            err = e
+        else:
+            break
+    else:
+        raise err
     return queue
 
 
