@@ -139,7 +139,7 @@ def warn_user(
     tag = tag_template.safe_substitute(title=filepage.title(), also=also)
     summary_template = config["warn_summary"]
     summary = string.Template(summary_template).safe_substitute(version=__version__)
-    edit_page(user_talk, tag, summary, throttle=throttle, mode="append")
+    edit_page(user_talk, tag, summary, throttle=throttle, mode="append", force=True)
     return queue
 
 
@@ -149,7 +149,8 @@ def edit_page(
     summary: str,
     throttle: Optional[utils.Throttle] = None,
     retries: int = 3,
-    mode: str = "replace"
+    mode: str = "replace",
+    force: bool = False,
 ) -> bool:
     if throttle is not None:
         throttle.throttle()
@@ -169,6 +170,7 @@ def edit_page(
             summary=summary,
             bot=False,
             minor=False,
+            force=force,
         )
     except Exception as err:
         logger.exception(err)

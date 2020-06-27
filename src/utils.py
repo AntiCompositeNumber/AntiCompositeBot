@@ -145,6 +145,7 @@ def save_page(
     bot: bool = True,
     minor: bool = False,
     mode: str = "replace",
+    force: bool = False,
 ) -> None:
     logger.info(f"Saving to {page.title()}")
     if not text:
@@ -168,7 +169,7 @@ def save_page(
     else:
         page.text = text
         page.save(
-            summary=summary, minor=minor, botflag=bot, quiet=True,
+            summary=summary, minor=minor, botflag=bot, quiet=True, force=force,
         )
         logger.info(f"Page {page.title(as_link=True)} saved")
 
