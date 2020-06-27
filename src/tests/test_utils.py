@@ -55,6 +55,7 @@ def test_save_page(mode, text, new_text):
         minor=mock.sentinel.minor,
         botflag=mock.sentinel.bot,
         quiet=True,
+        force=False,
     )
     assert mock_page.text == new_text
 
