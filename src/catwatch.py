@@ -52,3 +52,7 @@ def main():
         "Files_with_no_machine-readable_license.json",
         count,
     )
+
+
+if __name__ == "__main__":
+    main()
