@@ -85,9 +85,12 @@ ORDER BY actor_id
         cur.execute(query, args={"start_ts": start_ts, "end_ts": end_ts})
         data = cast(Iterator[Tuple[int, bytes, bytes]], cur.fetchall())
     for ns, title, user in data:
+        user_talk = pywikibot.Page(site, title=str(user, encoding="utf-8"))
+        if user_talk.isRedirectPage():
+            user_talk = user_talk.getRedirectTarget()
         yield (
             pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=ns),
-            pywikibot.Page(site, title=str(user, encoding="utf-8")),
+            user_talk,
         )
 
 
