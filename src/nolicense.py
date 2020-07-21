@@ -80,7 +80,7 @@ WHERE
     )
 ORDER BY actor_id
 """
-    conn = toolforge.connect("commonswiki_p")
+    conn = toolforge.connect("commonswiki_p", cluster="analytics")
     with conn.cursor() as cur:
         cur.execute(query, args={"start_ts": start_ts, "end_ts": end_ts})
         data = cast(Iterator[Tuple[int, bytes, bytes]], cur.fetchall())
