@@ -213,6 +213,6 @@ def get_replag(shard: str, cluster: str = "web") -> datetime.timedelta:
             "SELECT lag FROM heartbeat_p.heartbeat where shard = %s", [shard]
         )
         if count:
-            return datetime.timedelta(seconds=cur.fetchall()[0][0])
+            return datetime.timedelta(seconds=float(cur.fetchall()[0][0]))
         else:
             raise ValueError
