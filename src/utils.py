@@ -22,6 +22,9 @@ import logging
 import logging.handlers
 import time
 import os
+import datetime
+import toolforge
+
 from typing import Callable, Any, Dict
 
 logger = logging.getLogger(__name__)
@@ -201,3 +204,15 @@ class Throttle:
             logger.debug(f"Sleeping for {diff} seconds")
             time.sleep(diff)
         self.last_edit = time.monotonic()
+
+
+def get_replag(shard: str, cluster: str = "web") -> datetime.timedelta:
+    conn = toolforge.connect("meta", cluster=cluster)
+    with conn.cursor() as cur:
+        count = cur.execute(
+            "SELECT lag FROM heartbeat_p.heartbeat where shard = %s", [shard]
+        )
+        if count:
+            return datetime.timedelta(seconds=cur.fetchall()[0][0])
+        else:
+            raise ValueError

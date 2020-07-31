@@ -30,7 +30,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.2"
+__version__ = "1.3"
 
 logging.config.dictConfig(
     utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")
@@ -38,6 +38,7 @@ logging.config.dictConfig(
 logger = logging.getLogger("NoLicense")
 
 site = pywikibot.Site("commons", "commons")
+cluster = "web"
 simulate = None
 
 
@@ -80,16 +81,19 @@ WHERE
     )
 ORDER BY actor_id
 """
-    conn = toolforge.connect("commonswiki_p", cluster="analytics")
+    conn = toolforge.connect("commonswiki_p", cluster=cluster)
     with conn.cursor() as cur:
         cur.execute(query, args={"start_ts": start_ts, "end_ts": end_ts})
         data = cast(Iterator[Tuple[int, bytes, bytes]], cur.fetchall())
     for ns, title, user in data:
+        page = pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=ns),
         user_talk = pywikibot.Page(site, title=str(user, encoding="utf-8"))
+        if not page.exists():
+            continue
         if user_talk.isRedirectPage():
             user_talk = user_talk.getRedirectTarget()
         yield (
-            pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=ns),
+            page,
             user_talk,
         )
 
@@ -190,6 +194,9 @@ def main(limit: int = 0, days: int = 30) -> None:
     total = 0
     current_user = None
     queue: Deque[pywikibot.Page] = collections.deque()
+    replag = utils.get_replag("s4", cluster=cluster)
+    if replag > datetime.timedelta(minutes=30):
+        logger.warn(f"Replag is high ({str(replag)})")
     try:
         for page, user in iter_files_and_users(days):
             logger.info(f"{page.title()}: File {total + 1} of {limit}")
