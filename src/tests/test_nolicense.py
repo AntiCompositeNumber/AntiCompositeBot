@@ -21,6 +21,7 @@ import os
 import sys
 import itertools
 import collections
+import datetime
 import pywikibot
 import pytest
 import unittest.mock as mock
@@ -277,8 +278,11 @@ def test_tag_page():
             )
 
 
+@mock.patch("utils.get_replag", return_value=datetime.timedelta(seconds=0))
+@mock.patch("nolicense.check_templates", return_value=True)
+@mock.patch("nolicense.tag_page", return_value=True)
 @pytest.mark.parametrize("limit", [1, 2, 3, 4, 5])
-def test_main(limit):
+def test_main(tag_page, check_templates, get_replag, limit):
     pages = [
         mock.Mock(spec=pywikibot.Page, title=lambda: "page1"),
         mock.Mock(spec=pywikibot.Page, title=lambda: "page2"),
@@ -295,44 +299,34 @@ def test_main(limit):
     ]
     iterpages = mock.MagicMock(return_value=zip(pages, users))
     with mock.patch("nolicense.iter_files_and_users", iterpages):
-        with mock.patch("nolicense.tag_page", return_value=True) as tag_page:
-            with mock.patch(
-                "nolicense.warn_user",
-                side_effect=[
-                    collections.deque(),
-                    collections.deque(),
-                    collections.deque(),
-                    collections.deque(),
-                    collections.deque(),
-                    collections.deque(),
-                ],
-            ) as warn_user:
-                with mock.patch(
-                    "nolicense.check_templates", return_value=True
-                ) as check_templates:
-                    nolicense.main(limit=limit, days=mock.sentinel.days)
-                    assert warn_user.call_count == sum([1, 1, 0, 1, 1][:limit])
-                    warn_user.assert_has_calls(
-                        [
-                            mock.call(
-                                mock.sentinel.user1, collections.deque([pages[0]]),
-                            ),
-                            mock.call(
-                                mock.sentinel.user2,
-                                collections.deque(
-                                    pages[1:3] if limit > 2 else [pages[1]]
-                                ),
-                            ),
-                            mock.call(
-                                mock.sentinel.user3, collections.deque([pages[3]])
-                            ),
-                        ][: sum([1, 1, 0, 1, 1][:limit])]
-                    )
-                    assert check_templates.call_count == limit
-                    check_templates.assert_has_calls(
-                        [mock.call(call) for call in pages[:limit]]
-                    )
-                    assert tag_page.call_count == limit
-                    tag_page.assert_has_calls(
-                        [mock.call(call, throttle=mock.ANY) for call in pages[:limit]]
-                    )
+        with mock.patch(
+            "nolicense.warn_user",
+            side_effect=[
+                collections.deque(),
+                collections.deque(),
+                collections.deque(),
+                collections.deque(),
+                collections.deque(),
+                collections.deque(),
+            ],
+        ) as warn_user:
+            nolicense.main(limit=limit, days=mock.sentinel.days)
+            assert warn_user.call_count == sum([1, 1, 0, 1, 1][:limit])
+            warn_user.assert_has_calls(
+                [
+                    mock.call(mock.sentinel.user1, collections.deque([pages[0]]),),
+                    mock.call(
+                        mock.sentinel.user2,
+                        collections.deque(pages[1:3] if limit > 2 else [pages[1]]),
+                    ),
+                    mock.call(mock.sentinel.user3, collections.deque([pages[3]])),
+                ][: sum([1, 1, 0, 1, 1][:limit])]
+            )
+            assert check_templates.call_count == limit
+            check_templates.assert_has_calls(
+                [mock.call(call) for call in pages[:limit]]
+            )
+            assert tag_page.call_count == limit
+            tag_page.assert_has_calls(
+                [mock.call(call, throttle=mock.ANY) for call in pages[:limit]]
+            )

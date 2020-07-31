@@ -86,7 +86,7 @@ ORDER BY actor_id
         cur.execute(query, args={"start_ts": start_ts, "end_ts": end_ts})
         data = cast(Iterator[Tuple[int, bytes, bytes]], cur.fetchall())
     for ns, title, user in data:
-        page = pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=ns),
+        page = pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=ns)
         user_talk = pywikibot.Page(site, title=str(user, encoding="utf-8"))
         if not page.exists():
             continue
