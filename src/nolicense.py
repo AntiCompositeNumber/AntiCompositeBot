@@ -62,23 +62,38 @@ def iter_files_and_users(
         datetime.datetime.utcnow() - datetime.timedelta(minutes=delay_mins)
     ).strftime("%Y%m%d%H%M%S")
     query = """
-SELECT p0.page_namespace, p0.page_title, CONCAT("User talk:", actor_name)
-FROM categorylinks
-JOIN page p0 ON cl_from = p0.page_id
-JOIN logging_logindex
-    ON log_page = p0.page_id
-    AND log_type = "upload"
-    AND log_action = "upload"
-JOIN actor_logging ON log_actor = actor_id
+SELECT
+  p0.page_namespace,
+  p0.page_title,
+  CONCAT("User talk:", actor_name)
+FROM
+  categorylinks
+  JOIN page p0 ON cl_from = p0.page_id
+  JOIN logging_logindex
+    ON log_page = p0.page_id AND log_type = "upload"
+  JOIN actor_logging ON log_actor = actor_id
 WHERE
-    cl_to = "Files_with_no_machine-readable_license"
-    AND log_timestamp > %(start_ts)s
-    AND log_timestamp < %(end_ts)s
-    AND "Deletion_template_tag" NOT IN (
-        SELECT tl_title
-        FROM templatelinks
-        WHERE tl_namespace = 10 AND tl_from = p0.page_id
+  cl_to = "Files_with_no_machine-readable_license"
+  AND log_timestamp > %(start_ts) s
+  AND log_timestamp < %(end_ts) s
+  AND "Deletion_template_tag" NOT IN (
+    SELECT tl_title
+    FROM templatelinks
+    WHERE
+      tl_namespace = 10
+      AND tl_from = p0.page_id
+  )
+  AND (
+    log_action = "upload"
+    OR actor_id IN (
+      SELECT log_actor
+      FROM logging_logindex
+      WHERE
+        log_page = p0.page_id
+        AND log_type = "upload"
+        AND log_action = "upload"
     )
+  )
 ORDER BY actor_id
 """
     conn = toolforge.connect("commonswiki_p", cluster=cluster)
