@@ -149,6 +149,7 @@ def save_page(
     minor: bool = False,
     mode: str = "replace",
     force: bool = False,
+    new_ok: bool = False,
 ) -> None:
     logger.info(f"Saving to {page.title()}")
     if not text:
@@ -159,9 +160,23 @@ def save_page(
     if mode == "replace":
         text = text
     elif mode == "append":
-        text = page.get(force=True) + text
+        try:
+            text = page.get(force=True) + text
+        except pywikibot.exceptions.NoPage as err:
+            logger.exception(err)
+            if new_ok:
+                text = text
+            else:
+                raise
     elif mode == "prepend":
-        text = text + page.get(force=True)
+        try:
+            text = text + page.get(force=True)
+        except pywikibot.exceptions.NoPage as err:
+            logger.exception(err)
+            if new_ok:
+                text = text
+            else:
+                raise
     else:
         raise ValueError("mode must be 'replace', 'append', or 'prepend', not {mode}")
 

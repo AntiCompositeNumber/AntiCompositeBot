@@ -92,6 +92,7 @@ def test_edit_page():
                 summary="Summary",
                 throttle=throttle,
                 mode=mock.sentinel.mode,
+                new_ok=True,
             )
             is True
         )
@@ -103,6 +104,7 @@ def test_edit_page():
             minor=False,
             mode=mock.sentinel.mode,
             force=False,
+            new_ok=True,
         )
     throttle_throttle.assert_called_once()
 
@@ -117,6 +119,7 @@ def test_edit_page_nothrottle():
             summary="Summary",
             throttle=None,
             mode=mock.sentinel.mode,
+            new_ok=False,
         )
         save_page.assert_called_once_with(
             page=page,
@@ -126,6 +129,7 @@ def test_edit_page_nothrottle():
             minor=False,
             mode=mock.sentinel.mode,
             force=False,
+            new_ok=False,
         )
 
 
@@ -189,6 +193,7 @@ def test_warn_user(grouped, queue_titles):
                 throttle=mock.sentinel.throttle,
                 mode="append",
                 force=True,
+                new_ok=True,
             )
             assert f"warn_text({queue_titles[0]}," in text
             if grouped and len(queue_titles) > 1:
