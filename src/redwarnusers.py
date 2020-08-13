@@ -25,7 +25,7 @@ from typing import NamedTuple
 import utils
 
 site = pywikibot.Site("en", "wikipedia")
-__version__ = "1.1"
+__version__ = "1.2"
 
 
 class Row(NamedTuple):
@@ -105,6 +105,7 @@ def make_table(data):
 
 
 def main():
+    utils.check_runpage(site, "redwarnusers")
     data = run_query()
     table = make_table(data)
     page = pywikibot.Page(site, "User:AntiCompositeBot/RedWarn users")
