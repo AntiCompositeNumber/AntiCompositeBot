@@ -1,0 +1,33 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: anticompositebot.redwarnusers
+  labels:
+    name: anticompositebot.redwarnusers
+    toolforge: tool
+spec:
+  schedule: "15 1 */7 * *"
+  concurrencyPolicy: Replace
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            toolforge: tool
+        spec:
+          containers:
+          - name: redwarnusers
+            image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+            command: [
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
+              "/data/project/anticompositebot/AntiCompositeBot/src/redwarnusers.py"
+            ] 
+            workingDir: /data/project/anticompositebot
+            env:
+              - name: HOME
+                value: /data/project/anticompositebot
+              - name: LOG_SMTP
+                value: "True"
+            imagePullPolicy: Always
+          restartPolicy: OnFailure
