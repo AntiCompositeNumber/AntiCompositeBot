@@ -25,7 +25,7 @@ from typing import NamedTuple
 import utils
 
 site = pywikibot.Site("en", "wikipedia")
-__version__ = "1.0"
+__version__ = "1.1"
 
 
 class Row(NamedTuple):
@@ -97,7 +97,7 @@ def make_table(data):
     info = f"Last updated by AntiCompositeBot at {datetime.datetime.now()}\n\n"
     return info + "\n|-\n".join(
         itertools.chain(
-            ['{| class="wikitable sorted"', Row.header()],
+            ['{| class="wikitable sortable"', Row.header()],
             [row.tablerow() for row in data],
             ["|}"],
         )
@@ -111,7 +111,7 @@ def main():
     utils.save_page(
         text=table,
         page=page,
-        summary=f"Updating statistics (RWU {__version__})(Bot)",
+        summary=f"Updating statistics (RWU {__version__}) (Bot)",
         mode="replace",
         bot=False,
         minor=True,
