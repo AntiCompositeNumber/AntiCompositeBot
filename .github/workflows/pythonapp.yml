@@ -21,7 +21,7 @@ jobs:
     - name: Load pywikibot config
       env:
           USER_CONFIG_PY: ${{ secrets.user_config_py }}
-      run: echo $USER_CONFIG_PY > user-config.py
+      run: echo "$USER_CONFIG_PY" > user-config.py
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
