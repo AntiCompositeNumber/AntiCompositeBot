@@ -63,7 +63,7 @@ WHERE
     for title, target in data:
         yield (
             pywikibot.Page(site, str(title, encoding="utf-8")),
-            str(target, encoding="utf-8"),
+            str(target, encoding="utf-8").replace("_", " "),
         )
 
 
@@ -77,7 +77,7 @@ def update_page_text(page: pywikibot.Page, target: str) -> None:
 }}
 """
     ).substitute(target=target)
-    summary = f"Redirecting to {target} per [[WP:DCS]] (dcs_redir {__version__})"
+    summary = f"Redirecting to [[{target}]] per [[WP:DCS]] (dcs_redir {__version__})"
     if simulate:
         logger.debug(f"Simulating {page.title(as_link=True)}: {summary}")
         logger.debug(new_text)
@@ -94,7 +94,8 @@ def update_page_text(page: pywikibot.Page, target: str) -> None:
 
 def main(limit: int = 0):
     total = 0
-    throttle = utils.Throttle(60)
+    throttle = utils.Throttle(0)
+    logger.info("Starting up")
     for page, target in iter_pages_and_targets():
         if limit and limit <= total:
             break
