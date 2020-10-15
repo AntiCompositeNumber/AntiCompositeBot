@@ -74,14 +74,18 @@ def update_page_text(page: pywikibot.Page, target: str) -> None:
 """
     ).substitute(target=target)
     summary = f"Redirecting to {target} per [[WP:DCS]] (dcs_redir {__version__})"
-    utils.save_page(
-        text=new_text,
-        page=page,
-        summary=summary,
-        bot=True,
-        minor=True,
-        mode="replace",
-    )
+    if simulate:
+        logger.debug(f"Simulating {page.title(as_link=True)}: {summary}")
+        logger.debug(new_text)
+    else:
+        utils.save_page(
+            text=new_text,
+            page=page,
+            summary=summary,
+            bot=True,
+            minor=True,
+            mode="replace",
+        )
 
 
 def main(limit: int = 0):
