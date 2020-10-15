@@ -28,7 +28,7 @@ from typing import Iterator, Tuple
 
 import utils
 
-__version__ = "0.1"
+__version__ = "0.2"
 site = pywikibot.Site("en", "wikipedia")
 
 logging.config.dictConfig(
@@ -94,13 +94,15 @@ def update_page_text(page: pywikibot.Page, target: str) -> None:
 
 def main(limit: int = 0):
     total = 0
+    throttle = utils.Throttle(60)
     for page, target in iter_pages_and_targets():
-        if limit and limit >= total:
+        if limit and limit <= total:
             break
         else:
             total += 1
         logger.info(f"{total}: Redirecting {page.title(as_link=True)} to {target}")
         update_page_text(page, target)
+        throttle.throttle()
     logger.info("Finished")
 
 
