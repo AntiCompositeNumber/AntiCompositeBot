@@ -43,14 +43,18 @@ def iter_pages_and_targets() -> Iterator[Tuple[pywikibot.Page, str]]:
     conn = toolforge.connect("enwiki_p")
     query = """
 SELECT
-    CONCAT("Talk:", page_title) as title,
-    CONCAT("Talk:", REPLACE(page_title, "/Comments", "")) as target
-FROM page
+  CONCAT("Talk:", com.page_title) as title,
+  CONCAT("Talk:", target.page_title) as target
+FROM
+  page com
+  JOIN page target ON target.page_title = REPLACE(com.page_title, "/Comments", "")
 WHERE
-    page_namespace = 1
-    AND page_title LIKE "%/Comments"
-    AND page_is_redirect = 0
-    AND page_len = 0
+  com.page_namespace = 1
+  AND target.page_namespace = 1
+  AND com.page_title LIKE "%/Comments"
+  AND com.page_is_redirect = 0
+  AND com.page_len = 0
+  AND target.page_is_redirect = 0
 """
     with conn.cursor() as cur:
         cur.execute(query)
