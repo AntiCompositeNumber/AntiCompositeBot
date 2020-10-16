@@ -2,21 +2,21 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: anticompositebot.dcs_redir
+  name: anticompositebot.dcsredir
   namespace: tool-anticompositebot
   labels:
-    name: anticompositebot.dcs_redir
+    name: anticompositebot.dcsredir
     toolforge: tool
 spec:
   backoffLimit: 0
   template:
     metadata:
       labels:
-        name: anticompositebot.dcs_redir
+        name: anticompositebot.dcsredir
         toolforge: tool
     spec:
       containers:
-        - name: dcs_redir
+        - name: dcsredir
           image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
           command: [
             "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
