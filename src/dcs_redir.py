@@ -28,7 +28,7 @@ from typing import Iterator, Tuple
 
 import utils
 
-__version__ = "0.3"
+__version__ = "1.0"
 site = pywikibot.Site("en", "wikipedia")
 
 logging.config.dictConfig(
@@ -76,7 +76,11 @@ def update_page_text(page: pywikibot.Page, target: str) -> None:
 }}
 """
     ).substitute(target=target)
-    summary = f"Redirecting to [[{target}]] per [[WP:DCS]] (dcs_redir {__version__})"
+    summary = (
+        f"Redirecting to [[{target}]] per [[WP:DCS]] "
+        "([[Wikipedia:Bots/Requests for approval/AntiCompositeBot 3|dcs_redir]] "
+        "{__version__})"
+    )
     if simulate:
         logger.debug(f"Simulating {page.title(as_link=True)}: {summary}")
         logger.debug(new_text)

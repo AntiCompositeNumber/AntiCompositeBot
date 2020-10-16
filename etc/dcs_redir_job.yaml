@@ -21,7 +21,7 @@ spec:
           command: [
             "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
             "/data/project/anticompositebot/AntiCompositeBot/src/dcs_redir.py",
-            "5"
+            "0"
           ]
           workingDir: /data/project/anticompositebot
           env:
