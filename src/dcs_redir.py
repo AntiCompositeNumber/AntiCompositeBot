@@ -36,7 +36,7 @@ logging.config.dictConfig(
 )
 logger = logging.getLogger("dcs_redir")
 
-simulate = True
+simulate = False
 
 
 def iter_pages_and_targets() -> Iterator[Tuple[pywikibot.Page, str]]:
@@ -73,7 +73,6 @@ def update_page_text(page: pywikibot.Page, target: str) -> None:
 
 {{Redirect category shell|
 {{R from subpage}}
-{{R from merge}}
 }}
 """
     ).substitute(target=target)
@@ -94,13 +93,14 @@ def update_page_text(page: pywikibot.Page, target: str) -> None:
 
 def main(limit: int = 0):
     total = 0
-    throttle = utils.Throttle(0)
+    throttle = utils.Throttle(60)
     logger.info("Starting up")
     for page, target in iter_pages_and_targets():
         if limit and limit <= total:
             break
         else:
             total += 1
+        utils.check_runpage(site, "dcs_redir")
         logger.info(f"{total}: Redirecting {page.title(as_link=True)} to {target}")
         update_page_text(page, target)
         throttle.throttle()

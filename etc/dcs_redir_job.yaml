@@ -1,0 +1,31 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: anticompositebot.dcs_redir
+  namespace: tool-anticompositebot
+  labels:
+    name: anticompositebot.dcs_redir
+    toolforge: tool
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        name: anticompositebot.dcs_redir
+        toolforge: tool
+    spec:
+      containers:
+        - name: dcs_redir
+          image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+          command: [
+            "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
+            "/data/project/anticompositebot/AntiCompositeBot/src/dcs_redir.py",
+            "5"
+          ]
+          workingDir: /data/project/anticompositebot
+          env:
+            - name: HOME
+              value: /data/project/anticompositebot
+          imagePullPolicy: Always
+      restartPolicy: Never
