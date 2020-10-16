@@ -79,7 +79,7 @@ def update_page_text(page: pywikibot.Page, target: str) -> None:
     summary = (
         f"Redirecting to [[{target}]] per [[WP:DCS]] "
         "([[Wikipedia:Bots/Requests for approval/AntiCompositeBot 3|dcs_redir]] "
-        "{__version__})"
+        f"{__version__})"
     )
     if simulate:
         logger.debug(f"Simulating {page.title(as_link=True)}: {summary}")
