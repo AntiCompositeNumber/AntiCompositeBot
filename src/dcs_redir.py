@@ -28,7 +28,7 @@ from typing import Iterator, Tuple
 
 import utils
 
-__version__ = "1.0"
+__version__ = "1.1"
 site = pywikibot.Site("en", "wikipedia")
 
 logging.config.dictConfig(
@@ -107,7 +107,10 @@ def main(limit: int = 0):
         throttle.throttle()
         utils.check_runpage(site, "dcs_redir")
         logger.info(f"{total}: Redirecting {page.title(as_link=True)} to {target}")
-        update_page_text(page, target)
+        try:
+            update_page_text(page, target)
+        except pywikibot.exceptions.IsRedirectPage as e:
+            logger.exception(e)
     logger.info("Finished")
 
 
