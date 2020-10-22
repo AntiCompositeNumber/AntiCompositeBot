@@ -184,12 +184,12 @@ def search_whois(net, search_list):
         for whois_net in req.json()["nets"]:
             for search in search_list:
                 if (
-                    search in whois_net.get("description", "").lower()
-                    or search in whois_net.get("name", "").lower()
+                    search in str(whois_net.get("description", "")).lower()
+                    or search in str(whois_net.get("name", "")).lower()
                 ):
                     return True
-    except Exception:
-        logger.exception()
+    except Exception as e:
+        logger.exception(e)
     return False
 
 
@@ -230,8 +230,8 @@ WHERE
         with conn.cursor() as cur:
             cur.execute(query, args=dict(start=start, end=end, prefix=prefix))
             return not len(cur.fetchall()) > 0
-    except Exception:
-        logger.exception()
+    except Exception as e:
+        logger.exception(e)
         return False
 
 
@@ -352,4 +352,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logger.exception(e)
+        raise
