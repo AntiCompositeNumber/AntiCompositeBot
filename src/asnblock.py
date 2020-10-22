@@ -144,7 +144,7 @@ def microsoft_data():
     req.raise_for_status()
     data = req.json()
     for group in data["values"]:
-        for prefix in group["addressPrefixes"]:
+        for prefix in group["properties"]["addressPrefixes"]:
             yield ipaddress.ip_network(prefix)
 
 
