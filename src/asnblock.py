@@ -35,7 +35,7 @@ from pprint import pprint
 __version__ = "0.1"
 
 logging.config.dictConfig(
-    utils.logger_config("ASNBlock", level="INFO", filename="asnblock.log")
+    utils.logger_config("ASNBlock", level="VERBOSE", filename="asnblock.log")
 )
 logger = logging.getLogger("ASNBlock")
 
@@ -155,7 +155,7 @@ def not_blocked(net):
     if net.version == 4:
         start = "%08X" % int(net.network_address)
         end = "%08X" % (int(net.network_address) + 2 ** (32 - net.prefixlen) - 1)
-        prefix = start[:4]
+        prefix = start[:4] + "%"
     elif net.version == 6:
         rawnet = "".join(
             format(part, "0>4") for part in str(net.network_address.exploded).split(":")
@@ -168,13 +168,13 @@ def not_blocked(net):
         end = "v6-%032X" % int(
             format(format(net6, "0>128b")[: net.prefixlen], "1<128"), base=2
         )
-        prefix = start[:7]
+        prefix = start[:7] + "%"
 
-    query = f"""
+    query = """
 SELECT ipb_id
 FROM ipblocks
 WHERE
-    ipb_range_start LIKE "{prefix}"
+    ipb_range_start LIKE %(prefix)"
     AND ipb_range_start <= %(start)s
     AND ipb_range_end >= %(end)s
     AND ipb_sitewide = 1
@@ -182,7 +182,7 @@ WHERE
 """
     conn = toolforge.connect("enwiki")
     with conn.cursor() as cur:
-        cur.execute(query, args=dict(start=start, end=end))
+        cur.execute(query, args=dict(start=start, end=end, prefix=prefix))
         return not len(cur.fetchall()) > 0
 
 
