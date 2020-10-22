@@ -251,7 +251,7 @@ def main():
     for provider in providers:
         logger.info(f"Checking ranges from {provider['name']}")
         if "asn" in provider.keys():
-            ranges = rir_data.get_asn_ranges(provider["asn"])
+            ranges = rir_data.get_asn_ranges(provider["asn"].copy())
         elif "url" in provider.keys():
             pass
         ranges = combine_ranges(ranges)
