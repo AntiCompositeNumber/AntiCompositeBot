@@ -139,7 +139,7 @@ def microsoft_data():
     gate = session.get(url)
     gate.raise_for_status()
     soup = BeautifulSoup(gate.text, 'html.parser')
-    link = soup.find("a", class_="failoverLink").href
+    link = soup.find("a", class_="failoverLink").get('href')
     req = session.get(link)
     req.raise_for_status()
     data = req.json()
