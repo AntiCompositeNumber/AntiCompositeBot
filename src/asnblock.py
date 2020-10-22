@@ -73,15 +73,20 @@ class RIRData:
             AFRNIC="https://ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-extended-latest",  # noqa: E501
             ARIN="https://ftp.arin.net/pub/stats/arin/delegated-arin-extended-latest",
             LACNIC="https://ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-extended-latest",  # noqa: E501
-            RIPE="https://ftp.ripe.net/ripe/stats/delegated-ripencc-extended-20201021",
+            RIPE="https://ftp.ripe.net/ripe/stats/delegated-ripencc-extended-latest",
         )
-        filter_regex = re.compile(r"^(?:#|\d|.*\*|.*available)")
+        filter_regex = re.compile(r"^(?:#|\d|.*\*)")
+        regex2 = re.compile(r"(?:allocated|assigned)")
         for url in data_urls.values():
             print(url)
             req = session.get(url)
             req.raise_for_status()
             for line in req.text.split("\n"):
-                if re.match(filter_regex, line) or not line:
+                if (
+                    re.match(filter_regex, line)
+                    or not line
+                    or not re.search(regex2, line)
+                ):
                     continue
                 else:
                     yield line
