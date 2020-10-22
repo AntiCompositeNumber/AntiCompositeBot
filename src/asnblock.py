@@ -41,8 +41,7 @@ logging.config.dictConfig(
 logger = logging.getLogger("ASNBlock")
 
 site = pywikibot.Site("en", "wikipedia")
-cluster = "web"
-simulate = None
+simulate = True
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
 
@@ -138,8 +137,8 @@ def microsoft_data():
     url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
     gate = session.get(url)
     gate.raise_for_status()
-    soup = BeautifulSoup(gate.text, 'html.parser')
-    link = soup.find("a", class_="failoverLink").get('href')
+    soup = BeautifulSoup(gate.text, "html.parser")
+    link = soup.find("a", class_="failoverLink").get("href")
     req = session.get(link)
     req.raise_for_status()
     data = req.json()
@@ -176,15 +175,18 @@ def search_whois(net, search_list):
         "lookup": "true",
         "format": "json",
     }
-    req = session.get(url, params=params)
-    req.raise_for_status()
-    for whois_net in req.json()["nets"]:
-        for search in search_list:
-            if (
-                search in whois_net.get("description", "").lower()
-                or search in whois_net.get("name", "").lower()
-            ):
-                return True
+    try:
+        req = session.get(url, params=params)
+        req.raise_for_status()
+        for whois_net in req.json()["nets"]:
+            for search in search_list:
+                if (
+                    search in whois_net.get("description", "").lower()
+                    or search in whois_net.get("name", "").lower()
+                ):
+                    return True
+    except Exception:
+        logger.exception()
     return False
 
 
@@ -220,10 +222,14 @@ WHERE
     AND ipb_sitewide = 1
     AND ipb_auto = 0
 """
-    conn = toolforge.connect("enwiki")
-    with conn.cursor() as cur:
-        cur.execute(query, args=dict(start=start, end=end, prefix=prefix))
-        return not len(cur.fetchall()) > 0
+    try:
+        conn = toolforge.connect("enwiki")
+        with conn.cursor() as cur:
+            cur.execute(query, args=dict(start=start, end=end, prefix=prefix))
+            return not len(cur.fetchall()) > 0
+    except Exception:
+        logger.exception()
+        return False
 
 
 def combine_ranges(all_ranges):
@@ -277,12 +283,36 @@ def make_section(provider):
     return section
 
 
+def update_page(new_text):
+    page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock")
+    top, sep, end = page.text.partition("== Hosts ==")
+    text = top + new_text
+    summary = (f"Updating report (Bot) (ASNBlock {__version__})",)
+    if simulate:
+        logger.debug(f"Simulating {page.title(as_link=True)}: {summary}")
+        logger.debug(text)
+    else:
+        utils.check_runpage(site, "ASNBlock")
+        utils.save_page(
+            text=text,
+            page=page,
+            summary=summary,
+            bot=False,
+            minor=False,
+            mode="replace",
+            force=False,
+            new_ok=False,
+        )
+
+
 def main():
+    utils.check_runpage(site, "ASNBlock")
     logger.info("Loading configuration data")
     config = get_config()
     providers = config["providers"]
     rir_data = RIRData()
 
+    text = "== Hosts ==\n"
     for provider in providers:
         logger.info(f"Checking ranges from {provider['name']}")
         if "asn" in provider.keys():
@@ -308,4 +338,4 @@ def main():
         provider["ranges"] = ranges
 
         section = make_section(provider)
-        print(section)
+        text += section
