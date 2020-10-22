@@ -263,11 +263,16 @@ def make_section(provider):
 
     row = (
         "# [[Special:Contribs/{net}|{net}]] | "
-        "[[toolforge:whois/gateway.py?lookup=true&ip={net.network_address}|Whois]] | "
+        "[[toolforge:whois/gateway.py?lookup=true&ip={addr}|Whois]] | "
         "[https://en.wikipedia.org/wiki/Special:Block/{net}?{qs} BLOCK]\n"
     )
     ranges = ""
-    for net in provider["ranges"]:
+    for net in sorted(provider["ranges"]):
+        addr = net.network_address
+        if (net.version == 4 and net.prefixlen == 32) or (
+            net.version == 6 and net.prefixlen == 128
+        ):
+            net = addr
         qs = urllib.parse.urlencode(
             {
                 "wpExpiry": provider.get("expiry", ""),
@@ -277,7 +282,7 @@ def make_section(provider):
                 % provider["name"],
             }
         )
-        ranges += row.format(net=net, name=provider["name"], qs=qs)
+        ranges += row.format(net=net, addr=addr, name=provider["name"], qs=qs)
 
     section = f"==={provider['name']}===\nSearching {source}{search}\n{ranges}"
     return section
