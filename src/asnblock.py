@@ -208,7 +208,6 @@ def combine_ranges(all_ranges):
 
 
 def make_section(provider):
-    provider.setdefault("expiry", "")
     if "url" in provider.keys():
         source = "[{url} {src}]".format(**provider)
     elif "asn" in provider.keys():
@@ -223,21 +222,22 @@ def make_section(provider):
 
     row = (
         "# [[Special:Contribs/{net}|{net}]] | "
-        "[[toolforge:whois/{net.network_address}/lookup|Whois]] | "
-        "[https://en.wikipedia.org/wiki/Special:Block/{net}?{qs} BLOCK]"
+        "[[toolforge:whois/gateway.py?lookup=true&ip={net.network_address}|Whois]] | "
+        "[https://en.wikipedia.org/wiki/Special:Block/{net}?{qs} BLOCK]\n"
     )
-    block_qs = (
-        "wpExpiry=%(expiry)s&wpReason=other=wpHardBlock=1"
-        "&wpReason-other={{Colocationwebhost}} <!-- %(name)s -->"
-    )
-    ranges = "\n".join(
-        row.format(
-            net=net,
-            name=provider["name"],
-            qs=urllib.parse.quote_plus(block_qs % provider),
+    ranges = ""
+    for net in provider["ranges"]:
+        qs = urllib.parse.urlencode(
+            {
+                "wpExpiry": provider.get("expiry", ""),
+                "wpHardBlock": 1,
+                "wpReason": "other",
+                "wpReason-other": "{{Colocationwebhost}} <!-- %(name)s -->"
+                % provider["name"],
+            }
         )
-        for net in provider["ranges"]
-    )
+        ranges += row.format(net=net, name=provider["name"], qs=qs)
+
     section = f"==={provider['name']}===\nSearching {source}{search}\n{ranges}"
     return section
 
