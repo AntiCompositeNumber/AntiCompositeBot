@@ -29,8 +29,8 @@ import csv
 import math
 import ipaddress
 import json
+import urllib.parse
 from typing import NamedTuple
-from pprint import pprint
 
 __version__ = "0.1"
 
@@ -110,6 +110,11 @@ class RIRData:
         logger.info("Range data loaded")
 
     def get_asn_ranges(self, asn_list):
+        # The RIR data files don't prefix AS numbers with AS, so remove it
+        for i, asn in enumerate(asn_list.copy()):
+            if asn.startswith("AS"):
+                asn_list[i] = asn[2:]
+
         idents = [row.opaque_id for row in self.asn if row.start in asn_list]
         ranges = []
         # IPv4 records are starting ip & total IPs
@@ -202,6 +207,41 @@ def combine_ranges(all_ranges):
     return output
 
 
+def make_section(provider):
+    provider.setdefault("expiry", "")
+    if "url" in provider.keys():
+        source = "[{url} {src}]".format(**provider)
+    elif "asn" in provider.keys():
+        source = ", ".join(
+            f"[https://bgp.he.net/{asn} {asn}]" for asn in provider["asn"]
+        )
+
+    if "search" in provider.keys():
+        search = " for: " + ", ".join(provider["search"])
+    else:
+        search = ""
+
+    row = (
+        "# [[Special:Contribs/{net}|{net}]] | "
+        "[[toolforge:whois/{net.network_address}/lookup|Whois]] | "
+        "[https://en.wikipedia.org/wiki/Special:Block/{net}?{qs} BLOCK]"
+    )
+    block_qs = (
+        "wpExpiry=%(expiry)s&wpReason=other=wpHardBlock=1"
+        "&wpReason-other={{Colocationwebhost}} <!-- %(name)s -->"
+    )
+    ranges = "\n".join(
+        row.format(
+            net=net,
+            name=provider["name"],
+            qs=urllib.parse.quote_plus(block_qs % provider),
+        )
+        for net in provider["ranges"]
+    )
+    section = f"==={provider['name']}===\nSearching {source}{search}\n{ranges}"
+    return section
+
+
 def main():
     logger.info("Loading configuration data")
     providers = get_config()
@@ -217,4 +257,7 @@ def main():
         ranges = filter(not_blocked, ranges)
         if "search" in provider.keys():
             ranges = [net for net in ranges if search_whois(net, provider["search"])]
-        pprint(ranges)
+        provider["ranges"] = ranges
+
+        section = make_section(provider)
+        print(section)
