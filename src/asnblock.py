@@ -75,7 +75,7 @@ class RIRData:
             LACNIC="https://ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-extended-latest",  # noqa: E501
             RIPE="https://ftp.ripe.net/ripe/stats/delegated-ripencc-extended-20201021",
         )
-        filter_regex = re.compile(r"^(?:#|\d|.*\*)")
+        filter_regex = re.compile(r"^(?:#|\d|.*\*|.*available)")
         for url in data_urls.values():
             print(url)
             req = session.get(url)
@@ -91,7 +91,8 @@ class RIRData:
         ipv6 = []
         asn = []
         reader = csv.reader(self.get_rir_data(), delimiter="|")
-        for row in map(DataRow._make, reader):
+        for line in reader:
+            row = DataRow._make(line)
             if row.type == "ipv4":
                 ipv4.append(row)
             elif row.type == "ipv6":
