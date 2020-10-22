@@ -30,6 +30,7 @@ import math
 import ipaddress
 import json
 from typing import NamedTuple
+from pprint import pprint
 
 __version__ = "0.1"
 
@@ -64,7 +65,7 @@ def get_config():
 
 class RIRData:
     def __init__(self):
-        self.get_rir_data()
+        self.load_rir_data()
 
     def get_rir_data(self):
         data_urls = dict(
@@ -74,7 +75,7 @@ class RIRData:
             LACNIC="https://ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-extended-latest",  # noqa: E501
             RIPE="https://ftp.ripe.net/ripe/stats/delegated-ripencc-extended-20201021",
         )
-        filter_regex = re.compile(r"#|\d|.*\*")
+        filter_regex = re.compile(r"^(?:#|\d|.*\*)")
         for url in data_urls.values():
             req = session.get(url)
             req.raise_for_status()
@@ -154,6 +155,7 @@ def main():
     rir_data = RIRData()
 
     for name, provider in providers.items():
+        print(name)
         if "asn" in provider.keys():
             ranges = rir_data.get_asn_ranges(provider["asn"])
         elif "url" in provider.keys():
@@ -161,3 +163,4 @@ def main():
         ranges = filter(ranges, not_blocked)
         if "search" in provider.keys():
             ranges = [net for net in ranges if search_whois(net, provider["search"])]
+        pprint(ranges)
