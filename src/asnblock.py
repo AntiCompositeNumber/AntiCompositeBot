@@ -164,7 +164,7 @@ def google_data():
     req.raise_for_status()
     data = req.json()
     for prefix in data["prefixes"]:
-        yield ipaddress.ip_network(prefix["ipv4_prefix"])
+        yield ipaddress.ip_network(prefix["ipv4Prefix"])
 
 
 def search_whois(net, search_list):
@@ -317,7 +317,6 @@ def main():
     providers = config["providers"]
     rir_data = RIRData()
 
-    text = "== Hosts ==\n"
     for provider in providers:
         logger.info(f"Checking ranges from {provider['name']}")
         if "asn" in provider.keys():
@@ -342,5 +341,7 @@ def main():
             ranges = [net for net in ranges if search_whois(net, provider["search"])]
         provider["ranges"] = ranges
 
+    text = "== Hosts ==\n"
+    for provider in providers:
         section = make_section(provider)
         text += section
