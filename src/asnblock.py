@@ -129,6 +129,7 @@ class RIRData:
 
 
 def search_whois(net, search_list):
+    logger.verbose(f"Searching WHOIS for {search_list} in {net}")
     url = "https://whois.toolforge.org/gateway.py"
     params = {
         "ip": net[0],
@@ -148,6 +149,7 @@ def search_whois(net, search_list):
 
 
 def not_blocked(net):
+    logger.debug(f"Checking for blocks on {net}")
     # MediaWiki does some crazy stuff here. Re-implementation of parts of
     # MediaWiki\ApiQueryBlocks, Wikimedia\IPUtils, Wikimedia\base_convert
     if net.version == 4:
