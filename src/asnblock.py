@@ -168,6 +168,7 @@ def main():
             ranges = rir_data.get_asn_ranges(provider["asn"])
         elif "url" in provider.keys():
             pass
+        ranges = ipaddress.collapse_addresses(ranges)
         ranges = filter(not_blocked, ranges)
         if "search" in provider.keys():
             ranges = [net for net in ranges if search_whois(net, provider["search"])]
