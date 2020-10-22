@@ -233,9 +233,9 @@ def combine_ranges(all_ranges):
     for ranges in [ipv4, ipv6]:
         ranges = list(ipaddress.collapse_addresses(sorted(ranges)))
         for net in ranges:
-            if net.version == 4 and net.prefixlen > 16:
+            if net.version == 4 and net.prefixlen < 16:
                 output.extend(subnet for subnet in net.subnets(new_prefix=16))
-            elif net.version == 6 and net.prefixlen > 19:
+            elif net.version == 6 and net.prefixlen < 19:
                 output.extend(subnet for subnet in net.subnets(new_prefix=19))
             else:
                 output.append(net)
