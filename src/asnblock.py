@@ -114,13 +114,13 @@ class RIRData:
         # IPv4 records are starting ip & total IPs
         # Need to do some math to get CIDR ranges
         ranges.extend(
-            ipaddress.IPv4Network(row.start, 32 - int(math.log2(row.value)))
+            ipaddress.IPv4Network(row.start, 32 - int(math.log2(int(row.value))))
             for row in self.ipv4
             if row.opaque_id in idents
         )
         # IPv6 records just have the CIDR range.
         ranges.extend(
-            ipaddress.IPv6Network(row.start, row.value)
+            ipaddress.IPv6Network(row.start, int(row.value))
             for row in self.ipv6
             if row.opaque_id in idents
         )
