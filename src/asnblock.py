@@ -172,7 +172,7 @@ def not_blocked(net):
 SELECT ipb_id
 FROM ipblocks
 WHERE
-    ipb_range_start LIKE "{prefix}%"
+    ipb_range_start LIKE "{prefix}"
     AND ipb_range_start <= %(start)s
     AND ipb_range_end >= %(end)s
     AND ipb_sitewide = 1
