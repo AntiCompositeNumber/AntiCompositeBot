@@ -80,7 +80,7 @@ class RIRData:
             req = session.get(url)
             req.raise_for_status()
             for line in req.text:
-                if re.match(filter_regex, line):
+                if re.match(filter_regex, line) or not line:
                     continue
                 yield line
 
