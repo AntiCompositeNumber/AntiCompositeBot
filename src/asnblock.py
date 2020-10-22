@@ -244,11 +244,12 @@ def make_section(provider):
 
 def main():
     logger.info("Loading configuration data")
-    providers = get_config()
+    config = get_config()
+    providers = config["providers"]
     rir_data = RIRData()
 
-    for name, provider in providers.items():
-        logger.info(f"Checking ranges from {name}")
+    for provider in providers:
+        logger.info(f"Checking ranges from {provider['name']}")
         if "asn" in provider.keys():
             ranges = rir_data.get_asn_ranges(provider["asn"])
         elif "url" in provider.keys():
