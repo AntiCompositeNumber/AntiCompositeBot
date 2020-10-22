@@ -232,7 +232,7 @@ def make_section(provider):
                 "wpExpiry": provider.get("expiry", ""),
                 "wpHardBlock": 1,
                 "wpReason": "other",
-                "wpReason-other": "{{Colocationwebhost}} <!-- %(name)s -->"
+                "wpReason-other": "{{Colocationwebhost}} <!-- %s -->"
                 % provider["name"],
             }
         )
