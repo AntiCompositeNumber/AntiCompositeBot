@@ -152,7 +152,7 @@ def not_blocked(net):
     # MediaWiki\ApiQueryBlocks, Wikimedia\IPUtils, Wikimedia\base_convert
     if net.version == 4:
         start = "%08X" % int(net.network_address)
-        end = "%08X" % int(net.network_address) + 2 ** (32 - net.prefixlen) - 1
+        end = "%08X" % (int(net.network_address) + 2 ** (32 - net.prefixlen) - 1)
         prefix = start[:4]
     elif net.version == 6:
         rawnet = "".join(
