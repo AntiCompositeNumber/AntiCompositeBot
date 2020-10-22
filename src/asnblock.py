@@ -41,7 +41,7 @@ logging.config.dictConfig(
 logger = logging.getLogger("ASNBlock")
 
 site = pywikibot.Site("en", "wikipedia")
-simulate = True
+simulate = False
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
 
@@ -348,3 +348,8 @@ def main():
     for provider in providers:
         section = make_section(provider)
         text += section
+    logger.error("Finished")
+
+
+if __name__ == "__main__":
+    main()
