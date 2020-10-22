@@ -129,7 +129,7 @@ class RIRData:
 
 
 def search_whois(net, search_list):
-    logger.verbose(f"Searching WHOIS for {search_list} in {net}")
+    logger.debug(f"Searching WHOIS for {search_list} in {net}")
     url = "https://whois.toolforge.org/gateway.py"
     params = {
         "ip": net[0],
