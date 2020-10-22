@@ -164,7 +164,10 @@ def google_data():
     req.raise_for_status()
     data = req.json()
     for prefix in data["prefixes"]:
-        yield ipaddress.ip_network(prefix["ipv4Prefix"])
+        if "ipv4Prefix" in prefix.keys():
+            yield ipaddress.ip_network(prefix["ipv4Prefix"])
+        if "ipv6Prefix" in prefix.keys():
+            yield ipaddress.ip_network(prefix["ipv6Prefix"])
 
 
 def search_whois(net, search_list):
