@@ -77,12 +77,14 @@ class RIRData:
         )
         filter_regex = re.compile(r"^(?:#|\d|.*\*)")
         for url in data_urls.values():
+            print(url)
             req = session.get(url)
             req.raise_for_status()
-            for line in req.text:
+            for line in req.text.split("\n"):
                 if re.match(filter_regex, line) or not line:
                     continue
-                yield line
+                else:
+                    yield line
 
     def load_rir_data(self):
         ipv4 = []
