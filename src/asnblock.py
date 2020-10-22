@@ -146,16 +146,57 @@ def search_whois(net, search_list):
     return False
 
 
-def not_blocked(addr):
-    query = """
+def not_blocked(net):
+    # MediaWiki does some crazy stuff here. Re-implementation of parts of
+    # MediaWiki\ApiQueryBlocks, Wikimedia\IPUtils, Wikimedia\base_convert
+    if net.version == 4:
+        start = "%08X" % int(net.network_address)
+        end = "%08X" % int(net.network_address) + 2 ** (32 - net.prefixlen) - 1
+        prefix = start[:4]
+    elif net.version == 6:
+        rawnet = "".join(
+            format(part, "0>4") for part in str(net.network_address.exploded).split(":")
+        )
+        net6 = int(
+            format(format(int(rawnet, base=16), "0>128b")[: net.prefixlen], "0<128"),
+            base=2,
+        )
+        start = "v6-%032X" % net6
+        end = "v6-%032X" % int(
+            format(format(net6, "0>128b")[: net.prefixlen], "1<128"), base=2
+        )
+        prefix = start[:7]
+
+    query = f"""
 SELECT ipb_id
 FROM ipblocks
-WHERE ipb_address = %s
-AND ipb_user = 0"""
+WHERE
+    ipb_range_start LIKE "{prefix}%"
+    AND ipb_range_start <= %(start)s
+    AND ipb_range_end >= %(end)s
+    AND ipb_sitewide = 1
+    AND ipb_auto = 0
+"""
     conn = toolforge.connect("enwiki")
     with conn.cursor() as cur:
-        cur.execute(query, args=(addr.exploded.replace("0000", "0")))
+        cur.execute(query, args=dict(start=start, end=end))
         return not len(cur.fetchall()) > 0
+
+
+def combine_ranges(combined_ranges):
+    ipv4 = [net for net in combined_ranges if net.version == 4]
+    ipv6 = [net for net in combined_ranges if net.version == 6]
+    output = []
+    for ranges in [ipv4, ipv6]:
+        ranges = list(ipaddress.collapse_addresses(sorted(ranges)))
+        for net in ranges:
+            if net.version == 4 and net.prefixlen > 16:
+                output.extend(subnet for subnet in net.subnets(new_prefix=16))
+            elif net.version == 6 and net.prefixlen > 19:
+                output.extend(subnet for subnet in net.subnets(new_prefix=19))
+            else:
+                output.append(net)
+    return output
 
 
 def main():
@@ -168,10 +209,8 @@ def main():
             ranges = rir_data.get_asn_ranges(provider["asn"])
         elif "url" in provider.keys():
             pass
-        ranges = list(
-            ipaddress.collapse_addresses([net for net in ranges if net.version == 4])
-        ) + list(
-            ipaddress.collapse_addresses([net for net in ranges if net.version == 6])
+        ranges = list(ipaddress.collapse_addresses()) + list(
+            ipaddress.collapse_addresses()
         )
         ranges = filter(not_blocked, ranges)
         if "search" in provider.keys():
