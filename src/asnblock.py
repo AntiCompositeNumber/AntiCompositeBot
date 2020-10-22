@@ -77,8 +77,8 @@ class RIRData:
         )
         filter_regex = re.compile(r"^(?:#|\d|.*\*)")
         regex2 = re.compile(r"(?:allocated|assigned)")
-        for url in data_urls.values():
-            print(url)
+        for rir, url in data_urls.items():
+            logger.info(f"Loading range data from {rir}")
             req = session.get(url)
             req.raise_for_status()
             for line in req.text.split("\n"):
@@ -107,6 +107,7 @@ class RIRData:
         self.ipv4 = ipv4
         self.ipv6 = ipv6
         self.asn = asn
+        logger.info("Range data loaded")
 
     def get_asn_ranges(self, asn_list):
         idents = [row.opaque_id for row in self.asn if row.start in asn_list]
@@ -183,9 +184,9 @@ WHERE
         return not len(cur.fetchall()) > 0
 
 
-def combine_ranges(combined_ranges):
-    ipv4 = [net for net in combined_ranges if net.version == 4]
-    ipv6 = [net for net in combined_ranges if net.version == 6]
+def combine_ranges(all_ranges):
+    ipv4 = [net for net in all_ranges if net.version == 4]
+    ipv6 = [net for net in all_ranges if net.version == 6]
     output = []
     for ranges in [ipv4, ipv6]:
         ranges = list(ipaddress.collapse_addresses(sorted(ranges)))
@@ -200,18 +201,17 @@ def combine_ranges(combined_ranges):
 
 
 def main():
+    logger.info("Loading configuration data")
     providers = get_config()
     rir_data = RIRData()
 
     for name, provider in providers.items():
-        print(name)
+        logger.info(f"Checking ranges from {name}")
         if "asn" in provider.keys():
             ranges = rir_data.get_asn_ranges(provider["asn"])
         elif "url" in provider.keys():
             pass
-        ranges = list(ipaddress.collapse_addresses()) + list(
-            ipaddress.collapse_addresses()
-        )
+        ranges = combine_ranges(ranges)
         ranges = filter(not_blocked, ranges)
         if "search" in provider.keys():
             ranges = [net for net in ranges if search_whois(net, provider["search"])]
