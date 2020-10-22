@@ -30,6 +30,7 @@ import math
 import ipaddress
 import json
 import urllib.parse
+from bs4 import BeautifulSoup
 from typing import NamedTuple
 
 __version__ = "0.1"
@@ -131,6 +132,40 @@ class RIRData:
             if row.opaque_id in idents
         )
         return ranges
+
+
+def microsoft_data():
+    url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
+    gate = session.get(url)
+    gate.raise_for_status()
+    soup = BeautifulSoup(gate.text, 'html.parser')
+    link = soup.find("a", class_="failoverLink").href
+    req = session.get(link)
+    req.raise_for_status()
+    data = req.json()
+    for group in data["values"]:
+        for prefix in group["addressPrefixes"]:
+            yield ipaddress.ip_network(prefix)
+
+
+def amazon_data(provider):
+    url = provider["url"]
+    req = session.get(url)
+    req.raise_for_status()
+    data = req.json()
+    for prefix in data["prefixes"]:
+        yield ipaddress.IPv4Network(prefix["ip_prefix"])
+    for prefix in data["ipv6_prefixes"]:
+        yield ipaddress.IPv6Network(prefix["ipv6_prefix"])
+
+
+def google_data():
+    url = "https://www.gstatic.com/ipranges/cloud.json"
+    req = session.get(url)
+    req.raise_for_status()
+    data = req.json()
+    for prefix in data["prefixes"]:
+        yield ipaddress.ip_network(prefix["ipv4_prefix"])
 
 
 def search_whois(net, search_list):
@@ -253,7 +288,19 @@ def main():
         if "asn" in provider.keys():
             ranges = rir_data.get_asn_ranges(provider["asn"].copy())
         elif "url" in provider.keys():
-            pass
+            if "microsoft" in provider["url"]:
+                ranges = microsoft_data()
+            elif "google" in provider["url"]:
+                ranges = google_data()
+            elif "amazon" in provider["url"]:
+                ranges = amazon_data(provider)
+            else:
+                logger.warning(f"{provider['name']} has no handler")
+                continue
+        else:
+            logger.warning(f"{provider['name']} could not be processed")
+            continue
+
         ranges = combine_ranges(ranges)
         ranges = filter(not_blocked, ranges)
         if "search" in provider.keys():
