@@ -38,7 +38,7 @@ from typing import NamedTuple, Union, Dict, List, Iterator, Sequence, cast
 __version__ = "0.2"
 
 logging.config.dictConfig(
-    utils.logger_config("ASNBlock", level="VERBOSE", filename="STDERR")
+    utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
 )
 logger = logging.getLogger("ASNBlock")
 
