@@ -368,11 +368,12 @@ def collect_data(
         ranges = combine_ranges(ranges)
 
         conn = toolforge.connect(db)
+        provider["ranges"] = []
         for net in ranges:
             if not_blocked(net, conn) and (
                 "search" not in provider.keys() or search_whois(net, provider["search"])
             ):
-                cast(List[IPNetwork], provider.setdefault("ranges", [])).append(net)
+                cast(List[IPNetwork], provider["ranges"]).append(net)
         conn.close()
 
     return cast(List[Dict[str, Union[str, List[str], List[IPNetwork]]]], providers)
