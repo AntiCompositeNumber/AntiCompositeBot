@@ -270,7 +270,7 @@ def make_section(provider):
         "[https://en.wikipedia.org/wiki/Special:Block/{net}?{qs} BLOCK]\n"
     )
     ranges = ""
-    for net in sorted(provider["ranges"]):
+    for net in provider["ranges"]:
         addr = net.network_address
         if (net.version == 4 and net.prefixlen == 32) or (
             net.version == 6 and net.prefixlen == 128
