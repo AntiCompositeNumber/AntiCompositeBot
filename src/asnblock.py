@@ -33,9 +33,9 @@ import urllib.parse
 import sys
 from bs4 import BeautifulSoup  # type: ignore
 import pymysql
-from typing import NamedTuple, Union, Dict, List, Iterator, Sequence, cast
+from typing import NamedTuple, Union, Dict, List, Iterator, Sequence, cast, Optional
 
-__version__ = "0.2"
+__version__ = "0.3"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
@@ -316,14 +316,19 @@ def make_mass_section(
     return section
 
 
-def update_page(new_text: str, title: str, mass: bool = False) -> None:
+def update_page(
+    new_text: str, title: str, mass: bool = False, total: Optional[int] = None
+) -> None:
     title = "User:AntiCompositeBot/" + title
     if mass:
         title += "/mass"
     page = pywikibot.Page(site, title)
     top, sep, end = page.text.partition("== Hosts ==")
     text = top + new_text
-    summary = f"Updating report (Bot) (ASNBlock {__version__})"
+    if total is None:
+        summary = f"Updating report (Bot) (ASNBlock {__version__})"
+    else:
+        summary = f"Updating report: {total} ranges (Bot) (ASNBlock {__version__})"
     if simulate:
         logger.debug(f"Simulating {page.title(as_link=True)}: {summary}")
         logger.debug(text)
@@ -394,19 +399,20 @@ def main(db: str = "enwiki") -> None:
     else:
         title += "/" + db
 
+    total_ranges = sum(len(provider["ranges"]) for provider in providers)
     text = mass_text = "== Hosts ==\n"
     for provider in providers:
         section = make_section(
             cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
         )
         text += section
-    update_page(text, title=title)
+    update_page(text, title=title, total=total_ranges)
 
     for provider in providers:
         mass_text += make_mass_section(
             cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
         )
-    update_page(mass_text, title=title, mass=True)
+    update_page(mass_text, title=title, mass=True, total=total_ranges)
 
     for provider in providers:
         provider["ranges"] = [str(net) for net in provider["ranges"]]
