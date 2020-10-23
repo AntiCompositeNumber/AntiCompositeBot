@@ -18,8 +18,8 @@
 # limitations under the License.
 
 
-import pywikibot
-import toolforge
+import pywikibot  # type: ignore
+import toolforge  # type: ignore
 import utils
 import logging
 import logging.config
@@ -30,8 +30,8 @@ import math
 import ipaddress
 import json
 import urllib.parse
-from bs4 import BeautifulSoup
-from typing import NamedTuple
+from bs4 import BeautifulSoup  # type: ignore
+from typing import NamedTuple, Union, Dict, List, Iterator, Sequence, cast
 
 __version__ = "0.1"
 
@@ -45,6 +45,8 @@ simulate = False
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
 
+IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
+
 
 class DataRow(NamedTuple):
     registry: str
@@ -57,17 +59,17 @@ class DataRow(NamedTuple):
     opaque_id: str
 
 
-def get_config():
+def get_config() -> Dict[str, List[Dict[str, Union[str, List[str]]]]]:
     page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock/config.json")
     data = json.loads(page.text)
     return data
 
 
 class RIRData:
-    def __init__(self):
+    def __init__(self) -> None:
         self.load_rir_data()
 
-    def get_rir_data(self):
+    def get_rir_data(self) -> Iterator[str]:
         data_urls = dict(
             APNIC="https://ftp.apnic.net/stats/apnic/delegated-apnic-extended-latest",
             AFRNIC="https://ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-extended-latest",  # noqa: E501
@@ -91,7 +93,7 @@ class RIRData:
                 else:
                     yield line
 
-    def load_rir_data(self):
+    def load_rir_data(self) -> None:
         ipv4 = []
         ipv6 = []
         asn = []
@@ -109,31 +111,31 @@ class RIRData:
         self.asn = asn
         logger.info("Range data loaded")
 
-    def get_asn_ranges(self, asn_list):
+    def get_asn_ranges(self, asn_list: List[str]):
         # The RIR data files don't prefix AS numbers with AS, so remove it
         for i, asn in enumerate(asn_list.copy()):
             if asn.startswith("AS"):
                 asn_list[i] = asn[2:]
 
         idents = [row.opaque_id for row in self.asn if row.start in asn_list]
-        ranges = []
+        ranges: List[IPNetwork] = []
         # IPv4 records are starting ip & total IPs
         # Need to do some math to get CIDR ranges
         ranges.extend(
-            ipaddress.IPv4Network(row.start, 32 - int(math.log2(int(row.value))))
+            ipaddress.IPv4Network((row.start, 32 - int(math.log2(int(row.value)))))
             for row in self.ipv4
             if row.opaque_id in idents
         )
         # IPv6 records just have the CIDR range.
         ranges.extend(
-            ipaddress.IPv6Network(row.start, int(row.value))
+            ipaddress.IPv6Network((row.start, int(row.value)))
             for row in self.ipv6
             if row.opaque_id in idents
         )
         return ranges
 
 
-def microsoft_data():
+def microsoft_data() -> List[IPNetwork]:
     url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
     gate = session.get(url)
     gate.raise_for_status()
@@ -142,35 +144,41 @@ def microsoft_data():
     req = session.get(link)
     req.raise_for_status()
     data = req.json()
+    output = []
     for group in data["values"]:
         for prefix in group["properties"]["addressPrefixes"]:
-            yield ipaddress.ip_network(prefix)
+            output.append(ipaddress.ip_network(prefix))
+    return output
 
 
-def amazon_data(provider):
-    url = provider["url"]
+def amazon_data(provider: Dict[str, Union[str, List[str]]]) -> List[IPNetwork]:
+    url = cast(str, provider["url"])
     req = session.get(url)
     req.raise_for_status()
     data = req.json()
+    output: List[IPNetwork] = []
     for prefix in data["prefixes"]:
-        yield ipaddress.IPv4Network(prefix["ip_prefix"])
+        output.append(ipaddress.IPv4Network(prefix["ip_prefix"]))
     for prefix in data["ipv6_prefixes"]:
-        yield ipaddress.IPv6Network(prefix["ipv6_prefix"])
+        output.append(ipaddress.IPv6Network(prefix["ipv6_prefix"]))
+    return output
 
 
-def google_data():
+def google_data() -> List[IPNetwork]:
     url = "https://www.gstatic.com/ipranges/cloud.json"
     req = session.get(url)
     req.raise_for_status()
     data = req.json()
+    output = []
     for prefix in data["prefixes"]:
         if "ipv4Prefix" in prefix.keys():
-            yield ipaddress.ip_network(prefix["ipv4Prefix"])
+            output.append(ipaddress.ip_network(prefix["ipv4Prefix"]))
         if "ipv6Prefix" in prefix.keys():
-            yield ipaddress.ip_network(prefix["ipv6Prefix"])
+            output.append(ipaddress.ip_network(prefix["ipv6Prefix"]))
+    return output
 
 
-def search_whois(net, search_list):
+def search_whois(net: IPNetwork, search_list: Sequence[str]):
     logger.debug(f"Searching WHOIS for {search_list} in {net}")
     url = "https://whois.toolforge.org/gateway.py"
     params = {
@@ -193,7 +201,7 @@ def search_whois(net, search_list):
     return False
 
 
-def not_blocked(net):
+def not_blocked(net: IPNetwork) -> bool:
     logger.debug(f"Checking for blocks on {net}")
     # MediaWiki does some crazy stuff here. Re-implementation of parts of
     # MediaWiki\ApiQueryBlocks, Wikimedia\IPUtils, Wikimedia\base_convert
@@ -235,12 +243,12 @@ WHERE
         return False
 
 
-def combine_ranges(all_ranges):
+def combine_ranges(all_ranges: Sequence[IPNetwork]) -> List[IPNetwork]:
     ipv4 = [net for net in all_ranges if net.version == 4]
     ipv6 = [net for net in all_ranges if net.version == 6]
-    output = []
+    output: List[IPNetwork] = []
     for ranges in [ipv4, ipv6]:
-        ranges = list(ipaddress.collapse_addresses(sorted(ranges)))
+        ranges = list(ipaddress.collapse_addresses(sorted(ranges)))  # type: ignore
         for net in ranges:
             if net.version == 4 and net.prefixlen < 16:
                 output.extend(subnet for subnet in net.subnets(new_prefix=16))
@@ -251,7 +259,7 @@ def combine_ranges(all_ranges):
     return output
 
 
-def make_section(provider):
+def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]):
     if "url" in provider.keys():
         source = "[{url} {src}]".format(**provider)
     elif "asn" in provider.keys():
@@ -260,7 +268,7 @@ def make_section(provider):
         )
 
     if "search" in provider.keys():
-        search = " for: " + ", ".join(provider["search"])
+        search = " for: " + ", ".join(cast(List[str], provider["search"]))
     else:
         search = ""
 
@@ -271,11 +279,14 @@ def make_section(provider):
     )
     ranges = ""
     for net in provider["ranges"]:
-        addr = net.network_address
+        net = cast(IPNetwork, net)
+        addr = str(net.network_address)
         if (net.version == 4 and net.prefixlen == 32) or (
             net.version == 6 and net.prefixlen == 128
         ):
-            net = addr
+            ip_range = addr  # type: ignore
+        else:
+            ip_range = str(net)
         qs = urllib.parse.urlencode(
             {
                 "wpExpiry": provider.get("expiry", ""),
@@ -285,17 +296,17 @@ def make_section(provider):
                 % provider["name"],
             }
         )
-        ranges += row.format(net=net, addr=addr, name=provider["name"], qs=qs)
+        ranges += row.format(net=ip_range, addr=addr, name=provider["name"], qs=qs)
 
     section = f"==={provider['name']}===\nSearching {source}{search}\n{ranges}"
     return section
 
 
-def update_page(new_text):
+def update_page(new_text: str) -> None:
     page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock")
     top, sep, end = page.text.partition("== Hosts ==")
     text = top + new_text
-    summary = (f"Updating report (Bot) (ASNBlock {__version__})",)
+    summary = f"Updating report (Bot) (ASNBlock {__version__})"
     if simulate:
         logger.debug(f"Simulating {page.title(as_link=True)}: {summary}")
         logger.debug(text)
@@ -313,17 +324,17 @@ def update_page(new_text):
         )
 
 
-def main():
+def main() -> None:
     utils.check_runpage(site, "ASNBlock")
     logger.info("Loading configuration data")
     config = get_config()
-    providers = config["providers"]
+    providers: List[Dict[str, Union[str, List[str]]]] = config["providers"]
     rir_data = RIRData()
 
     for provider in providers:
         logger.info(f"Checking ranges from {provider['name']}")
         if "asn" in provider.keys():
-            ranges = rir_data.get_asn_ranges(provider["asn"].copy())
+            ranges = rir_data.get_asn_ranges(cast(List[str], provider["asn"]).copy())
         elif "url" in provider.keys():
             if "microsoft" in provider["url"]:
                 ranges = microsoft_data()
@@ -346,8 +357,11 @@ def main():
 
     text = "== Hosts ==\n"
     for provider in providers:
-        section = make_section(provider)
+        section = make_section(
+            cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
+        )
         text += section
+    update_page(text)
     logger.error("Finished")
 
 
