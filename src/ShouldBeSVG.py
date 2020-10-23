@@ -196,7 +196,7 @@ def save_page(target: pywikibot.Page, gallery: str) -> None:
     """Saves the page to Commons, making sure to leave text above the line"""
     old_wikitext = target.text
     regex = re.compile(
-        "(?<=<!-- Only text ABOVE this line " "will be preserved on updates -->\n).*",
+        "(?<=<!-- Only text ABOVE this line will be preserved on updates -->\n).*",
         re.M | re.S,
     )
     new_wikitext = re.sub(regex, gallery, old_wikitext)

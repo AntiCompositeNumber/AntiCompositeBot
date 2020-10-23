@@ -1,0 +1,51 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: anticompositebot.asnblock
+  labels:
+    name: anticompositebot.asnblock
+    # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
+    toolforge: tool
+spec:
+  schedule: "13 8 * * 3"
+  concurrencyPolicy: Forbid
+  # successfulJobsHistoryLimit: 0
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            toolforge: tool
+        spec:
+          containers:
+          - name: asnblock
+            image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+            command: [
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
+              "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
+            ]
+            args: ["enwiki"]
+            workingDir: /data/project/anticompositebot
+            env: 
+            - name: HOME 
+              value: /data/project/anticompositebot
+            - name: LOG_SMTP
+              value: "True"
+            imagePullPolicy: Always
+          - name: asnblock-global
+            image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+            command: [
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
+              "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
+            ]
+            args: ["centralauth"]
+            workingDir: /data/project/anticompositebot
+            env: 
+            - name: HOME 
+              value: /data/project/anticompositebot
+            - name: LOG_SMTP
+              value: "True"
+            imagePullPolicy: Always
+
+          restartPolicy: Never
