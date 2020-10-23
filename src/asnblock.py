@@ -31,9 +31,10 @@ import ipaddress
 import json
 import urllib.parse
 from bs4 import BeautifulSoup  # type: ignore
+import pymysql
 from typing import NamedTuple, Union, Dict, List, Iterator, Sequence, cast
 
-__version__ = "0.1"
+__version__ = "0.2"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="asnblock.log")
@@ -135,7 +136,7 @@ class RIRData:
         return ranges
 
 
-def microsoft_data() -> List[IPNetwork]:
+def microsoft_data() -> Iterator[IPNetwork]:
     url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
     gate = session.get(url)
     gate.raise_for_status()
@@ -144,38 +145,32 @@ def microsoft_data() -> List[IPNetwork]:
     req = session.get(link)
     req.raise_for_status()
     data = req.json()
-    output = []
     for group in data["values"]:
         for prefix in group["properties"]["addressPrefixes"]:
-            output.append(ipaddress.ip_network(prefix))
-    return output
+            yield ipaddress.ip_network(prefix)
 
 
-def amazon_data(provider: Dict[str, Union[str, List[str]]]) -> List[IPNetwork]:
+def amazon_data(provider: Dict[str, Union[str, List[str]]]) -> Iterator[IPNetwork]:
     url = cast(str, provider["url"])
     req = session.get(url)
     req.raise_for_status()
     data = req.json()
-    output: List[IPNetwork] = []
     for prefix in data["prefixes"]:
-        output.append(ipaddress.IPv4Network(prefix["ip_prefix"]))
+        yield ipaddress.IPv4Network(prefix["ip_prefix"])
     for prefix in data["ipv6_prefixes"]:
-        output.append(ipaddress.IPv6Network(prefix["ipv6_prefix"]))
-    return output
+        yield ipaddress.IPv6Network(prefix["ipv6_prefix"])
 
 
-def google_data() -> List[IPNetwork]:
+def google_data() -> Iterator[IPNetwork]:
     url = "https://www.gstatic.com/ipranges/cloud.json"
     req = session.get(url)
     req.raise_for_status()
     data = req.json()
-    output = []
     for prefix in data["prefixes"]:
         if "ipv4Prefix" in prefix.keys():
-            output.append(ipaddress.ip_network(prefix["ipv4Prefix"]))
+            yield ipaddress.ip_network(prefix["ipv4Prefix"])
         if "ipv6Prefix" in prefix.keys():
-            output.append(ipaddress.ip_network(prefix["ipv6Prefix"]))
-    return output
+            yield ipaddress.ip_network(prefix["ipv6Prefix"])
 
 
 def search_whois(net: IPNetwork, search_list: Sequence[str]):
@@ -201,7 +196,7 @@ def search_whois(net: IPNetwork, search_list: Sequence[str]):
     return False
 
 
-def not_blocked(net: IPNetwork) -> bool:
+def not_blocked(net: IPNetwork, conn: pymysql.connections.Connection) -> bool:
     logger.debug(f"Checking for blocks on {net}")
     # MediaWiki does some crazy stuff here. Re-implementation of parts of
     # MediaWiki\ApiQueryBlocks, Wikimedia\IPUtils, Wikimedia\base_convert
@@ -223,7 +218,17 @@ def not_blocked(net: IPNetwork) -> bool:
         )
         prefix = start[:7] + "%"
 
-    query = """
+    if conn.db == b"centralauth":
+        query = """
+SELECT gb_id
+FROM globalblocks
+WHERE
+    gb_range_start LIKE %(prefix)s
+    AND gb_range_start <= %(start)s
+    AND gb_range_end >= %(end)s
+"""
+    else:
+        query = """
 SELECT ipb_id
 FROM ipblocks
 WHERE
@@ -234,29 +239,28 @@ WHERE
     AND ipb_auto = 0
 """
     try:
-        conn = toolforge.connect("enwiki")
         with conn.cursor() as cur:
-            cur.execute(query, args=dict(start=start, end=end, prefix=prefix))
-            return not len(cur.fetchall()) > 0
+            count = cur.execute(query, args=dict(start=start, end=end, prefix=prefix))
+            return count == 0
     except Exception as e:
         logger.exception(e)
         return False
 
 
-def combine_ranges(all_ranges: Sequence[IPNetwork]) -> List[IPNetwork]:
+def combine_ranges(all_ranges: Sequence[IPNetwork]) -> Iterator[IPNetwork]:
     ipv4 = [net for net in all_ranges if net.version == 4]
     ipv6 = [net for net in all_ranges if net.version == 6]
-    output: List[IPNetwork] = []
     for ranges in [ipv4, ipv6]:
         ranges = list(ipaddress.collapse_addresses(sorted(ranges)))  # type: ignore
         for net in ranges:
             if net.version == 4 and net.prefixlen < 16:
-                output.extend(subnet for subnet in net.subnets(new_prefix=16))
+                for subnet in net.subnets(new_prefix=16):
+                    yield subnet
             elif net.version == 6 and net.prefixlen < 19:
-                output.extend(subnet for subnet in net.subnets(new_prefix=19))
+                for subnet in net.subnets(new_prefix=19):
+                    yield subnet
             else:
-                output.append(net)
-    return output
+                yield net
 
 
 def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]) -> str:
@@ -311,8 +315,8 @@ def make_mass_section(
     return section
 
 
-def update_page(new_text: str, mass: bool = False) -> None:
-    title = "User:AntiCompositeBot/ASNBlock"
+def update_page(new_text: str, title: str, mass: bool = False) -> None:
+    title = "User:AntiCompositeBot/" + title
     if mass:
         title += "/mass"
     page = pywikibot.Page(site, title)
@@ -336,10 +340,9 @@ def update_page(new_text: str, mass: bool = False) -> None:
         )
 
 
-def main() -> None:
-    utils.check_runpage(site, "ASNBlock")
-    logger.info("Loading configuration data")
-    config = get_config()
+def collect_data(
+    config: dict, db: str
+) -> Dict[str, Union[str, List[str], List[IPNetwork]]]:
     providers: List[Dict[str, Union[str, List[str]]]] = config["providers"]
     rir_data = RIRData()
 
@@ -362,12 +365,32 @@ def main() -> None:
             continue
 
         ranges = combine_ranges(ranges)
-        ranges = filter(not_blocked, ranges)
-        if "search" in provider.keys():
-            ranges = [net for net in ranges if search_whois(net, provider["search"])]
-        provider["ranges"] = ranges
 
-    text = "== Hosts ==\n"
+        conn = toolforge.connect(db)
+        for net in ranges:
+            if not_blocked(net, conn) and (
+                "search" not in provider.keys() or search_whois(net, provider["search"])
+            ):
+                cast(List[IPNetwork], provider.setdefault("ranges", [])).append(net)
+        conn.close()
+
+
+def main(db: str = "enwiki") -> None:
+    utils.check_runpage(site, "ASNBlock")
+    logger.info("Loading configuration data")
+    config = get_config()
+
+    providers = collect_data(config, db)
+
+    title = "ASNBlock"
+    if db == "enwiki":
+        pass
+    elif db == "centralauth":
+        title += "/global"
+    else:
+        title += "/" + db
+
+    text = mass_text = "== Hosts ==\n"
     for provider in providers:
         section = make_section(
             cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
@@ -375,14 +398,15 @@ def main() -> None:
         text += section
     update_page(text)
 
-    mass_text = "== Hosts ==\n"
     for provider in providers:
-        mass_text += make_section(
+        mass_text += make_mass_section(
             cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
         )
     update_page(mass_text, mass=True)
 
-    with open("/data/project/anticompositebot/www/static/ASNBlock.json", "w") as f:
+    with open(
+        f"/data/project/anticompositebot/www/static/{title.replace('/', '_')}.json", "w"
+    ) as f:
         json.dump(providers, f)
 
     logger.error("Finished")
