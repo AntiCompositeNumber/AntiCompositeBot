@@ -310,7 +310,7 @@ def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]) ->
 def make_mass_section(
     provider: Dict[str, Union[str, List[str], List[IPNetwork]]]
 ) -> str:
-    section = f"==={provider['name']}===\n" + "\n".join(
+    section = f"\n==={provider['name']}===\n" + "\n".join(
         str(net) for net in provider["ranges"]
     )
     return section
