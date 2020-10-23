@@ -343,7 +343,7 @@ def update_page(new_text: str, title: str, mass: bool = False) -> None:
 
 def collect_data(
     config: dict, db: str
-) -> Dict[str, Union[str, List[str], List[IPNetwork]]]:
+) -> List[Dict[str, Union[str, List[str], List[IPNetwork]]]]:
     providers: List[Dict[str, Union[str, List[str]]]] = config["providers"]
     rir_data = RIRData()
 
@@ -375,6 +375,8 @@ def collect_data(
                 cast(List[IPNetwork], provider.setdefault("ranges", [])).append(net)
         conn.close()
 
+    return cast(List[Dict[str, Union[str, List[str], List[IPNetwork]]]], providers)
+
 
 def main(db: str = "enwiki") -> None:
     utils.check_runpage(site, "ASNBlock")
@@ -397,13 +399,13 @@ def main(db: str = "enwiki") -> None:
             cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
         )
         text += section
-    update_page(text)
+    update_page(text, title=title)
 
     for provider in providers:
         mass_text += make_mass_section(
             cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
         )
-    update_page(mass_text, mass=True)
+    update_page(mass_text, title=title, mass=True)
 
     with open(
         f"/data/project/anticompositebot/www/static/{title.replace('/', '_')}.json", "w"
