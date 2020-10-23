@@ -408,6 +408,8 @@ def main(db: str = "enwiki") -> None:
         )
     update_page(mass_text, title=title, mass=True)
 
+    for provider in providers:
+        provider["ranges"] = [str(net) for net in provider["ranges"]]
     with open(
         f"/data/project/anticompositebot/www/static/{title.replace('/', '_')}.json", "w"
     ) as f:
