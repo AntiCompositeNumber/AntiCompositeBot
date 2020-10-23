@@ -259,7 +259,7 @@ def combine_ranges(all_ranges: Sequence[IPNetwork]) -> List[IPNetwork]:
     return output
 
 
-def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]):
+def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]) -> str:
     if "url" in provider.keys():
         source = "[{url} {src}]".format(**provider)
     elif "asn" in provider.keys():
@@ -302,8 +302,20 @@ def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]):
     return section
 
 
-def update_page(new_text: str) -> None:
-    page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock")
+def make_mass_section(
+    provider: Dict[str, Union[str, List[str], List[IPNetwork]]]
+) -> str:
+    section = f"==={provider['name']}===\n" + "\n".join(
+        str(net) for net in provider["ranges"]
+    )
+    return section
+
+
+def update_page(new_text: str, mass: bool = False) -> None:
+    title = "User:AntiCompositeBot/ASNBlock"
+    if mass:
+        title += "/mass"
+    page = pywikibot.Page(site, title)
     top, sep, end = page.text.partition("== Hosts ==")
     text = top + new_text
     summary = f"Updating report (Bot) (ASNBlock {__version__})"
@@ -362,6 +374,17 @@ def main() -> None:
         )
         text += section
     update_page(text)
+
+    mass_text = "== Hosts ==\n"
+    for provider in providers:
+        mass_text += make_section(
+            cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
+        )
+    update_page(mass_text, mass=True)
+
+    with open("/data/project/anticompositebot/www/static/ASNBlock.json", "w") as f:
+        json.dump(providers, f)
+
     logger.error("Finished")
 
 
