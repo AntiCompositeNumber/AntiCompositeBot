@@ -219,7 +219,7 @@ def not_blocked(net: IPNetwork, conn: pymysql.connections.Connection) -> bool:
         )
         prefix = start[:7] + "%"
 
-    if conn.db == b"centralauth":
+    if conn.db == b"centralauth_p":
         query = """
 SELECT gb_id
 FROM globalblocks
