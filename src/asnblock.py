@@ -293,7 +293,7 @@ def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]):
                 "wpHardBlock": 1,
                 "wpReason": "other",
                 "wpReason-other": "{{Colocationwebhost}} <!-- %s -->"
-                % provider["name"],
+                % provider.get("blockname", provider["name"]),
             }
         )
         ranges += row.format(net=ip_range, addr=addr, name=provider["name"], qs=qs)
