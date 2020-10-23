@@ -30,6 +30,7 @@ import math
 import ipaddress
 import json
 import urllib.parse
+import sys
 from bs4 import BeautifulSoup  # type: ignore
 import pymysql
 from typing import NamedTuple, Union, Dict, List, Iterator, Sequence, cast
@@ -414,7 +415,7 @@ def main(db: str = "enwiki") -> None:
 
 if __name__ == "__main__":
     try:
-        main()
+        main(sys.argv[1])
     except Exception as e:
         logger.exception(e)
         raise
