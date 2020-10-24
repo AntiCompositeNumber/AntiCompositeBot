@@ -81,6 +81,7 @@ class Provider:
     expiry: str = f"{random.randint(24, 36)} months"
     ranges: List[IPNetwork] = dataclasses.field(default_factory=list)
     url: str = ""
+    src: str = ""
     search: List[str] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
