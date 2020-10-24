@@ -31,6 +31,7 @@ import ipaddress
 import json
 import urllib.parse
 import sys
+import random
 from bs4 import BeautifulSoup  # type: ignore
 import pymysql
 from typing import NamedTuple, Union, Dict, List, Iterator, Sequence, cast, Optional
@@ -294,7 +295,9 @@ def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]) ->
             ip_range = str(net)
         qs = urllib.parse.urlencode(
             {
-                "wpExpiry": provider.get("expiry", ""),
+                "wpExpiry": provider.get(
+                    "expiry", str(random.randint(24, 36)) + " months"
+                ),
                 "wpHardBlock": 1,
                 "wpReason": "other",
                 "wpReason-other": "{{Colocationwebhost}} <!-- %s -->"
