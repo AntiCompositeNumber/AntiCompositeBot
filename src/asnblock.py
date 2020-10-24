@@ -356,16 +356,19 @@ def update_page(
         logger.debug(text)
     else:
         utils.check_runpage(site, "ASNBlock")
-        utils.save_page(
-            text=text,
-            page=page,
-            summary=summary,
-            bot=False,
-            minor=False,
-            mode="replace",
-            force=False,
-            new_ok=False,
-        )
+        try:
+            utils.save_page(
+                text=text,
+                page=page,
+                summary=summary,
+                bot=False,
+                minor=False,
+                mode="replace",
+                force=False,
+                new_ok=False,
+            )
+        except Exception as e:
+            logger.error("Page not saved, continuing", exc_info=e)
 
 
 def collect_data(config: dict, db: str) -> List[Provider]:
@@ -423,7 +426,7 @@ def main(db: str = "enwiki") -> None:
 
     providers = collect_data(config, db)
 
-    title = "ASNBlokck"
+    title = "ASNBlock"
     if db == "enwiki":
         pass
     elif db == "centralauth":
