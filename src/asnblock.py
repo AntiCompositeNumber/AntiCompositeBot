@@ -32,11 +32,22 @@ import json
 import urllib.parse
 import sys
 import random
+import dataclasses
 from bs4 import BeautifulSoup  # type: ignore
 import pymysql
-from typing import NamedTuple, Union, Dict, List, Iterator, Sequence, cast, Optional
+from typing import (
+    NamedTuple,
+    Union,
+    Dict,
+    List,
+    Iterator,
+    Iterable,
+    Optional,
+    Any,
+    Tuple,
+)
 
-__version__ = "0.3"
+__version__ = "0.4"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
@@ -60,6 +71,21 @@ class DataRow(NamedTuple):
     date: str
     status: str
     opaque_id: str
+
+
+@dataclasses.dataclass
+class Provider:
+    name: str
+    blockname: str = ""
+    asn: List[str] = []
+    expiry: str = f"{random.randint(24, 36)} months"
+    ranges: List[IPNetwork] = []
+    url: str = ""
+    search: List[str] = []
+
+    def __post_init__(self):
+        if not self.blockname:
+            self.blockname = self.name
 
 
 def get_config() -> Dict[str, List[Dict[str, Union[str, List[str]]]]]:
@@ -152,9 +178,8 @@ def microsoft_data() -> Iterator[IPNetwork]:
             yield ipaddress.ip_network(prefix)
 
 
-def amazon_data(provider: Dict[str, Union[str, List[str]]]) -> Iterator[IPNetwork]:
-    url = cast(str, provider["url"])
-    req = session.get(url)
+def amazon_data(provider: Provider) -> Iterator[IPNetwork]:
+    req = session.get(provider.url)
     req.raise_for_status()
     data = req.json()
     for prefix in data["prefixes"]:
@@ -175,7 +200,7 @@ def google_data() -> Iterator[IPNetwork]:
             yield ipaddress.ip_network(prefix["ipv6Prefix"])
 
 
-def search_whois(net: IPNetwork, search_list: Sequence[str]):
+def search_whois(net: IPNetwork, search_list: Iterable[str]):
     logger.debug(f"Searching WHOIS for {search_list} in {net}")
     url = "https://whois.toolforge.org/gateway.py"
     params = {
@@ -249,7 +274,7 @@ WHERE
         return False
 
 
-def combine_ranges(all_ranges: Sequence[IPNetwork]) -> Iterator[IPNetwork]:
+def combine_ranges(all_ranges: Iterable[IPNetwork]) -> Iterator[IPNetwork]:
     ipv4 = [net for net in all_ranges if net.version == 4]
     ipv6 = [net for net in all_ranges if net.version == 6]
     for ranges in [ipv4, ipv6]:
@@ -265,16 +290,14 @@ def combine_ranges(all_ranges: Sequence[IPNetwork]) -> Iterator[IPNetwork]:
                 yield net
 
 
-def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]) -> str:
-    if "url" in provider.keys():
-        source = "[{url} {src}]".format(**provider)
-    elif "asn" in provider.keys():
-        source = ", ".join(
-            f"[https://bgp.he.net/{asn} {asn}]" for asn in provider["asn"]
-        )
+def make_section(provider: Provider) -> str:
+    if provider.url:
+        source = "[{0.url} {0.src}]".format(provider)
+    elif provider.asn:
+        source = ", ".join(f"[https://bgp.he.net/{asn} {asn}]" for asn in provider.asn)
 
-    if "search" in provider.keys():
-        search = " for: " + ", ".join(cast(List[str], provider["search"]))
+    if provider.search:
+        search = " for: " + ", ".join(provider.search)
     else:
         search = ""
 
@@ -284,8 +307,7 @@ def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]) ->
         "[https://en.wikipedia.org/wiki/Special:Block/{net}?{qs} BLOCK]\n"
     )
     ranges = ""
-    for net in provider["ranges"]:
-        net = cast(IPNetwork, net)
+    for net in provider.ranges:
         addr = str(net.network_address)
         if (net.version == 4 and net.prefixlen == 32) or (
             net.version == 6 and net.prefixlen == 128
@@ -295,26 +317,22 @@ def make_section(provider: Dict[str, Union[str, List[str], List[IPNetwork]]]) ->
             ip_range = str(net)
         qs = urllib.parse.urlencode(
             {
-                "wpExpiry": provider.get(
-                    "expiry", str(random.randint(24, 36)) + " months"
-                ),
+                "wpExpiry": provider.expiry,
                 "wpHardBlock": 1,
                 "wpReason": "other",
                 "wpReason-other": "{{Colocationwebhost}} <!-- %s -->"
-                % provider.get("blockname", provider["name"]),
+                % provider.blockname,
             }
         )
-        ranges += row.format(net=ip_range, addr=addr, name=provider["name"], qs=qs)
+        ranges += row.format(net=ip_range, addr=addr, name=provider.name, qs=qs)
 
-    section = f"==={provider['name']}===\nSearching {source}{search}\n{ranges}"
+    section = f"==={provider.name}===\nSearching {source}{search}\n{ranges}"
     return section
 
 
-def make_mass_section(
-    provider: Dict[str, Union[str, List[str], List[IPNetwork]]]
-) -> str:
-    section = f"\n==={provider['name']}===\n" + "\n".join(
-        str(net) for net in provider["ranges"]
+def make_mass_section(provider: Provider) -> str:
+    section = f"\n==={provider.name}===\n" + "\n".join(
+        str(net) for net in provider.ranges
     )
     return section
 
@@ -349,48 +367,52 @@ def update_page(
         )
 
 
-def collect_data(
-    config: dict, db: str
-) -> List[Dict[str, Union[str, List[str], List[IPNetwork]]]]:
-    providers: List[Dict[str, Union[str, List[str]]]] = config["providers"]
+def collect_data(config: dict, db: str) -> List[Provider]:
+    providers = [Provider(**provider) for provider in config["providers"]]
     rir_data = RIRData()
     ignore = {ipaddress.ip_network(net) for net in config["ignore"]}
 
     for provider in providers:
-        logger.info(f"Checking ranges from {provider['name']}")
-        if "asn" in provider.keys():
-            ranges = rir_data.get_asn_ranges(cast(List[str], provider["asn"]).copy())
-        elif "url" in provider.keys():
-            if "microsoft" in provider["url"]:
+        logger.info(f"Checking ranges from {provider.name}")
+        if provider.asn:
+            ranges = rir_data.get_asn_ranges(provider.asn.copy())
+        elif provider.url:
+            if "microsoft" in provider.url:
                 ranges = microsoft_data()
-            elif "google" in provider["url"]:
+            elif "google" in provider.url:
                 ranges = google_data()
-            elif "amazon" in provider["url"]:
+            elif "amazon" in provider.url:
                 ranges = amazon_data(provider)
             else:
-                logger.warning(f"{provider['name']} has no handler")
+                logger.warning(f"{provider.name} has no handler")
                 continue
         else:
-            logger.warning(f"{provider['name']} could not be processed")
+            logger.warning(f"{provider.name} could not be processed")
             continue
 
         ranges = combine_ranges(ranges)
 
         conn = toolforge.connect(db)
-        provider["ranges"] = []
         for net in ranges:
             if (
                 net not in ignore
                 and not_blocked(net, conn)
-                and (
-                    "search" not in provider.keys()
-                    or search_whois(net, provider["search"])
-                )
+                and (not provider.search or search_whois(net, provider.search))
             ):
-                cast(List[IPNetwork], provider["ranges"]).append(net)
+                provider.ranges.append(net)
         conn.close()
 
-    return cast(List[Dict[str, Union[str, List[str], List[IPNetwork]]]], providers)
+    return providers
+
+
+def provider_dict(items: Iterable[Tuple[str, Any]]) -> Dict[str, Any]:
+    output = {}
+    for key, value in items:
+        if key == "ranges":
+            output[key] = [str(net) for net in value]
+        else:
+            output[key] = value
+    return output
 
 
 def main(db: str = "enwiki") -> None:
@@ -400,7 +422,7 @@ def main(db: str = "enwiki") -> None:
 
     providers = collect_data(config, db)
 
-    title = "ASNBlock"
+    title = "ASNBlokck"
     if db == "enwiki":
         pass
     elif db == "centralauth":
@@ -408,27 +430,19 @@ def main(db: str = "enwiki") -> None:
     else:
         title += "/" + db
 
-    total_ranges = sum(len(provider["ranges"]) for provider in providers)
+    total_ranges = sum(len(provider.ranges) for provider in providers)
     text = mass_text = "== Hosts ==\n"
-    for provider in providers:
-        section = make_section(
-            cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
-        )
-        text += section
+
+    text += "".join(make_section(provider) for provider in providers)
     update_page(text, title=title, total=total_ranges)
 
-    for provider in providers:
-        mass_text += make_mass_section(
-            cast(Dict[str, Union[str, List[str], List[IPNetwork]]], provider)
-        )
+    mass_text += "".join(make_mass_section(provider) for provider in providers)
     update_page(mass_text, title=title, mass=True, total=total_ranges)
 
-    for provider in providers:
-        provider["ranges"] = [str(net) for net in provider["ranges"]]
     with open(
-        f"/data/project/anticompositebot/www/static/{title.replace('/', '_')}.json", "w"
+        f"/data/project/anticompositebot/www/static/{title.replace('/', '-')}.json", "w"
     ) as f:
-        json.dump(providers, f)
+        json.dump(dataclasses.asdict(providers, dict_factory=provider_dict), f)
 
     logger.error("Finished")
 
