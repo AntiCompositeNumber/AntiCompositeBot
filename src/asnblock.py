@@ -446,7 +446,13 @@ def main(db: str = "enwiki") -> None:
     with open(
         f"/data/project/anticompositebot/www/static/{title.replace('/', '-')}.json", "w"
     ) as f:
-        json.dump(dataclasses.asdict(providers, dict_factory=provider_dict), f)
+        json.dump(
+            [
+                dataclasses.asdict(provider, dict_factory=provider_dict)
+                for provider in providers
+            ],
+            f,
+        )
 
     logger.error("Finished")
 
