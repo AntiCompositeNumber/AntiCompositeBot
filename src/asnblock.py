@@ -77,11 +77,11 @@ class DataRow(NamedTuple):
 class Provider:
     name: str
     blockname: str = ""
-    asn: List[str] = []
+    asn: List[str] = dataclasses.field(default_factory=list)
     expiry: str = f"{random.randint(24, 36)} months"
-    ranges: List[IPNetwork] = []
+    ranges: List[IPNetwork] = dataclasses.field(default_factory=list)
     url: str = ""
-    search: List[str] = []
+    search: List[str] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
         if not self.blockname:
