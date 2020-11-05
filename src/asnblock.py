@@ -83,7 +83,6 @@ class Provider:
     url: str = ""
     src: str = ""
     search: List[str] = dataclasses.field(default_factory=list)
-    random: random.Random = random.Random()
 
     def __post_init__(self):
         if not self.blockname:
