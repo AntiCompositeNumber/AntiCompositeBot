@@ -47,7 +47,7 @@ from typing import (
     Tuple,
 )
 
-__version__ = "0.4"
+__version__ = "0.5"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
@@ -78,15 +78,17 @@ class Provider:
     name: str
     blockname: str = ""
     asn: List[str] = dataclasses.field(default_factory=list)
-    expiry: str = f"{random.randint(24, 36)} months"
+    expiry: str = ""
     ranges: List[IPNetwork] = dataclasses.field(default_factory=list)
     url: str = ""
     src: str = ""
     search: List[str] = dataclasses.field(default_factory=list)
+    random: random.Random = random.Random()
 
     def __post_init__(self):
         if not self.blockname:
             self.blockname = self.name
+        self.random.seed(self.name)
 
 
 def get_config() -> Dict[str, List[Dict[str, Union[str, List[str]]]]]:
@@ -310,15 +312,24 @@ def make_section(provider: Provider) -> str:
     ranges = ""
     for net in provider.ranges:
         addr = str(net.network_address)
+        # Convert 1-address ranges to that address
         if (net.version == 4 and net.prefixlen == 32) or (
             net.version == 6 and net.prefixlen == 128
         ):
             ip_range = addr  # type: ignore
         else:
             ip_range = str(net)
+        if provider.expiry:
+            expiry = provider.expiry
+        else:
+            # Seed a PRNG with the address, then get a random int.
+            # This is deterministic, making the output more constant
+            rand = random.Random(addr)
+            expiry = f"{rand.randint(24, 36)} months"
+
         qs = urllib.parse.urlencode(
             {
-                "wpExpiry": provider.expiry,
+                "wpExpiry": expiry,
                 "wpHardBlock": 1,
                 "wpReason": "other",
                 "wpReason-other": "{{Colocationwebhost}} <!-- %s -->"
@@ -454,7 +465,7 @@ def main(db: str = "enwiki") -> None:
             f,
         )
 
-    logger.error("Finished")
+    # logger.error("Finished")
 
 
 if __name__ == "__main__":
