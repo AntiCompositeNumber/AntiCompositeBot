@@ -377,6 +377,7 @@ def update_page(
                 mode="replace",
                 force=False,
                 new_ok=False,
+                no_change_ok=True,
             )
         except Exception as e:
             logger.error("Page not saved, continuing", exc_info=e)

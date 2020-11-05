@@ -150,6 +150,7 @@ def save_page(
     mode: str = "replace",
     force: bool = False,
     new_ok: bool = False,
+    no_change_ok: bool = False,
 ) -> None:
     logger.info(f"Saving to {page.title()}")
     if not text:
@@ -181,9 +182,10 @@ def save_page(
         raise ValueError("mode must be 'replace', 'append', or 'prepend', not {mode}")
 
     if page.get(force=True) == text:
-        raise pywikibot.PageNotSaved(
-            page, message="Page text did not change, page %s was not saved"
-        )
+        if not no_change_ok:
+            raise pywikibot.PageNotSaved(
+                page, message="Page text did not change, page %s was not saved"
+            )
     else:
         page.text = text
         page.save(
