@@ -87,7 +87,6 @@ class Provider:
     def __post_init__(self):
         if not self.blockname:
             self.blockname = self.name
-        self.random.seed(self.name)
 
 
 def get_config() -> Dict[str, List[Dict[str, Union[str, List[str]]]]]:
