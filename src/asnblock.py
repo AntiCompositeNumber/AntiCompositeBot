@@ -304,7 +304,7 @@ def make_section(provider: Provider) -> str:
 
     row = (
         "# [[Special:Contribs/{net}|{net}]] | "
-        "[[toolforge:whois/gateway.py?lookup=true&ip={addr}|Whois]] | "
+        "[[toolforge:whois-referral/gateway.py?lookup=true&ip={addr}|Whois]] | "
         "[https://en.wikipedia.org/wiki/Special:Block/{net}?{qs} BLOCK]\n"
     )
     ranges = ""
