@@ -31,6 +31,7 @@ import ipaddress
 import json
 import urllib.parse
 import sys
+import string
 import random
 import dataclasses
 from bs4 import BeautifulSoup  # type: ignore
@@ -47,7 +48,7 @@ from typing import (
     Tuple,
 )
 
-__version__ = "0.5"
+__version__ = "0.6"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
@@ -291,7 +292,7 @@ def combine_ranges(all_ranges: Iterable[IPNetwork]) -> Iterator[IPNetwork]:
                 yield net
 
 
-def make_section(provider: Provider) -> str:
+def make_section(provider: Provider, site_config: dict) -> str:
     if provider.url:
         source = "[{0.url} {0.src}]".format(provider)
     elif provider.asn:
@@ -302,11 +303,8 @@ def make_section(provider: Provider) -> str:
     else:
         search = ""
 
-    row = (
-        "# [[Special:Contribs/{net}|{net}]] | "
-        "[[toolforge:whois-referral/gateway.py?lookup=true&ip={addr}|Whois]] | "
-        "[https://en.wikipedia.org/wiki/Special:Block/{net}?{qs} BLOCK]\n"
-    )
+    row = string.Template(site_config["row"])
+
     ranges = ""
     for net in provider.ranges:
         addr = str(net.network_address)
@@ -317,6 +315,7 @@ def make_section(provider: Provider) -> str:
             ip_range = addr  # type: ignore
         else:
             ip_range = str(net)
+
         if provider.expiry:
             expiry = provider.expiry
         else:
@@ -330,11 +329,14 @@ def make_section(provider: Provider) -> str:
                 "wpExpiry": expiry,
                 "wpHardBlock": 1,
                 "wpReason": "other",
-                "wpReason-other": "{{Colocationwebhost}} <!-- %s -->"
-                % provider.blockname,
+                "wpReason-other": string.Template(
+                    site_config.get("block_reason", "")
+                ).safe_substitute(blockname=provider.blockname),
             }
         )
-        ranges += row.format(net=ip_range, addr=addr, name=provider.name, qs=qs)
+        ranges += row.safe_substitute(
+            ip_range=ip_range, addr=addr, name=provider.name, qs=qs
+        )
 
     section = f"==={provider.name}===\nSearching {source}{search}\n{ranges}"
     return section
@@ -436,6 +438,7 @@ def main(db: str = "enwiki") -> None:
 
     providers = collect_data(config, db)
 
+    site_config = config["sites"].get(db, config["sites"]["enwiki"])
     title = "ASNBlock"
     if db == "enwiki":
         pass
@@ -447,7 +450,7 @@ def main(db: str = "enwiki") -> None:
     total_ranges = sum(len(provider.ranges) for provider in providers)
     text = mass_text = "== Hosts ==\n"
 
-    text += "".join(make_section(provider) for provider in providers)
+    text += "".join(make_section(provider, site_config) for provider in providers)
     update_page(text, title=title, total=total_ranges)
 
     mass_text += "".join(make_mass_section(provider) for provider in providers)
