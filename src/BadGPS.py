@@ -81,7 +81,8 @@ def run_check(site):
     run = runpage.text.endswith('True')
     if not run:
         print('Runpage is false, quitting...')
-        raise pywikibot.UserBlocked('Runpage is false')
+        # FIXME: If used in the future, use utils.py
+        raise Exception('Runpage is false')
 
 
 def double_check(template, page):

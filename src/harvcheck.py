@@ -294,10 +294,10 @@ def save_page(page: BasePage, wikitext: str, summary: str) -> None:
 
 
 def check_runpage() -> None:
-    """Raises pywikibot.UserBlocked if on-wiki runpage is not True"""
+    """Raises utils.RunpageError if on-wiki runpage is not True"""
     page = pywikibot.Page(site, config["runpage"])
     if not page.text.endswith("True"):
-        raise pywikibot.UserBlocked("Runpage is false, quitting")
+        raise utils.RunpageError("Runpage is false, quitting")
 
 
 def check_many_nosave(pages: List[str]) -> None:

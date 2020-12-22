@@ -28,6 +28,7 @@ import unittest.mock as mock
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
 import nolicense  # noqa: E402
+import utils  # noqa: E402
 
 site = nolicense.site
 
@@ -147,7 +148,7 @@ def test_edit_page_simulate():
 
 def test_edit_page_exception():
     throttle = mock.Mock()
-    with mock.patch("utils.save_page", side_effect=pywikibot.UserBlocked) as save_page:
+    with mock.patch("utils.save_page", side_effect=utils.RunpageError) as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
         page.get.return_value = page.text
         assert (

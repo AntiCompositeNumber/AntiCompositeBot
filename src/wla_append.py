@@ -98,7 +98,8 @@ def run_check():
     runpage = pywikibot.Page(site, "User:AntiCompositeBot/WLA Tagging/Run")
     run = runpage.text.strip().endswith("True")
     if run is False:
-        raise pywikibot.UserBlocked("Runpage is false")
+        # FIXME: Use utils.py instead
+        raise Exception("Runpage is false")
 
 
 def main(limit=0):

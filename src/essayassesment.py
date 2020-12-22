@@ -249,13 +249,6 @@ def construct_data_page(data: Iterable[Essay]) -> str:
     return "\n".join(lines)
 
 
-def check_runpage() -> None:
-    """Raises pywikibot.UserBlocked if on-wiki runpage is not True"""
-    page = pywikibot.Page(site, "User:AntiCompositeBot/EssayImpact/Run")
-    if not page.text.endswith("True"):
-        raise pywikibot.UserBlocked("Runpage is false, quitting")
-
-
 def write_table(text: str) -> None:
     page = pywikibot.Page(
         site, "Wikipedia:WikiProject Wikipedia essays/Assessment/Links"
@@ -290,7 +283,7 @@ def load_wiki_config() -> Tuple[Dict[str, Union[int, float]], str]:
 
 def main() -> None:
     logger.info("Starting up")
-    check_runpage()
+    utils.check_runpage(site, "EssayImpact")
     weights, intro = load_wiki_config()
 
     data = []
@@ -304,7 +297,7 @@ def main() -> None:
     datapage = construct_data_page(data)
 
     if not simulate:
-        check_runpage()
+        utils.check_runpage(site, "EssayImpact")
         write_table(table)
         write_data_page(datapage)
     else:
