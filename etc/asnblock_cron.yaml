@@ -33,13 +33,13 @@ spec:
             - name: LOG_SMTP
               value: "True"
             imagePullPolicy: Always
-          - name: asnblock-global
+          - name: asnblock
             image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
             command: [
               "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
               "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
             ]
-            args: ["centralauth"]
+            args: ["enwiki", "30"]
             workingDir: /data/project/anticompositebot
             env: 
             - name: HOME 
@@ -47,13 +47,14 @@ spec:
             - name: LOG_SMTP
               value: "True"
             imagePullPolicy: Always
-          - name: asnblock-commonswiki
+
+          - name: asnblock-global
             image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
             command: [
               "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
               "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
             ]
-            args: ["commonswiki"]
+            args: ["centralauth"]
             workingDir: /data/project/anticompositebot
             env: 
             - name: HOME 

@@ -10,7 +10,6 @@
 # You may obtain a copy of the License at
 
 #   http://www.apache.org/licenses/LICENSE-2.0
-
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,6 +33,8 @@ import sys
 import string
 import random
 import dataclasses
+import datetime
+import argparse
 from bs4 import BeautifulSoup  # type: ignore
 import pymysql
 from typing import (
@@ -48,7 +49,7 @@ from typing import (
     Tuple,
 )
 
-__version__ = "0.6"
+__version__ = "1.0"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
@@ -225,7 +226,9 @@ def search_whois(net: IPNetwork, search_list: Iterable[str]):
     return False
 
 
-def not_blocked(net: IPNetwork, conn: pymysql.connections.Connection) -> bool:
+def not_blocked(
+    net: IPNetwork, conn: pymysql.connections.Connection, exp_before: str = ""
+) -> bool:
     logger.debug(f"Checking for blocks on {net}")
     # MediaWiki does some crazy stuff here. Re-implementation of parts of
     # MediaWiki\ApiQueryBlocks, Wikimedia\IPUtils, Wikimedia\base_convert
@@ -247,6 +250,10 @@ def not_blocked(net: IPNetwork, conn: pymysql.connections.Connection) -> bool:
         )
         prefix = start[:7] + "%"
 
+    db_args = dict(start=start, end=end, prefix=prefix)
+    if exp_before:
+        db_args["exp"] = exp_before
+
     if conn.db == b"centralauth_p":
         query = """
 SELECT gb_id
@@ -256,6 +263,8 @@ WHERE
     AND gb_range_start <= %(start)s
     AND gb_range_end >= %(end)s
 """
+        if exp_before:
+            query += "AND (gb_expiry = 'infinity' OR gb_expiry >= %(exp)s)"
     else:
         query = """
 SELECT ipb_id
@@ -267,9 +276,11 @@ WHERE
     AND ipb_sitewide = 1
     AND ipb_auto = 0
 """
+        if exp_before:
+            query += "AND (ipb_expiry = 'infinity' OR ipb_expiry >= %(exp)s)"
     try:
         with conn.cursor() as cur:
-            count = cur.execute(query, args=dict(start=start, end=end, prefix=prefix))
+            count = cur.execute(query, args=db_args)
             return count == 0
     except Exception as e:
         logger.exception(e)
@@ -350,11 +361,17 @@ def make_mass_section(provider: Provider) -> str:
 
 
 def update_page(
-    new_text: str, title: str, mass: bool = False, total: Optional[int] = None
+    new_text: str,
+    title: str,
+    mass: bool = False,
+    exp: bool = False,
+    total: Optional[int] = None,
 ) -> None:
     title = "User:AntiCompositeBot/" + title
     if mass:
         title += "/mass"
+    if exp:
+        title += "/expiring"
     page = pywikibot.Page(site, title)
     top, sep, end = page.text.partition("== Hosts ==")
     text = top + new_text
@@ -383,7 +400,7 @@ def update_page(
             logger.error("Page not saved, continuing", exc_info=e)
 
 
-def collect_data(config: dict, db: str) -> List[Provider]:
+def collect_data(config: dict, db: str, exp_before: str = "") -> List[Provider]:
     providers = [Provider(**provider) for provider in config["providers"]]
     rir_data = RIRData()
     ignore = {ipaddress.ip_network(net) for net in config["ignore"]}
@@ -412,7 +429,7 @@ def collect_data(config: dict, db: str) -> List[Provider]:
         for net in ranges:
             if (
                 net not in ignore
-                and not_blocked(net, conn)
+                and not_blocked(net, conn, exp_before)
                 and (not provider.search or search_whois(net, provider.search))
             ):
                 provider.ranges.append(net)
@@ -431,12 +448,19 @@ def provider_dict(items: Iterable[Tuple[str, Any]]) -> Dict[str, Any]:
     return output
 
 
-def main(db: str = "enwiki") -> None:
+def main(db: str = "enwiki", days: int = 0) -> None:
     utils.check_runpage(site, "ASNBlock")
     logger.info("Loading configuration data")
     config = get_config()
 
-    providers = collect_data(config, db)
+    if days:
+        exp_before = (
+            datetime.datetime.utcnow() - datetime.timedelta(days=days)
+        ).strftime("%Y%m%d%H%M%S")
+    else:
+        exp_before = ""
+
+    providers = collect_data(config, db, exp_before)
 
     site_config = config["sites"].get(db, config["sites"]["enwiki"])
     title = "ASNBlock"
@@ -451,10 +475,10 @@ def main(db: str = "enwiki") -> None:
     text = mass_text = "== Hosts ==\n"
 
     text += "".join(make_section(provider, site_config) for provider in providers)
-    update_page(text, title=title, total=total_ranges)
+    update_page(text, title=title, total=total_ranges, exp=bool(days))
 
     mass_text += "".join(make_mass_section(provider) for provider in providers)
-    update_page(mass_text, title=title, mass=True, total=total_ranges)
+    update_page(mass_text, title=title, mass=True, total=total_ranges, exp=bool(days))
 
     with open(
         f"/data/project/anticompositebot/www/static/{title.replace('/', '-')}.json", "w"
@@ -471,8 +495,14 @@ def main(db: str = "enwiki") -> None:
 
 
 if __name__ == "__main__":
+    parser = argparser.ArgumentParser()
+    parser.add_argument("db")
+    parser.add_argument(
+        "--days", help="Ignore blocks expiring within this number of days"
+    )
+    args = parser.parse_args()
     try:
-        main(sys.argv[1])
+        main(args.db, args.days)
     except Exception as e:
         logger.exception(e)
         raise
