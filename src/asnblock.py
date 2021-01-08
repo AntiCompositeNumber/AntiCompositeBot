@@ -495,7 +495,7 @@ def main(db: str = "enwiki", days: int = 0) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparser.ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument("db")
     parser.add_argument(
         "--days", help="Ignore blocks expiring within this number of days"
