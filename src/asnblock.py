@@ -368,10 +368,10 @@ def update_page(
     total: Optional[int] = None,
 ) -> None:
     title = "User:AntiCompositeBot/" + title
-    if mass:
-        title += "/mass"
     if exp:
         title += "/expiring"
+    if mass:
+        title += "/mass"
     page = pywikibot.Page(site, title)
     top, sep, end = page.text.partition("== Hosts ==")
     text = top + new_text
@@ -455,7 +455,7 @@ def main(db: str = "enwiki", days: int = 0) -> None:
 
     if days:
         exp_before = (
-            datetime.datetime.utcnow() - datetime.timedelta(days=days)
+            datetime.datetime.utcnow() + datetime.timedelta(days=days)
         ).strftime("%Y%m%d%H%M%S")
     else:
         exp_before = ""
