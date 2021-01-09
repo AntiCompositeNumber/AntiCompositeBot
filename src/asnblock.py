@@ -498,7 +498,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("db")
     parser.add_argument(
-        "--days", help="Ignore blocks expiring within this number of days"
+        "--days", help="Ignore blocks expiring within this number of days", type=int
     )
     args = parser.parse_args()
     try:
