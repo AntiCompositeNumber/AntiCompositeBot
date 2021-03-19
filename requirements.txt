@@ -21,6 +21,6 @@ pymysql==1.0.2 ; python_version >= '3.5'
 pywikibot
 requests-oauthlib==1.3.0
 requests==2.25.1
-soupsieve==2.1 ; python_version >= '3.0'
+soupsieve==2.2.1 ; python_version >= '3.0'
 toolforge==4.4.0
-urllib3==1.26.2 ; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'
+urllib3==1.26.4 ; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'
