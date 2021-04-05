@@ -233,7 +233,7 @@ def main(limit: int = 0, days: int = 30) -> None:
             if limit and total >= limit:
                 logger.info(f"Limit of {limit} pages reached")
                 break
-            if check_templates(page) and tag_page(page, throttle=throttle):
+            if page.botMayEdit() and check_templates(page) and tag_page(page, throttle=throttle):
                 queue.append(page)
                 total += 1
             else:
