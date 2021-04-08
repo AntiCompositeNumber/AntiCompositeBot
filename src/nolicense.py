@@ -30,7 +30,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.5"
+__version__ = "1.6"
 
 logging.config.dictConfig(
     utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")
@@ -235,6 +235,9 @@ def main(limit: int = 0, days: int = 30) -> None:
                 break
             if not page.botMayEdit():
                 logger.info(f"Bot may not edit {page.title()}")
+            elif page.title() in config.get("skip_files", []):
+                logger.info("Page is on skip list, skipping.")
+                continue
             elif check_templates(page) and tag_page(page, throttle=throttle):
                 queue.append(page)
                 total += 1
