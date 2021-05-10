@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class RunpageError(Exception):
     """Called when the bot can not continue because it is disabled"""
+
     pass
 
 
@@ -194,7 +195,11 @@ def save_page(
     else:
         page.text = text
         page.save(
-            summary=summary, minor=minor, botflag=bot, quiet=True, force=force,
+            summary=summary,
+            minor=minor,
+            botflag=bot,
+            quiet=True,
+            force=force,
         )
         logger.info(f"Page {page.title(as_link=True)} saved")
 
@@ -228,12 +233,10 @@ class Throttle:
         self.last_edit = time.monotonic()
 
 
-def get_replag(shard: str, cluster: str = "web") -> datetime.timedelta:
-    conn = toolforge.connect("meta", cluster=cluster)
+def get_replag(db: str, cluster: str = "web") -> datetime.timedelta:
+    conn = toolforge.connect(db, cluster=cluster)
     with conn.cursor() as cur:
-        count = cur.execute(
-            "SELECT lag FROM heartbeat_p.heartbeat where shard = %s", [shard]
-        )
+        count = cur.execute("SELECT lag FROM heartbeat_p.heartbeat LIMIT 1")
         if count:
             return datetime.timedelta(seconds=float(cur.fetchall()[0][0]))
         else:

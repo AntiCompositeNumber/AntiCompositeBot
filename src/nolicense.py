@@ -30,7 +30,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.6"
+__version__ = "1.7"
 
 logging.config.dictConfig(
     utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")
@@ -219,7 +219,7 @@ def main(limit: int = 0, days: int = 30) -> None:
     total = 0
     current_user = None
     queue: Deque[pywikibot.Page] = collections.deque()
-    replag = utils.get_replag("s4", cluster=cluster)
+    replag = utils.get_replag("commonswiki_p", cluster=cluster)
     if replag > datetime.timedelta(minutes=30):
         logger.warn(f"Replag is high ({str(replag)})")
     try:
