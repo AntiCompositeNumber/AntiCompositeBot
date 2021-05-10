@@ -140,7 +140,10 @@ def test_edit_page_simulate():
         page = mock.Mock(spec=pywikibot.Page, text="foo")
         page.get.return_value = page.text
         nolicense.edit_page(
-            page, text="NewText", summary="Summary", throttle=None,
+            page,
+            text="NewText",
+            summary="Summary",
+            throttle=None,
         )
         save_page.assert_not_called()
     nolicense.simulate = None
@@ -153,7 +156,10 @@ def test_edit_page_exception():
         page.get.return_value = page.text
         assert (
             nolicense.edit_page(
-                page, text="NewText", summary="Summary", throttle=throttle,
+                page,
+                text="NewText",
+                summary="Summary",
+                throttle=throttle,
             )
             is False
         )
@@ -182,7 +188,9 @@ def test_warn_user(grouped, queue_titles):
         with mock.patch("nolicense.edit_page") as edit_page:
             assert (
                 nolicense.warn_user(
-                    user_talk=user_talk, queue=queue, throttle=mock.sentinel.throttle,
+                    user_talk=user_talk,
+                    queue=queue,
+                    throttle=mock.sentinel.throttle,
                 )
                 == collections.deque()
             )
@@ -224,7 +232,9 @@ def test_warn_user_ungrouped():
         with mock.patch("nolicense.edit_page") as edit_page:
             with pytest.raises(IndexError):
                 nolicense.warn_user(
-                    user_talk=user_talk, queue=queue, throttle=mock.sentinel.throttle,
+                    user_talk=user_talk,
+                    queue=queue,
+                    throttle=mock.sentinel.throttle,
                 )
             edit_page.assert_not_called()
 
@@ -243,7 +253,9 @@ def test_warn_user_empty():
     with mock.patch.dict("nolicense.config", test_config):
         with mock.patch("nolicense.edit_page") as edit_page:
             nolicense.warn_user(
-                user_talk=user_talk, queue=queue, throttle=mock.sentinel.throttle,
+                user_talk=user_talk,
+                queue=queue,
+                throttle=mock.sentinel.throttle,
             )
             edit_page.assert_not_called()
 
@@ -264,7 +276,9 @@ def test_warn_user_conflict():
     user_talk.save.side_effect = [pywikibot.exceptions.EditConflict(user_talk), None]
     with mock.patch.dict("nolicense.config", test_config):
         nolicense.warn_user(
-            user_talk=user_talk, queue=queue, throttle=None,
+            user_talk=user_talk,
+            queue=queue,
+            throttle=None,
         )
 
 
@@ -320,7 +334,10 @@ def test_main(tag_page, check_templates, get_replag, limit):
             assert warn_user.call_count == sum([1, 1, 0, 1, 1][:limit])
             warn_user.assert_has_calls(
                 [
-                    mock.call(mock.sentinel.user1, collections.deque([pages[0]]),),
+                    mock.call(
+                        mock.sentinel.user1,
+                        collections.deque([pages[0]]),
+                    ),
                     mock.call(
                         mock.sentinel.user2,
                         collections.deque(pages[1:3] if limit > 2 else [pages[1]]),
@@ -337,11 +354,12 @@ def test_main(tag_page, check_templates, get_replag, limit):
                 [mock.call(call, throttle=mock.ANY) for call in pages[:limit]]
             )
 
+
 @mock.patch("utils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
 def test_bep(tag_page, check_templates, get_replag):
-    page =  pywikibot.Page(site, "User:AntiCompositeBot/test bep")
+    page = pywikibot.Page(site, "User:AntiCompositeBot/test bep")
     user = mock.sentinel.user1
     iterpages = mock.MagicMock(return_value=[(page, user)])
     with mock.patch("nolicense.iter_files_and_users", iterpages):
@@ -353,7 +371,7 @@ def test_bep(tag_page, check_templates, get_replag):
 @mock.patch("nolicense.check_templates", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
 def test_skip_files(tag_page, check_templates, get_replag):
-    page =  pywikibot.Page(site, "User:AntiCompositeBot/test bep")
+    page = pywikibot.Page(site, "User:AntiCompositeBot/test bep")
     user = mock.sentinel.user1
     iterpages = mock.MagicMock(return_value=[(page, user)])
     test_config = {"skip_files": "File: PNG Test.png"}
@@ -361,4 +379,3 @@ def test_skip_files(tag_page, check_templates, get_replag):
         with mock.patch("nolicense.iter_files_and_users", iterpages):
             nolicense.main(limit=1, days=mock.sentinel.days)
             check_templates.assert_not_called()
-
