@@ -36,6 +36,12 @@ class RunpageError(Exception):
     pass
 
 
+class PageNotSaved(Exception):
+    def __init__(self, page: pywikibot.Page, message: str = ""):
+        self.page = page
+        self.message = message
+
+
 def logger_config(module: str, level: str = "INFO", filename: str = "") -> Dict:
     loglevel = os.environ.get("LOG_LEVEL", level)
     if loglevel == "VERBOSE":
@@ -160,7 +166,7 @@ def save_page(
 ) -> None:
     logger.info(f"Saving to {page.title()}")
     if not text:
-        raise pywikibot.PageNotSaved(
+        raise PageNotSaved(
             page, message="New page text is blank, page %s was not saved"
         )
 
@@ -189,7 +195,7 @@ def save_page(
 
     if page.get(force=True) == text:
         if not no_change_ok:
-            raise pywikibot.PageNotSaved(
+            raise PageNotSaved(
                 page, message="Page text did not change, page %s was not saved"
             )
     else:

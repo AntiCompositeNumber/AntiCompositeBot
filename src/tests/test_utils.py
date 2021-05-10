@@ -63,11 +63,11 @@ def test_save_page(mode, text, new_text):
 @pytest.mark.parametrize(
     "mode,text,exception",
     [
-        ("replace", "", pywikibot.exceptions.PageNotSaved),
-        ("append", "", pywikibot.exceptions.PageNotSaved),
-        ("prepend", "", pywikibot.exceptions.PageNotSaved),
+        ("replace", "", utils.PageNotSaved),
+        ("append", "", utils.PageNotSaved),
+        ("prepend", "", utils.PageNotSaved),
         ("delete", "foo", ValueError),
-        ("replace", "[old_text]", pywikibot.exceptions.PageNotSaved),
+        ("replace", "[old_text]", utils.PageNotSaved),
     ],
 )
 def test_save_page_except(mode, text, exception):
