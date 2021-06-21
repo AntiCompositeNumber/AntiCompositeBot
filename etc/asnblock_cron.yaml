@@ -7,9 +7,9 @@ metadata:
     # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
     toolforge: tool
 spec:
-  schedule: "13 8 * * *"
+  schedule: "30 2 * * *"
   concurrencyPolicy: Forbid
-  # successfulJobsHistoryLimit: 0
+  successfulJobsHistoryLimit: 1
   jobTemplate:
     spec:
       backoffLimit: 0
@@ -47,7 +47,29 @@ spec:
             - name: LOG_SMTP
               value: "True"
             imagePullPolicy: Always
+          restartPolicy: Never
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: anticompositebot.asnblock-global
+  labels:
+    name: anticompositebot.asnblock-global
+    # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
+    toolforge: tool
 
+  schedule: "13 8 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            toolforge: tool
+        spec:
+          containers:
           - name: asnblock-global
             image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
             command: [
