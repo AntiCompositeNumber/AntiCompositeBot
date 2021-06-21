@@ -57,7 +57,7 @@ metadata:
     name: anticompositebot.asnblock-global
     # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
     toolforge: tool
-
+spec:
   schedule: "13 8 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
