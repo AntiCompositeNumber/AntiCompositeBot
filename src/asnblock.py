@@ -89,6 +89,8 @@ class Provider:
     def __post_init__(self):
         if not self.blockname:
             self.blockname = self.name
+        if self.search:
+            self.search = [entry.lower() for entry in self.search]
 
 
 def get_config() -> Dict[str, List[Dict[str, Union[str, List[str]]]]]:
