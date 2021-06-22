@@ -49,7 +49,7 @@ from typing import (
     Tuple,
 )
 
-__version__ = "1.0"
+__version__ = "1.1"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
@@ -332,9 +332,13 @@ def make_section(provider: Provider, site_config: dict) -> str:
         if provider.expiry:
             expiry = provider.expiry
         else:
-            # Seed a PRNG with the address, then get a random int.
-            # This is deterministic, making the output more constant
-            rand = random.Random(addr)
+            # Expiries are random, that way a bunch of blocks created at the
+            # same time don't all expire at the same time.
+            # The PRNG is seeded with the address and the year so that block
+            # lengths are different between different addresses and different
+            # blocks of the same address are suitably random, but do not change
+            # daily. This keeps diffs readable.
+            rand = random.Random(addr + str(datetime.date.today().year))
             expiry = f"{rand.randint(24, 36)} months"
 
         qs = urllib.parse.urlencode(
