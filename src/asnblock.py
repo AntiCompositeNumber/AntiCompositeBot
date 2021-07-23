@@ -431,7 +431,7 @@ def collect_data(config: dict, db: str, exp_before: str = "") -> List[Provider]:
 
         ranges = combine_ranges(ranges)
 
-        conn = toolforge.connect(db)
+        conn = toolforge.connect(db, cluster="analytics")
         for net in ranges:
             if (
                 net not in ignore
