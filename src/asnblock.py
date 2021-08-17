@@ -209,7 +209,7 @@ def icloud_data(provider: Provider) -> Iterator[IPNetwork]:
     req = session.get(provider.url)
     req.raise_for_status()
     reader = csv.reader(req.text.split("\n"))
-    for prefix, _ in reader:
+    for prefix, *_ in reader:
         yield ipaddress.ip_network(prefix)
 
 
