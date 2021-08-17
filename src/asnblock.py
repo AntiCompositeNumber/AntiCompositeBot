@@ -49,7 +49,7 @@ from typing import (
     Tuple,
 )
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
@@ -203,6 +203,14 @@ def google_data() -> Iterator[IPNetwork]:
             yield ipaddress.ip_network(prefix["ipv4Prefix"])
         if "ipv6Prefix" in prefix.keys():
             yield ipaddress.ip_network(prefix["ipv6Prefix"])
+
+
+def icloud_data(provider: Provider) -> Iterator[IPNetwork]:
+    req = session.get(provider.url)
+    req.raise_for_status()
+    reader = csv.reader(req.text.split("\n"))
+    for prefix, _ in reader:
+        yield ipaddress.ip_network(prefix)
 
 
 def search_whois(net: IPNetwork, search_list: Iterable[str]):
@@ -422,6 +430,8 @@ def collect_data(config: dict, db: str, exp_before: str = "") -> List[Provider]:
                 ranges = google_data()
             elif "amazon" in provider.url:
                 ranges = amazon_data(provider)
+            elif "icloud" in provider.url:
+                ranges = icloud_data(provider)
             else:
                 logger.warning(f"{provider.name} has no handler")
                 continue
