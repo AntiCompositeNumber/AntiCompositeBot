@@ -10,6 +10,8 @@ coveralls = "*"
 pipenv-to-requirements = "*"
 black = "*"
 mypy = "*"
+types-requests = "*"
+types-pymysql = "*"
 
 [packages]
 mwparserfromhell = "*"

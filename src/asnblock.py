@@ -47,6 +47,7 @@ from typing import (
     Optional,
     Any,
     Tuple,
+    cast,
 )
 
 __version__ = "1.2"
@@ -65,6 +66,8 @@ IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
 
 
 class DataRow(NamedTuple):
+    """Represents a row in an RIR bulk report."""
+
     registry: str
     cc: str
     type: str
@@ -86,14 +89,16 @@ class Provider:
     src: str = ""
     search: List[str] = dataclasses.field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.blockname:
             self.blockname = self.name
         if self.search:
             self.search = [entry.lower() for entry in self.search]
 
 
-def get_config() -> Dict[str, List[Dict[str, Union[str, List[str]]]]]:
+def get_config() -> Dict[
+    str, Union[Dict[str, Dict[str, str]], List[Dict[str, Union[str, List[str]]]]]
+]:
     page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock/config.json")
     data = json.loads(page.text)
     return data
@@ -104,6 +109,7 @@ class RIRData:
         self.load_rir_data()
 
     def get_rir_data(self) -> Iterator[str]:
+        """Iterate bulk IP and AS data from the five Regional Internet Registries."""
         data_urls = dict(
             APNIC="https://ftp.apnic.net/stats/apnic/delegated-apnic-extended-latest",
             AFRNIC="https://ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-extended-latest",  # noqa: E501
@@ -128,6 +134,7 @@ class RIRData:
                     yield line
 
     def load_rir_data(self) -> None:
+        """Download, collate, and prepare data provided by the RIRs."""
         ipv4 = []
         ipv6 = []
         asn = []
@@ -145,7 +152,8 @@ class RIRData:
         self.asn = asn
         logger.info("Range data loaded")
 
-    def get_asn_ranges(self, asn_list: List[str]):
+    def get_asn_ranges(self, asn_list: List[str]) -> List[IPNetwork]:
+        """Return a list of IP ranges associated with a list of AS numbers."""
         # The RIR data files don't prefix AS numbers with AS, so remove it
         for i, asn in enumerate(asn_list.copy()):
             if asn.startswith("AS"):
@@ -170,6 +178,10 @@ class RIRData:
 
 
 def microsoft_data() -> Iterator[IPNetwork]:
+    """Get IP ranges used by Azure and other Microsoft services."""
+    # The IP list is not at a stable or predictable URL (it includes the hash
+    # of the file itself, which we don't have yet). Instead, we have to parse
+    # the "click here to download manually" link out of the download page.
     url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
     gate = session.get(url)
     gate.raise_for_status()
@@ -184,6 +196,7 @@ def microsoft_data() -> Iterator[IPNetwork]:
 
 
 def amazon_data(provider: Provider) -> Iterator[IPNetwork]:
+    """Get IP ranges used by AWS."""
     req = session.get(provider.url)
     req.raise_for_status()
     data = req.json()
@@ -194,6 +207,7 @@ def amazon_data(provider: Provider) -> Iterator[IPNetwork]:
 
 
 def google_data() -> Iterator[IPNetwork]:
+    """Get IP ranges used by Google Cloud Platform."""
     url = "https://www.gstatic.com/ipranges/cloud.json"
     req = session.get(url)
     req.raise_for_status()
@@ -206,6 +220,7 @@ def google_data() -> Iterator[IPNetwork]:
 
 
 def icloud_data(provider: Provider) -> Iterator[IPNetwork]:
+    """Get IP ranges used by iCloud Private Relay."""
     req = session.get(provider.url)
     req.raise_for_status()
     reader = csv.reader(req.text.split("\n"))
@@ -213,11 +228,17 @@ def icloud_data(provider: Provider) -> Iterator[IPNetwork]:
         yield ipaddress.ip_network(prefix)
 
 
-def search_whois(net: IPNetwork, search_list: Iterable[str]):
+def search_whois(net: IPNetwork, search_list: Iterable[str]) -> bool:
+    """Searches for specific strings in the WHOIS data for a network.
+
+    Only the description and name fields of the WHOIS result are compared
+    to the search list. whois.toolforge.org does not support ranges,
+    so results are obtained for the first address in the range.
+    """
     logger.debug(f"Searching WHOIS for {search_list} in {net}")
     url = "https://whois.toolforge.org/gateway.py"
     params = {
-        "ip": net[0],
+        "ip": str(net[0]),
         "lookup": "true",
         "format": "json",
     }
@@ -239,6 +260,14 @@ def search_whois(net: IPNetwork, search_list: Iterable[str]):
 def not_blocked(
     net: IPNetwork, conn: pymysql.connections.Connection, exp_before: str = ""
 ) -> bool:
+    """Query the database to determine if a range is currently blocked.
+
+    Blocked ranges return False, unblocked ranges return True.
+    Only sitewide blocks are considered, partial blocks are ignored.
+
+    If exp_before is provided, blocks expiring before that date will be
+    ignored (returns True).
+    """
     logger.debug(f"Checking for blocks on {net}")
     # MediaWiki does some crazy stuff here. Re-implementation of parts of
     # MediaWiki\ApiQueryBlocks, Wikimedia\IPUtils, Wikimedia\base_convert
@@ -298,6 +327,14 @@ WHERE
 
 
 def combine_ranges(all_ranges: Iterable[IPNetwork]) -> Iterator[IPNetwork]:
+    """Sort ranges, split large ranges, and combine consecutive ranges.
+
+    Ranges are sorted by IP version (4 before 6), then alphabetically.
+    Adjacent ranges (with no gap between) are combined. Ranges larger than
+    the default maximum rangeblock size (IPv4 /16, IPv6 /19) are split into
+    ranges of that size or smaller.
+    """
+    # ipaddress.collapse_addresses can't handle v4 and v6 ranges at the same time
     ipv4 = [net for net in all_ranges if net.version == 4]
     ipv6 = [net for net in all_ranges if net.version == 6]
     for ranges in [ipv4, ipv6]:
@@ -314,6 +351,7 @@ def combine_ranges(all_ranges: Iterable[IPNetwork]) -> Iterator[IPNetwork]:
 
 
 def make_section(provider: Provider, site_config: dict) -> str:
+    """Prepares wikitext report section for a provider."""
     if provider.url:
         source = "[{0.url} {0.src}]".format(provider)
     elif provider.asn:
@@ -333,7 +371,7 @@ def make_section(provider: Provider, site_config: dict) -> str:
         if (net.version == 4 and net.prefixlen == 32) or (
             net.version == 6 and net.prefixlen == 128
         ):
-            ip_range = addr  # type: ignore
+            ip_range = addr
         else:
             ip_range = str(net)
 
@@ -368,6 +406,7 @@ def make_section(provider: Provider, site_config: dict) -> str:
 
 
 def make_mass_section(provider: Provider) -> str:
+    """Prepares massblock-compatible report section for a provider."""
     section = f"\n==={provider.name}===\n" + "\n".join(
         str(net) for net in provider.ranges
     )
@@ -381,12 +420,14 @@ def update_page(
     exp: bool = False,
     total: Optional[int] = None,
 ) -> None:
+    """Saves new report to the appropriate page."""
     title = "User:AntiCompositeBot/" + title
     if exp:
         title += "/expiring"
     if mass:
         title += "/mass"
     page = pywikibot.Page(site, title)
+    # Replace everything below the Hosts header, but not above it
     top, sep, end = page.text.partition("== Hosts ==")
     text = top + new_text
     if total is None:
@@ -415,6 +456,7 @@ def update_page(
 
 
 def collect_data(config: dict, db: str, exp_before: str = "") -> List[Provider]:
+    """Collect IP address data for various hosting/proxy providers."""
     providers = [Provider(**provider) for provider in config["providers"]]
     rir_data = RIRData()
     ignore = {ipaddress.ip_network(net) for net in config["ignore"]}
@@ -422,7 +464,7 @@ def collect_data(config: dict, db: str, exp_before: str = "") -> List[Provider]:
     for provider in providers:
         logger.info(f"Checking ranges from {provider.name}")
         if provider.asn:
-            ranges = rir_data.get_asn_ranges(provider.asn.copy())
+            ranges: Iterable[IPNetwork] = rir_data.get_asn_ranges(provider.asn.copy())
         elif provider.url:
             if "microsoft" in provider.url:
                 ranges = microsoft_data()
@@ -455,6 +497,7 @@ def collect_data(config: dict, db: str, exp_before: str = "") -> List[Provider]:
 
 
 def provider_dict(items: Iterable[Tuple[str, Any]]) -> Dict[str, Any]:
+    """Prepare provider data for JSON dump"""
     output = {}
     for key, value in items:
         if key == "ranges":
@@ -478,7 +521,8 @@ def main(db: str = "enwiki", days: int = 0) -> None:
 
     providers = collect_data(config, db, exp_before)
 
-    site_config = config["sites"].get(db, config["sites"]["enwiki"])
+    sites = cast(Dict[str, Dict[str, str]], config["sites"])
+    site_config = sites.get(db, sites["enwiki"])
     title = "ASNBlock"
     if db == "enwiki":
         pass
