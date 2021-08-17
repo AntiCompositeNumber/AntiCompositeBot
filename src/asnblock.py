@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-# Copyright 2020 AntiCompositeNumber
+# Copyright 2021 AntiCompositeNumber
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ from typing import (
     cast,
 )
 
-__version__ = "1.2"
+__version__ = "1.3"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
@@ -60,6 +60,7 @@ site = pywikibot.Site("en", "wikipedia")
 simulate = False
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
+whois_api = "https://whois-dev.toolforge.org/gateway.py"
 
 IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
 
@@ -237,14 +238,13 @@ def search_whois(net: IPNetwork, search_list: Iterable[str]) -> bool:
     Search terms must be lowercase.
     """
     logger.debug(f"Searching WHOIS for {search_list} in {net}")
-    url = "https://whois.toolforge.org/gateway.py"
     params = {
         "ip": str(net[0]),
         "lookup": "true",
         "format": "json",
     }
     try:
-        req = session.get(url, params=params)
+        req = session.get(whois_api, params=params)
         req.raise_for_status()
         for whois_net in req.json()["nets"]:
             for search in search_list:

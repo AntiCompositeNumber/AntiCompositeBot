@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-# Copyright 2020 AntiCompositeNumber
+# Copyright 2021 AntiCompositeNumber
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -161,7 +161,7 @@ def test_icloud_data(live_config):
 )
 @pytest.mark.parametrize("search", ["wikimedia", "foundation"])
 @pytest.mark.skipif(
-    session.head("https://whois.toolforge.org/gateway.py").status_code == 503,
+    session.head(asnblock.whois_api).status_code == 503,
     reason="Toolforge whois is down",
 )
 def test_search_whois(net, expected, search):
