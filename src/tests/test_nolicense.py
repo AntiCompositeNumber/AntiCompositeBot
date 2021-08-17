@@ -273,7 +273,10 @@ def test_warn_user_conflict():
     )
     user_talk = mock.Mock(title=mock.Mock(return_value="user_talk"), text="old_text()")
     user_talk.get.side_effect = [user_talk.text, "new_old_text()"]
-    user_talk.save.side_effect = [pywikibot.exceptions.EditConflict(user_talk), None]
+    user_talk.save.side_effect = [
+        pywikibot.exceptions.EditConflictError(user_talk),
+        None,
+    ]
     with mock.patch.dict("nolicense.config", test_config):
         nolicense.warn_user(
             user_talk=user_talk,

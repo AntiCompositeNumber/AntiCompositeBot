@@ -175,7 +175,7 @@ def save_page(
     elif mode == "append":
         try:
             text = page.get(force=True) + text
-        except pywikibot.exceptions.NoPage as err:
+        except pywikibot.exceptions.NoPageError as err:
             logger.exception(err)
             if new_ok:
                 text = text
@@ -184,7 +184,7 @@ def save_page(
     elif mode == "prepend":
         try:
             text = text + page.get(force=True)
-        except pywikibot.exceptions.NoPage as err:
+        except pywikibot.exceptions.NoPageError as err:
             logger.exception(err)
             if new_ok:
                 text = text
