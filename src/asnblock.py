@@ -29,7 +29,6 @@ import math
 import ipaddress
 import json
 import urllib.parse
-import sys
 import string
 import random
 import dataclasses
@@ -145,7 +144,7 @@ class RIRData:
                 ipv4.append(row)
             elif row.type == "ipv6":
                 ipv6.append(row)
-            elif row.type == "asn":
+            elif row.type == "asn":  # pragma: no branch
                 asn.append(row)
         self.ipv4 = ipv4
         self.ipv6 = ipv6
@@ -223,7 +222,7 @@ def icloud_data(provider: Provider) -> Iterator[IPNetwork]:
     """Get IP ranges used by iCloud Private Relay."""
     req = session.get(provider.url)
     req.raise_for_status()
-    reader = csv.reader(req.text.split("\n"))
+    reader = csv.reader(line for line in req.text.split("\n") if line)
     for prefix, *_ in reader:
         yield ipaddress.ip_network(prefix)
 
@@ -234,6 +233,8 @@ def search_whois(net: IPNetwork, search_list: Iterable[str]) -> bool:
     Only the description and name fields of the WHOIS result are compared
     to the search list. whois.toolforge.org does not support ranges,
     so results are obtained for the first address in the range.
+
+    Search terms must be lowercase.
     """
     logger.debug(f"Searching WHOIS for {search_list} in {net}")
     url = "https://whois.toolforge.org/gateway.py"
