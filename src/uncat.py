@@ -25,9 +25,7 @@ import logging.config
 
 __version__ = "0.1"
 
-logging.config.dictConfig(
-    utils.logger_config("uncat", level="VERBOSE", filename="stderr")
-)
+logging.config.dictConfig(utils.logger_config("uncat", level="VERBOSE"))
 logger = logging.getLogger("uncat")
 
 site = pywikibot.Site("commons", "commons")
@@ -79,8 +77,8 @@ def save_page(table):
 def main():
     logger.info("Starting up")
     data = run_query()
-    logger.info("Query complete, making table")
     table = make_table(data)
+    logger.info("Query complete, saving page")
     save_page(table)
 
 
