@@ -39,7 +39,6 @@ WHERE
     tl_title = "Uncategorized"
     AND tl_namespace = 10
     AND page_namespace = 6
-    AND COUNT(*) > 20
 GROUP BY page_id
 ORDER BY COUNT(*) DESC
 """
@@ -48,7 +47,8 @@ ORDER BY COUNT(*) DESC
         cur.execute(query)
         data = cur.fetchall()
     for file, count in data:
-        yield str(file, encoding="utf-8"), count
+        if count >= 20:
+            yield str(file, encoding="utf-8"), count
 
 
 def make_table(data):
