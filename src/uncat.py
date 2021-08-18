@@ -17,18 +17,16 @@
 # limitations under the License.
 
 
-import pywikibot  # type: ignore
 import toolforge  # type: ignore
 import utils
 import logging
 import logging.config
+import datetime
 
-__version__ = "0.1"
+__version__ = "0.2"
 
 logging.config.dictConfig(utils.logger_config("uncat", level="VERBOSE"))
 logger = logging.getLogger("uncat")
-
-site = pywikibot.Site("commons", "commons")
 
 
 def run_query():
@@ -53,25 +51,32 @@ ORDER BY COUNT(*) DESC
 
 
 def make_table(data):
-    out = """{| class="wikitable"
+    out = f"""
+<!DOCTYPE html>
+<html>
+<body>
+<p>Last updated {datetime.datetime.now().ctime()}</p>
+<table>
+<tr><th>File</th><th>Links</th></tr>
 !File!!Links
 |-
 """
-    out += "\n|-\n".join(f"|[[:File:{file}]]||{count}" for file, count in data)
-    out += "\n|}"
+    out += "\n".join(
+        f"<tr><td><a href='https://commons.wikimedia.org/wiki/File:{file}'>"
+        f"File:{file}</a></td><td>{count}</td></tr>"
+        for file, count in data
+    )
+    out += "</table></body></html>"
     return out
 
 
 def save_page(table):
-    utils.check_runpage(site, "Uncat")
-    page = pywikibot.Page(site, "User:AntiCompositeBot/Uncat")
-    utils.save_page(
-        text=table,
-        page=page,
-        summary=f"Updating report (Bot) (Uncat {__version__})",
-        mode="replace",
-        bot=False,
-    )
+    if utils.on_toolforge():
+        filename = "/data/project/anticompositebot/www/static/uncat.html"
+    else:
+        filename = "uncat.html"
+    with open(filename, "w") as f:
+        f.write(table)
 
 
 def main():
