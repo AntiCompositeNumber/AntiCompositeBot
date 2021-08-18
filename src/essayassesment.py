@@ -86,20 +86,21 @@ class Essay:
             )
             self.links = cast(Tuple[Tuple[int]], cur.fetchall())[0][0]
 
-    def get_count_authors(self) -> None:
-        page = self.page
-        query = """
-        SELECT COUNT(rev_actor)
-        FROM page
-        JOIN revision_userindex ON page_id = rev_page
-        WHERE page_title = %s and page_namespace = %s
-        """
-        conn = toolforge.connect("enwiki_p")
-        with conn.cursor() as cur:
-            cur.execute(
-                query, (page.title(underscore=True, with_ns=False), page.namespace().id)
-            )
-            self.links = cast(Tuple[Tuple[int]], cur.fetchall())[0][0]
+    # def get_count_authors(self) -> None:
+    #     page = self.page
+    #     query = """
+    #     SELECT COUNT(rev_actor)
+    #     FROM page
+    #     JOIN revision_userindex ON page_id = rev_page
+    #     WHERE page_title = %s and page_namespace = %s
+    #     """
+    #     conn = toolforge.connect("enwiki_p")
+    #     with conn.cursor() as cur:
+    #         cur.execute(
+    #             query,
+    #             (page.title(underscore=True, with_ns=False), page.namespace().id)
+    #         )
+    #         self.authors = cast(Tuple[Tuple[int]], cur.fetchall())[0][0]
 
     def calculate_score(
         self,
