@@ -30,4 +30,7 @@ spec:
               - name: LOG_SMTP
                 value: "True"
             imagePullPolicy: Always
+            resources:
+              limits:
+                memory: 4Gi
           restartPolicy: OnFailure
