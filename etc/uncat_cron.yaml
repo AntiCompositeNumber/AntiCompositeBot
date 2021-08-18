@@ -1,0 +1,33 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: anticompositebot.uncat
+  labels:
+    name: anticompositebot.uncat
+    toolforge: tool
+spec:
+  schedule: "30 7 */7 * *"
+  concurrencyPolicy: Replace
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            toolforge: tool
+        spec:
+          containers:
+          - name: uncat
+            image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+            command: [
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
+              "/data/project/anticompositebot/AntiCompositeBot/src/uncat.py"
+            ] 
+            workingDir: /data/project/anticompositebot
+            env:
+              - name: HOME
+                value: /data/project/anticompositebot
+              - name: LOG_SMTP
+                value: "True"
+            imagePullPolicy: Always
+          restartPolicy: OnFailure

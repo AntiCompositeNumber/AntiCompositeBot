@@ -77,6 +77,16 @@ def save_page(table):
 
 
 def main():
+    logger.info("Starting up")
     data = run_query()
+    logger.info("Query complete, making table")
     table = make_table(data)
     save_page(table)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as err:
+        logger.exception(err)
+        raise
