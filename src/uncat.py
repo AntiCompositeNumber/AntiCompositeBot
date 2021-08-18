@@ -55,8 +55,7 @@ ORDER BY COUNT(*) DESC
 
 
 def make_table(data):
-    out = """
-{|
+    out = """{| class="wikitable"
 !File!!Links
 |-
 """
