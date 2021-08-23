@@ -60,7 +60,7 @@ site = pywikibot.Site("en", "wikipedia")
 simulate = False
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
-whois_api = "https://whois-dev.toolforge.org/gateway.py"
+whois_api = "https://whois-dev.toolforge.org"
 
 IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
 
@@ -238,13 +238,9 @@ def search_whois(net: IPNetwork, search_list: Iterable[str]) -> bool:
     Search terms must be lowercase.
     """
     logger.debug(f"Searching WHOIS for {search_list} in {net}")
-    params = {
-        "ip": str(net[0]),
-        "lookup": "true",
-        "format": "json",
-    }
+    url = f"{whois_api}/w/{net[0]}/lookup/json"
     try:
-        req = session.get(whois_api, params=params)
+        req = session.get(url)
         req.raise_for_status()
         for whois_net in req.json()["nets"]:
             for search in search_list:
