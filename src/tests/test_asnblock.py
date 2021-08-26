@@ -107,8 +107,6 @@ def test_get_asn_ranges(ip, rir_data):
 
 def test_microsoft_data():
     for i, prefix in enumerate(asnblock.microsoft_data()):
-        # if i > 10:
-        #     break
         assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
             prefix, ipaddress.IPv6Network
         )
@@ -121,8 +119,6 @@ def test_amazon_data(live_config):
         if "amazon" in p.get("url", "")
     ][0]
     for i, prefix in enumerate(asnblock.amazon_data(provider)):
-        # if i > 10:
-        #     break
         assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
             prefix, ipaddress.IPv6Network
         )
@@ -130,8 +126,6 @@ def test_amazon_data(live_config):
 
 def test_google_data():
     for i, prefix in enumerate(asnblock.google_data()):
-        # if i > 10:
-        #     break
         assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
             prefix, ipaddress.IPv6Network
         )
@@ -144,8 +138,18 @@ def test_icloud_data(live_config):
         if "icloud" in p.get("url", "")
     ][0]
     for i, prefix in enumerate(asnblock.icloud_data(provider)):
-        # if i > 10:
-        #     break
+        assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
+            prefix, ipaddress.IPv6Network
+        )
+
+
+def test_oracle_data(live_config):
+    provider = [
+        asnblock.Provider(**p)
+        for p in live_config["providers"]
+        if "oracle" in p.get("url", "")
+    ][0]
+    for i, prefix in enumerate(asnblock.oracle_data(provider)):
         assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
             prefix, ipaddress.IPv6Network
         )

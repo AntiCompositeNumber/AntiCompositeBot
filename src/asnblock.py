@@ -49,7 +49,7 @@ from typing import (
     cast,
 )
 
-__version__ = "1.3"
+__version__ = "1.4"
 
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
@@ -226,6 +226,16 @@ def icloud_data(provider: Provider) -> Iterator[IPNetwork]:
     reader = csv.reader(line for line in req.text.split("\n") if line)
     for prefix, *_ in reader:
         yield ipaddress.ip_network(prefix)
+
+
+def oracle_data(provider: Provider) -> Iterator[IPNetwork]:
+    """Get IP ranges used by Oracle Cloud Infrastructure."""
+    req = session.get(provider.url)
+    req.raise_for_status()
+    data = req.json()
+    for region in data["regions"]:
+        for cidr in region["cidrs"]:
+            yield ipaddress.ip_network(cidr["cidr"])
 
 
 def search_whois(net: IPNetwork, search_list: Iterable[str]) -> bool:
