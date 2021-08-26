@@ -105,54 +105,35 @@ def test_get_asn_ranges(ip, rir_data):
     assert ip in rir_data.get_asn_ranges(asn_list)
 
 
-def test_microsoft_data():
-    for i, prefix in enumerate(asnblock.microsoft_data()):
+@pytest.mark.parametrize(
+    "func,search",
+    [
+        (asnblock.microsoft_data, ""),
+        (asnblock.amazon_data, "amazon"),
+        (asnblock.google_data, ""),
+        (asnblock.icloud_data, "icloud"),
+        (asnblock.oracle_data, "oracle"),
+    ],
+)
+def test_provider_api_data(func, search, live_config):
+    if search:
+        provider = [
+            asnblock.Provider(**p)
+            for p in live_config["providers"]
+            if search in p.get("url", "")
+        ][0]
+        data = func(provider)
+    else:
+        data = func()
+
+    once = False
+    for prefix in data:
         assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
             prefix, ipaddress.IPv6Network
         )
+        once = True
 
-
-def test_amazon_data(live_config):
-    provider = [
-        asnblock.Provider(**p)
-        for p in live_config["providers"]
-        if "amazon" in p.get("url", "")
-    ][0]
-    for i, prefix in enumerate(asnblock.amazon_data(provider)):
-        assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
-            prefix, ipaddress.IPv6Network
-        )
-
-
-def test_google_data():
-    for i, prefix in enumerate(asnblock.google_data()):
-        assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
-            prefix, ipaddress.IPv6Network
-        )
-
-
-def test_icloud_data(live_config):
-    provider = [
-        asnblock.Provider(**p)
-        for p in live_config["providers"]
-        if "icloud" in p.get("url", "")
-    ][0]
-    for i, prefix in enumerate(asnblock.icloud_data(provider)):
-        assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
-            prefix, ipaddress.IPv6Network
-        )
-
-
-def test_oracle_data(live_config):
-    provider = [
-        asnblock.Provider(**p)
-        for p in live_config["providers"]
-        if "oracle" in p.get("url", "")
-    ][0]
-    for i, prefix in enumerate(asnblock.oracle_data(provider)):
-        assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
-            prefix, ipaddress.IPv6Network
-        )
+    assert once is True
 
 
 @pytest.mark.parametrize(
