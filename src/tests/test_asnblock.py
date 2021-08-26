@@ -25,6 +25,7 @@ import unittest.mock as mock
 # import pywikibot
 import ipaddress
 import requests
+import urllib.parse
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
 import asnblock  # noqa: E402
@@ -232,9 +233,59 @@ def test_combine_ranges():
     assert list(asnblock.combine_ranges(ranges)) == expected
 
 
-@pytest.mark.skip("Not implemented")
-def test_make_section():
-    pass
+def test_make_section(live_config):
+    provider = asnblock.Provider(
+        name="chocolate",
+        asn=["AS9876"],
+        search=["banana", "coffee"],
+        ranges=[
+            ipaddress.IPv4Network("10.0.0.0/16"),
+            ipaddress.IPv4Network("10.1.0.0/32"),
+            ipaddress.IPv6Network("fd00::/19"),
+            ipaddress.IPv6Network("fd00:2000::/128"),
+        ],
+    )
+
+    site_config = live_config["sites"]["enwiki"]
+
+    mock_subst = mock.Mock(return_value="")
+    mock_template = mock.Mock()
+    mock_template.return_value.safe_substitute = mock_subst
+    with mock.patch("string.Template", mock_template):
+        section = asnblock.make_section(provider, site_config)
+
+    assert "chocolate" in section
+    assert "banana" in section
+    assert "coffee" in section
+    assert "AS9876" in section
+
+    ranges = [
+        "fd00:2000::",
+        "fd00::/19",
+        "10.1.0.0",
+        "10.0.0.0/16",
+    ]
+    expiries = set()
+    mock_subst.assert_called()
+    for name, args, kwargs in mock_subst.mock_calls:
+        assert not args
+        # string.Template is used in 2 places, to fill the block reason
+        # and to make the section itself.
+        if "blockname" in kwargs:
+            assert kwargs["blockname"] == "chocolate"
+            continue
+
+        assert kwargs["name"] == "chocolate"
+        assert kwargs["ip_range"].startswith(kwargs["addr"])
+        ranges.remove(kwargs["ip_range"])
+        qs = urllib.parse.parse_qs(kwargs["qs"])
+        assert qs["wpHardBlock"] == ["1"]
+        assert qs["wpReason"] == ["other"]
+        exp = int(qs["wpExpiry"][0].replace(" months", ""))
+        assert (exp >= 24) and (exp <= 36)
+        expiries.add(exp)
+
+    assert len(expiries) == 4
 
 
 @pytest.mark.skip("Not implemented")
