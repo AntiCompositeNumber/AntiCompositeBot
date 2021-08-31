@@ -16,7 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import pywikibot  # type: ignore
 import toolforge  # type: ignore
 import utils
@@ -51,6 +50,7 @@ from typing import (
 
 __version__ = "1.4"
 
+pywikibot.bot.init_handlers()
 logging.config.dictConfig(
     utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
 )
@@ -225,7 +225,11 @@ def icloud_data(provider: Provider) -> Iterator[IPNetwork]:
     req.raise_for_status()
     reader = csv.reader(line for line in req.text.split("\n") if line)
     for prefix, *_ in reader:
-        yield ipaddress.ip_network(prefix)
+        try:
+            yield ipaddress.ip_network(prefix)
+        except ValueError as e:
+            logger.warning("Invalid IP network in iCloud data", exc_info=e)
+            continue
 
 
 def oracle_data(provider: Provider) -> Iterator[IPNetwork]:
