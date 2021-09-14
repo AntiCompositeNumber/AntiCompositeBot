@@ -96,7 +96,7 @@ def logger_config(module: str, level: str = "INFO", filename: str = "") -> Dict:
     if os.environ.get("LOG_SMTP"):
         conf["handlers"]["smtp"] = {
             "class": "logging.handlers.SMTPHandler",
-            "mailhost": "mail.toolforge.org",
+            "mailhost": "mail.tools.wmflabs.org",
             "fromaddr": "tools.anticompositebot@toolforge.org",
             "toaddrs": ["tools.anticompositebot@toolforge.org"],
             "subject": f"AntiCompositeBot {module} error",
