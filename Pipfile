@@ -12,6 +12,7 @@ black = "*"
 mypy = "*"
 types-requests = "*"
 types-pymysql = "*"
+types-redis = "*"
 
 [packages]
 mwparserfromhell = "*"
@@ -20,6 +21,7 @@ pywikibot = {git = "https://phabricator.wikimedia.org/diffusion/PWBC/pywikibot.g
 requests-oauthlib = "*"
 bs4 = "*"
 toolforge = "*"
+redis = "*"
 
 [requires]
 python_version = "3.7"

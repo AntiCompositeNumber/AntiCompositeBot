@@ -163,6 +163,47 @@ def test_search_whois_exception():
         )
 
 
+@pytest.fixture
+def mock_cache():
+    cache = mock.MagicMock(spec=asnblock.Cache)
+    cache_dict = {}
+
+    def getitem(key):
+        val = cache_dict.get(key)
+        if val is not None:
+            return bytes(val, encoding="utf-8")
+        else:
+            return None
+
+    def setitem(key, value):
+        cache_dict[key] = value
+
+    cache.__getitem__.side_effect = getitem
+    cache.__setitem__.side_effect = setitem
+    return cache
+
+
+@pytest.mark.parametrize(
+    "net,expected",
+    [
+        (ipaddress.ip_network("198.35.26.0/23"), True),
+        (ipaddress.ip_network("2620:0:860::/46"), True),
+        (ipaddress.ip_network("8.8.8.8/32"), False),
+    ],
+)
+def test_cache_search_whois(net, expected, mock_cache):
+    search = ["Wikimedia"]
+    mock_search = mock.Mock(return_value=expected)
+    with mock.patch("asnblock.search_whois", mock_search):
+        res = asnblock.cache_search_whois(net, search, mock_cache)
+        assert res is expected
+        mock_search.assert_called_once_with(net, search)
+
+        cache_res = asnblock.cache_search_whois(net, search, mock_cache)
+        assert cache_res is expected
+        mock_search.assert_called_once()
+
+
 @pytest.mark.skip("Not implemented")
 def test_not_blocked():
     pass

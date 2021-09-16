@@ -35,6 +35,7 @@ import datetime
 import argparse
 from bs4 import BeautifulSoup  # type: ignore
 import pymysql
+import redis
 from typing import (
     NamedTuple,
     Union,
@@ -102,14 +103,56 @@ class Config:
     ignore: Set[IPNetwork]
     sites: Dict[str, Dict[str, str]]
     last_modified: datetime.datetime
+    redis_prefix: str
+    redis_host: str
+    redis_port: int
+    use_redis: bool
 
-    def __init__(self):
+    def __init__(self) -> None:
+        private_config = utils.load_config("ASNBlock")
         page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock/config.json")
         data = json.loads(page.text)
+        data.update(private_config)
+
+        self.redis_prefix = data.get("redis_prefix", "")
+        self.redis_host = data.get("redis_host", "")
+        self.redis_port = int(data.get("redis_port", "6379"))
+        self.use_redis = data.get("use_redis", False)
+
         self.last_modified = page.editTime()
         self.providers = [Provider(**provider) for provider in data["providers"]]
         self.ignore = {ipaddress.ip_network(net) for net in data["ignore"]}
         self.sites = data["sites"]
+
+
+class Cache:
+    """Stores and retrieves data stored in Redis"""
+
+    def __init__(self, config: Config) -> None:
+        self._redis: Optional[redis.Redis] = None
+        if config.redis_host and config.use_redis:
+            logger.debug("Setting up Redis cache")
+            self._redis = redis.Redis(host=config.redis_host, port=config.redis_port)
+            self._prefix = config.redis_prefix + str(
+                int(config.last_modified.timestamp())
+            )
+
+    def __getitem__(self, key: str) -> Optional[bytes]:
+        if not self._redis:
+            return None
+        return self._redis.get(self._prefix + key)
+
+    def __setitem__(self, key: str, value: str) -> None:
+        if self._redis:
+            # Set a random TTL between 5 and 9 days from now, that way everything
+            # doesn't expire on the same day. Then shorten that number by 12 hours so
+            # nothing expires during a run or between enwiki and global.
+            ttl = datetime.timedelta(days=7 + random.randint(-2, 2), hours=-12)
+            self._redis.set(self._prefix + key, value, ex=ttl)
+
+    def __delitem__(self, key: str) -> None:
+        if self._redis:
+            self._redis.delete(self._prefix + key)
 
 
 class RIRData:
@@ -274,6 +317,20 @@ def search_whois(net: IPNetwork, search_list: Iterable[str]) -> bool:
     except Exception as e:
         logger.exception(e)
     return False
+
+
+def cache_search_whois(
+    net: IPNetwork, search_list: Iterable[str], cache: Cache
+) -> bool:
+    """Wrapper around search_whois to check for a cached result first"""
+    cached = cache[str(net)]
+    if cached is not None:
+        logger.debug(f"Cached WHOIS for {net}: {bool(cached)}")
+        return bool(cached)
+
+    result = search_whois(net, search_list)
+    cache[str(net)] = "1" if result else ""
+    return result
 
 
 def not_blocked(
@@ -478,6 +535,7 @@ def collect_data(config: Config, db: str, exp_before: str = "") -> List[Provider
     """Collect IP address data for various hosting/proxy providers."""
     providers = config.providers
     rir_data = RIRData()
+    cache = Cache(config)
 
     for provider in providers:
         logger.info(f"Checking ranges from {provider.name}")
@@ -506,7 +564,10 @@ def collect_data(config: Config, db: str, exp_before: str = "") -> List[Provider
             if (
                 net not in config.ignore
                 and not_blocked(net, conn, exp_before)
-                and (not provider.search or search_whois(net, provider.search))
+                and (
+                    not provider.search
+                    or cache_search_whois(net, provider.search, cache)
+                )
             ):
                 provider.ranges.append(net)
         conn.close()
@@ -569,7 +630,7 @@ def main(db: str = "enwiki", days: int = 0) -> None:
             f,
         )
 
-    # logger.error("Finished")
+    logger.info("Finished")
 
 
 if __name__ == "__main__":

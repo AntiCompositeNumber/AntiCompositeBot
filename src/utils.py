@@ -22,6 +22,7 @@ import logging
 import logging.handlers
 import time
 import os
+import json
 import datetime
 import toolforge
 
@@ -247,3 +248,35 @@ def get_replag(db: str, cluster: str = "web") -> datetime.timedelta:
             return datetime.timedelta(seconds=float(cur.fetchall()[0][0]))
         else:
             raise ValueError
+
+
+def load_config(namespace: str):
+    """Loads configuration data stored in the parent directory.
+
+    Load order:
+    1. "*" in default_config.json
+    2. namespace in default_config.json
+    3. "*" in config.json
+    4. namespace in config.json
+
+    Configuation data loaded last takes precedence.
+    """
+    conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
+
+    config = {}
+    with open(os.path.join(conf_dir, "default_config.json")) as f:
+        default_config = json.load(f)
+
+    config.update(default_config.get("*", {}))
+    config.update(default_config.get(namespace, {}))
+
+    try:
+        with open(os.path.join(conf_dir, "config.json")) as f:
+            conf_file = json.load(f)
+    except FileNotFoundError:
+        pass
+    else:
+        config.update(conf_file.get("*", {}))
+        config.update(conf_file.get(namespace, {}))
+
+    return config
