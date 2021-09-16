@@ -50,11 +50,13 @@ def test_provider_empty():
 
 @pytest.fixture(scope="module")
 def live_config():
-    return asnblock.get_config()
+    return asnblock.Config()
 
 
 def test_get_config(live_config):
-    assert isinstance(live_config, dict)
+    assert live_config.providers
+    assert live_config.ignore
+    assert live_config.sites
 
 
 @pytest.fixture(scope="module")
@@ -118,11 +120,7 @@ def test_get_asn_ranges(ip, rir_data):
 )
 def test_provider_api_data(func, search, live_config):
     if search:
-        provider = [
-            asnblock.Provider(**p)
-            for p in live_config["providers"]
-            if search in p.get("url", "")
-        ][0]
+        provider = next(filter(lambda p: search in p.url, live_config.providers))
         data = func(provider)
     else:
         data = func()
@@ -246,7 +244,7 @@ def test_make_section(live_config):
         ],
     )
 
-    site_config = live_config["sites"]["enwiki"]
+    site_config = live_config.sites["enwiki"]
 
     mock_subst = mock.Mock(return_value="")
     mock_template = mock.Mock()

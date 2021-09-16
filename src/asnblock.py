@@ -45,10 +45,10 @@ from typing import (
     Optional,
     Any,
     Tuple,
-    cast,
+    Set,
 )
 
-__version__ = "1.4"
+__version__ = "1.5"
 
 pywikibot.bot.init_handlers()
 logging.config.dictConfig(
@@ -96,12 +96,20 @@ class Provider:
             self.search = [entry.lower() for entry in self.search]
 
 
-def get_config() -> Dict[
-    str, Union[Dict[str, Dict[str, str]], List[Dict[str, Union[str, List[str]]]]]
-]:
-    page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock/config.json")
-    data = json.loads(page.text)
-    return data
+@dataclasses.dataclass
+class Config:
+    providers: List[Provider]
+    ignore: Set[IPNetwork]
+    sites: Dict[str, Dict[str, str]]
+    last_modified: datetime.datetime
+
+    def __init__(self):
+        page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock/config.json")
+        data = json.loads(page.text)
+        self.last_modified = page.editTime()
+        self.providers = [Provider(**provider) for provider in data["providers"]]
+        self.ignore = {ipaddress.ip_network(net) for net in data["ignore"]}
+        self.sites = data["sites"]
 
 
 class RIRData:
@@ -466,11 +474,10 @@ def update_page(
             logger.error("Page not saved, continuing", exc_info=e)
 
 
-def collect_data(config: dict, db: str, exp_before: str = "") -> List[Provider]:
+def collect_data(config: Config, db: str, exp_before: str = "") -> List[Provider]:
     """Collect IP address data for various hosting/proxy providers."""
-    providers = [Provider(**provider) for provider in config["providers"]]
+    providers = config.providers
     rir_data = RIRData()
-    ignore = {ipaddress.ip_network(net) for net in config["ignore"]}
 
     for provider in providers:
         logger.info(f"Checking ranges from {provider.name}")
@@ -497,7 +504,7 @@ def collect_data(config: dict, db: str, exp_before: str = "") -> List[Provider]:
         conn = toolforge.connect(db, cluster="analytics")
         for net in ranges:
             if (
-                net not in ignore
+                net not in config.ignore
                 and not_blocked(net, conn, exp_before)
                 and (not provider.search or search_whois(net, provider.search))
             ):
@@ -521,7 +528,7 @@ def provider_dict(items: Iterable[Tuple[str, Any]]) -> Dict[str, Any]:
 def main(db: str = "enwiki", days: int = 0) -> None:
     utils.check_runpage(site, "ASNBlock")
     logger.info("Loading configuration data")
-    config = get_config()
+    config = Config()
 
     if days:
         exp_before = (
@@ -532,7 +539,7 @@ def main(db: str = "enwiki", days: int = 0) -> None:
 
     providers = collect_data(config, db, exp_before)
 
-    sites = cast(Dict[str, Dict[str, str]], config["sites"])
+    sites = config.sites
     site_config = sites.get(db, sites["enwiki"])
     title = "ASNBlock"
     if db == "enwiki":
