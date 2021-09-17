@@ -204,6 +204,40 @@ def test_cache_search_whois(net, expected, mock_cache):
         mock_search.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "net,expected",
+    [
+        (
+            ipaddress.ip_network("204.157.102.0/24"),
+            dict(start="CC9D6600", prefix="CC9D%", end="CC9D66FF"),
+        ),
+        (
+            ipaddress.ip_network("191.156.0.0/16"),
+            dict(start="BF9C0000", prefix="BF9C%", end="BF9CFFFF"),
+        ),
+        (
+            ipaddress.ip_network("2A0D:A300:0:0:0:0:0:0/29"),
+            dict(
+                start="v6-2A0DA300000000000000000000000000",
+                prefix="v6-2A0D%",
+                end="v6-2A0DA307FFFFFFFFFFFFFFFFFFFFFFFF",
+            ),
+        ),
+        (
+            ipaddress.ip_network("2A01:B747:0:0:0:0:0:0/32"),
+            dict(
+                start="v6-2A01B747000000000000000000000000",
+                prefix="v6-2A01%",
+                end="v6-2A01B747FFFFFFFFFFFFFFFFFFFFFFFF",
+            ),
+        ),
+    ],
+)
+def test_db_network(net, expected):
+    result = asnblock.db_network(net)
+    assert expected == result
+
+
 @pytest.mark.skip("Not implemented")
 def test_not_blocked():
     pass

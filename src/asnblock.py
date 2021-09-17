@@ -333,18 +333,11 @@ def cache_search_whois(
     return result
 
 
-def not_blocked(
-    net: IPNetwork, conn: pymysql.connections.Connection, exp_before: str = ""
-) -> bool:
-    """Query the database to determine if a range is currently blocked.
+def db_network(net: IPNetwork) -> Dict[str, str]:
+    """Converts an IPNetwork to the format MediaWiki uses to store rangeblocks.
 
-    Blocked ranges return False, unblocked ranges return True.
-    Only sitewide blocks are considered, partial blocks are ignored.
-
-    If exp_before is provided, blocks expiring before that date will be
-    ignored (returns True).
+    Returns a dict with keys "start", "end", and "prefix"
     """
-    logger.debug(f"Checking for blocks on {net}")
     # MediaWiki does some crazy stuff here. Re-implementation of parts of
     # MediaWiki\ApiQueryBlocks, Wikimedia\IPUtils, Wikimedia\base_convert
     if net.version == 4:
@@ -364,8 +357,24 @@ def not_blocked(
             format(format(net6, "0>128b")[: net.prefixlen], "1<128"), base=2
         )
         prefix = start[:7] + "%"
+    return dict(start=start, end=end, prefix=prefix)
 
-    db_args = dict(start=start, end=end, prefix=prefix)
+
+def not_blocked(
+    net: IPNetwork, conn: pymysql.connections.Connection, exp_before: str = ""
+) -> bool:
+    """Query the database to determine if a range is currently blocked.
+
+    Blocked ranges return False, unblocked ranges return True.
+    Only sitewide blocks are considered, partial blocks are ignored.
+
+    If exp_before is provided, blocks expiring before that date will be
+    ignored (returns True).
+    """
+    logger.debug(f"Checking for blocks on {net}")
+
+    db_args = db_network(net)
+
     if exp_before:
         db_args["exp"] = exp_before
 
