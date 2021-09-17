@@ -29,8 +29,7 @@ import urllib.parse
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
 import asnblock  # noqa: E402
-
-# import utils  # noqa: E402
+import utils  # noqa: E402
 
 session = asnblock.session
 
@@ -149,7 +148,9 @@ def test_provider_api_data(func, search, live_config):
     reason="Toolforge whois is down",
 )
 def test_search_whois(net, expected, search):
-    assert asnblock.search_whois(net, [search]) is expected
+    throttle = mock.Mock(spec=utils.Throttle)
+    assert asnblock.search_whois(net, [search], throttle=throttle) is expected
+    throttle.throttle.assert_called_once()
 
 
 def test_search_whois_exception():
@@ -194,14 +195,22 @@ def mock_cache():
 def test_cache_search_whois(net, expected, mock_cache):
     search = ["Wikimedia"]
     mock_search = mock.Mock(return_value=expected)
+    mock_throttle = mock.Mock(spec=utils.Throttle)
     with mock.patch("asnblock.search_whois", mock_search):
-        res = asnblock.cache_search_whois(net, search, mock_cache)
+        res = asnblock.cache_search_whois(
+            net, search, mock_cache, throttle=mock_throttle
+        )
+        # First request, should not be cached, should call search_whois
         assert res is expected
-        mock_search.assert_called_once_with(net, search)
+        mock_search.assert_called_once_with(net, search, throttle=mock_throttle)
 
-        cache_res = asnblock.cache_search_whois(net, search, mock_cache)
+        # Second request, should be cached, should not call search_whois
+        cache_res = asnblock.cache_search_whois(
+            net, search, mock_cache, throttle=mock_throttle
+        )
         assert cache_res is expected
         mock_search.assert_called_once()
+        mock_throttle.throttle.assert_not_called()
 
 
 @pytest.mark.parametrize(

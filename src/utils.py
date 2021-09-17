@@ -227,6 +227,8 @@ def retry(function: Callable, retries: int, *args, **kwargs) -> Any:
 
 
 class Throttle:
+    """Enforces a time of `delay` seconds between calls to throttle()"""
+
     def __init__(self, delay: int):
         self.delay = delay
         self.last_edit = 0

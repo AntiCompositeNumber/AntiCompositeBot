@@ -29,6 +29,7 @@ import ipaddress
 import json
 import urllib.parse
 import string
+import time
 import random
 import dataclasses
 import datetime
@@ -49,7 +50,7 @@ from typing import (
     Set,
 )
 
-__version__ = "1.5"
+__version__ = "1.5.1"
 
 pywikibot.bot.init_handlers()
 logging.config.dictConfig(
@@ -293,7 +294,11 @@ def oracle_data(provider: Provider) -> Iterator[IPNetwork]:
             yield ipaddress.ip_network(cidr["cidr"])
 
 
-def search_whois(net: IPNetwork, search_list: Iterable[str]) -> bool:
+def search_whois(
+    net: IPNetwork,
+    search_list: Iterable[str],
+    throttle: Optional[utils.Throttle] = None,
+) -> bool:
     """Searches for specific strings in the WHOIS data for a network.
 
     Only the description and name fields of the WHOIS result are compared
@@ -303,6 +308,8 @@ def search_whois(net: IPNetwork, search_list: Iterable[str]) -> bool:
     Search terms must be lowercase.
     """
     logger.debug(f"Searching WHOIS for {search_list} in {net}")
+    if throttle:
+        throttle.throttle()
     url = f"{whois_api}/w/{net[0]}/lookup/json"
     try:
         req = session.get(url)
@@ -320,7 +327,10 @@ def search_whois(net: IPNetwork, search_list: Iterable[str]) -> bool:
 
 
 def cache_search_whois(
-    net: IPNetwork, search_list: Iterable[str], cache: Cache
+    net: IPNetwork,
+    search_list: Iterable[str],
+    cache: Cache,
+    throttle: Optional[utils.Throttle] = None,
 ) -> bool:
     """Wrapper around search_whois to check for a cached result first"""
     cached = cache[str(net)]
@@ -328,7 +338,7 @@ def cache_search_whois(
         logger.debug(f"Cached WHOIS for {net}: {bool(cached)}")
         return bool(cached)
 
-    result = search_whois(net, search_list)
+    result = search_whois(net, search_list, throttle=throttle)
     cache[str(net)] = "1" if result else ""
     return result
 
@@ -545,6 +555,7 @@ def collect_data(config: Config, db: str, exp_before: str = "") -> List[Provider
     providers = config.providers
     rir_data = RIRData()
     cache = Cache(config)
+    throttle = utils.Throttle(1)
 
     for provider in providers:
         logger.info(f"Checking ranges from {provider.name}")
@@ -575,7 +586,9 @@ def collect_data(config: Config, db: str, exp_before: str = "") -> List[Provider
                 and not_blocked(net, conn, exp_before)
                 and (
                     not provider.search
-                    or cache_search_whois(net, provider.search, cache)
+                    or cache_search_whois(
+                        net, provider.search, cache, throttle=throttle
+                    )
                 )
             ):
                 provider.ranges.append(net)
@@ -597,6 +610,7 @@ def provider_dict(items: Iterable[Tuple[str, Any]]) -> Dict[str, Any]:
 
 def main(db: str = "enwiki", days: int = 0) -> None:
     utils.check_runpage(site, "ASNBlock")
+    start_time = time.monotonic()
     logger.info("Loading configuration data")
     config = Config()
 
@@ -620,7 +634,9 @@ def main(db: str = "enwiki", days: int = 0) -> None:
         title += "/" + db
 
     total_ranges = sum(len(provider.ranges) for provider in providers)
-    text = mass_text = "== Hosts ==\n"
+    total_time = str(datetime.timedelta(seconds=int(time.monotonic() - start_time)))
+    update_time = datetime.datetime.now().isoformat(sep=" ", timespec="seconds")
+    text = mass_text = f"== Hosts ==\nLast updated {update_time} in {total_time}.\n"
 
     text += "".join(make_section(provider, site_config) for provider in providers)
     update_page(text, title=title, total=total_ranges, exp=bool(days))
