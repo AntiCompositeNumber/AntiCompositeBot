@@ -17,6 +17,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Adjust categorization for Wiki Loves Africa 2020 files
+
+This code was written for a one-off task in 2020.[1] It is no longer actively
+maintained.
+
+.. [1] https://commons.wikimedia.org/wiki/Commons:Bots/Requests/AntiCompositeBot_3
+
+:status: archived
+:author: AntiCompositeNumber
+"""
 
 import pywikibot  # type: ignore
 import toolforge

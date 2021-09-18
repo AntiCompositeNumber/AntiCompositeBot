@@ -17,6 +17,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Add {{Location estimaged}} to files listed in a PetScan query.
+
+This code was written for a one-off task in 2019.[1]_ It should now be considered
+archived and is not actively maintained.
+
+.. [1] https://commons.wikimedia.org/wiki/Commons:Bots/Requests/AntiCompositeBot_2
+
+:status: archived
+:author: AntiCompositeNumber
+:version: 1.0.1
+"""
 import time
 import platform
 import json
