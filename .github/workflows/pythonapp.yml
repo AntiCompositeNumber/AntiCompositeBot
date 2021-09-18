@@ -18,6 +18,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
+    - name: match Pipfile and requirements.txt
+      run: |
+        pipenv_to_requirements -f
+        git diff --exit-code
     - name: Load pywikibot config
       env:
           USER_CONFIG_PY: ${{ secrets.user_config_py }}
@@ -28,11 +32,14 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Enforce Black code style
+      run: |
+        black src --check --diff
     - name: Test with pytest
       run: |
         coverage run -m pytest
     - name: Coveralls
-      env:        
+      env:
         COVERALLS_REPO_TOKEN: ${{ secrets.coveralls_repo_key }}
       continue-on-error: true
       run: |
