@@ -9,7 +9,7 @@ metadata:
 spec:
   schedule: "30 2 * * *"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 2
   jobTemplate:
     spec:
       backoffLimit: 0
@@ -22,13 +22,13 @@ spec:
           - name: asnblock
             image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
             command: [
-              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
               "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
             ]
             args: ["enwiki"]
             workingDir: /data/project/anticompositebot
-            env: 
-            - name: HOME 
+            env:
+            - name: HOME
               value: /data/project/anticompositebot
             - name: LOG_SMTP
               value: "True"
@@ -36,13 +36,13 @@ spec:
           - name: asnblock-exp
             image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
             command: [
-              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
               "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
             ]
             args: ["enwiki", "--days", "30"]
             workingDir: /data/project/anticompositebot
-            env: 
-            - name: HOME 
+            env:
+            - name: HOME
               value: /data/project/anticompositebot
             - name: LOG_SMTP
               value: "True"
@@ -60,7 +60,7 @@ metadata:
 spec:
   schedule: "13 8 * * *"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 2
   jobTemplate:
     spec:
       backoffLimit: 0
@@ -73,13 +73,13 @@ spec:
           - name: asnblock-global
             image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
             command: [
-              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
               "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
             ]
             args: ["centralauth"]
             workingDir: /data/project/anticompositebot
-            env: 
-            - name: HOME 
+            env:
+            - name: HOME
               value: /data/project/anticompositebot
             - name: LOG_SMTP
               value: "True"
