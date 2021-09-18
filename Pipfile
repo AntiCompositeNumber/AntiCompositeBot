@@ -17,11 +17,12 @@ types-redis = "*"
 [packages]
 mwparserfromhell = "*"
 requests = "*"
-pywikibot = {git = "https://phabricator.wikimedia.org/diffusion/PWBC/pywikibot.git"}
 requests-oauthlib = "*"
 bs4 = "*"
 toolforge = "*"
 redis = "*"
+pywikibot = {editable = true, git = "https://gerrit.wikimedia.org/r/pywikibot/core"}
+wheel = "*"
 
 [requires]
 python_version = "3.7"
