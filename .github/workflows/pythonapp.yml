@@ -35,6 +35,9 @@ jobs:
     - name: Enforce Black code style
       run: |
         black src --check --diff
+    - name: Static type check with mypy
+      run :
+        mypy src
     - name: Test with pytest
       run: |
         coverage run -m pytest

@@ -274,7 +274,7 @@ def broken_anchors(title: str, revision: str = "") -> Dict[str, Set[str]]:
     return broken_harvs
 
 
-def save_page(page: BasePage, wikitext: str, summary: str) -> None:
+def save_page(page: BasePage, wikitext: str, summary: str) -> bool:
     """Saves wikitext to the on-wiki page, unless simulate is set"""
     if not wikitext:
         raise ValueError

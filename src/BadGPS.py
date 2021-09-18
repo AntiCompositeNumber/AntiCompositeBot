@@ -21,8 +21,8 @@ import time
 import platform
 import json
 import requests
-import mwparserfromhell
-import pywikibot
+import mwparserfromhell  # type: ignore
+import pywikibot  # type: ignore
 
 version = "BadGPS 1.0.1"
 site = pywikibot.Site("commons", "commons")

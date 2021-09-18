@@ -18,7 +18,7 @@
 # limitations under the License.
 
 
-import pywikibot
+import pywikibot  # type: ignore
 import toolforge
 import re
 import sys
