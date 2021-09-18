@@ -40,7 +40,7 @@ session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot
 simulate = False
 
 logging.config.dictConfig(
-    utils.logger_config("essayassesment", level="VERBOSE", filename="essayimpact.lg")
+    utils.logger_config("essayassesment", level="VERBOSE", filename="essayimpact.log")
 )
 logger = logging.getLogger("essayassesment")
 
@@ -293,7 +293,7 @@ def main() -> None:
         essay.calculate_score(weights)
         data.append(essay)
 
-    data.sort(key=lambda e: e.score, reverse=True)
+    data.sort(key=lambda e: cast(float, e.score), reverse=True)
     table = construct_table(data, intro)
     datapage = construct_data_page(data)
 
