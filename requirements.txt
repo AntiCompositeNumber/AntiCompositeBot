@@ -10,7 +10,6 @@
 # `Pipfile.lock` and then regenerate `requirements*.txt`.
 ################################################################################
 
--e git+https://gerrit.wikimedia.org/r/pywikibot/core@0e217b1143813f09064775c36037898097bf04d3#egg=pywikibot
 beautifulsoup4==4.10.0 ; python_version >= '3.1'
 bs4==0.0.1
 certifi==2021.5.30
@@ -19,6 +18,7 @@ idna==3.2 ; python_version >= '3.0'
 mwparserfromhell==0.6.3
 oauthlib==3.1.1 ; python_version >= '3.6'
 pymysql==1.0.2 ; python_version >= '3.6'
+pywikibot==6.6.0
 redis==3.5.3
 requests-oauthlib==1.3.0
 requests==2.26.0

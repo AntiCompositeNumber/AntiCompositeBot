@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f3bc1464fa8e28676d3e36dc3823cb624ca43cb7f03c69296c85cbf78cc46055"
+            "sha256": "da4e1b0e1d46ead3aa821850036cd169d6bf09eb63dd38e334f66af47b34011a"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -100,9 +100,11 @@
             "version": "==1.0.2"
         },
         "pywikibot": {
-            "editable": true,
-            "git": "https://gerrit.wikimedia.org/r/pywikibot/core",
-            "ref": "0e217b1143813f09064775c36037898097bf04d3"
+            "hashes": [
+                "sha256:a31ed747c0070da4abcde2074af2fba6fd3b59920c6e89208b3659901e36a694"
+            ],
+            "index": "pypi",
+            "version": "==6.6.0"
         },
         "redis": {
             "hashes": [

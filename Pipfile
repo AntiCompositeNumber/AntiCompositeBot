@@ -21,7 +21,7 @@ requests-oauthlib = "*"
 bs4 = "*"
 toolforge = "*"
 redis = "*"
-pywikibot = {editable = true, git = "https://gerrit.wikimedia.org/r/pywikibot/core"}
+pywikibot = "*"
 wheel = "*"
 
 [requires]
