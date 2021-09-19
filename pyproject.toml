@@ -35,3 +35,11 @@ filterwarnings = [
 ]
 log_level = "info"
 addopts = "-v"
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = "*/tests/*"
+
+[tool.mypy]
+exclude = "/tests/"
