@@ -14,14 +14,12 @@ jobs:
       with:
         python-version: 3.7
     - name: Install dependencies
+      env:
+        MICROPIPENV_NO_LOCKFILE_PRINT: 1
+        MICROPIPENV_NO_LOCKFILE_WRITE: 1
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-    - name: match Pipfile and requirements.txt
-      run: |
-        pipenv_to_requirements -f
-        git diff --exit-code
+        python -m pip install --upgrade pip micropipenv[toml]
+        micropipenv install --dev
     - name: Load pywikibot config
       env:
           USER_CONFIG_PY: ${{ secrets.user_config_py }}

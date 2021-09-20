@@ -179,6 +179,20 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "micropipenv"
+version = "1.1.0"
+description = "A simple wrapper around pip to support requirements.txt, Pipenv and Poetry files for containerized applications"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+toml = {version = "*", optional = true, markers = "extra == \"toml\""}
+
+[package.extras]
+toml = ["toml"]
+
+[[package]]
 name = "mwparserfromhell"
 version = "0.6.3"
 description = "MWParserFromHell is a parser for MediaWiki wikicode."
@@ -415,7 +429,7 @@ python-versions = ">=3.6"
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
@@ -507,7 +521,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.7"
-content-hash = "ce887fe4a5a91cf598755f9a0a5e6cdf2902843234d71332bf52ecceeaea5215"
+content-hash = "50e65fe65b0d742e3b9e525a1ca4a42acea0a3720d66a2fd91a09af4db7f4c86"
 
 [metadata.files]
 atomicwrites = [
@@ -617,6 +631,10 @@ importlib-metadata = [
 iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
+]
+micropipenv = [
+    {file = "micropipenv-1.1.0-py3-none-any.whl", hash = "sha256:5bc62353f51ed9fa60c99541a6913e653574c760cb398f6a3fc4036b70ca18b4"},
+    {file = "micropipenv-1.1.0.tar.gz", hash = "sha256:281484132046abb22515f53e22935e92aff6c988a21c12e4b02f5352d9e35e56"},
 ]
 mwparserfromhell = [
     {file = "mwparserfromhell-0.6.3-cp35-cp35m-macosx_10_14_x86_64.whl", hash = "sha256:264b5006cbd5b3fd9c0fbcec1aa804f0f6dc0e12937224a647fe555b20b85807"},
