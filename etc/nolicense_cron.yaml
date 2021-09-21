@@ -19,15 +19,15 @@ spec:
         spec:
           containers:
           - name: nolicense-cron
-            image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+            image: docker-registry.tools.wmflabs.org/toolforge-python39-sssd-base:latest
             command: [
-              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
               "/data/project/anticompositebot/AntiCompositeBot/src/nolicense.py"
             ]
             args: []
             workingDir: /data/project/anticompositebot
-            env: 
-            - name: HOME 
+            env:
+            - name: HOME
               value: /data/project/anticompositebot
             - name: LOG_SMTP
               value: "True"

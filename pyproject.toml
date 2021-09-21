@@ -7,7 +7,7 @@ authors = ["AntiCompositeNumber"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python = "~3.7"
+python = "~3.9"
 pywikibot = "^6.6.0"
 mwparserfromhell = "^0.6.3"
 requests = "^2.26.0"
