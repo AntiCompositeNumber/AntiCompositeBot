@@ -14,7 +14,7 @@ AntiCompositeBot
 
 Collection of various bot tasks running on `Wikimedia Commons`_ and the `English Wikipedia`_ maintained by AntiCompositeNumber. All scripts run on `Wikimedia Toolforge`_ from the `anticompositebot tool`_.
 
-This documentation was last updated on 18 September 2021.
+This documentation was last updated on 20 September 2021.
 
 .. _Wikimedia Commons: https://commons.wikimedia.org/wiki/User:AntiCompositeBot
 .. _English Wikipedia:  https://en.wikipedia.org/wiki/User:AntiCompositeBot
