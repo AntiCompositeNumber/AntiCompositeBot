@@ -18,7 +18,7 @@ jobs:
         MICROPIPENV_NO_LOCKFILE_PRINT: 1
         MICROPIPENV_NO_LOCKFILE_WRITE: 1
       run: |
-        python -m pip install --upgrade pip micropipenv[toml]
+        python -m pip install --upgrade pip wheel micropipenv[toml]
         micropipenv install --dev
     - name: Load pywikibot config
       env:
