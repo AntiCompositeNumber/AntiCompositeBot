@@ -7,7 +7,7 @@ metadata:
     # The toolforge=tool label will cause $HOME and other paths to be mounted from Toolforge
     toolforge: tool
 spec:
-  schedule: "11 2,10,18 * * *" 
+  schedule: "11 2,10,18 * * *"
   jobTemplate:
     spec:
       backoffLimit: 2
@@ -18,15 +18,15 @@ spec:
         spec:
           containers:
           - name: should-be-svg
-            image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+            image: docker-registry.tools.wmflabs.org/toolforge-python39-sssd-base:latest
             command: [
-              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3", 
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
               "/data/project/anticompositebot/AntiCompositeBot/src/ShouldBeSVG.py"
             ]
             args: ["auto"]
             workingDir: /data/project/anticompositebot
-            env: 
-            - name: HOME 
+            env:
+            - name: HOME
               value: /data/project/anticompositebot
             - name: LOG_SMTP
               value: "True"
