@@ -1,8 +1,9 @@
 [tool.poetry]
 name = "anticompositebot"
-version = "0.1.0"
-description = ""
-authors = ["Your Name <you@example.com>"]
+# This version number doesn't do anything. Don't bother changing it.
+version = "0"
+description = "Collection of Wikimedia Commons and English Wikipedia bot tasks"
+authors = ["AntiCompositeNumber"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
@@ -11,12 +12,10 @@ pywikibot = "^6.6.0"
 mwparserfromhell = "^0.6.3"
 requests = "^2.26.0"
 requests-oauthlib = "^1.3.0"
-bs4 = "^0.0.1"
+bs4 = "*"
 toolforge = "^5.0.0"
 redis = "^3.5.3"
 micropipenv = {extras = ["toml"], version = "^1.1.0"}
-pip = "^21.2.4"
-wheel = "^0.37.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
