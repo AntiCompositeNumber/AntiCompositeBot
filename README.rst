@@ -6,8 +6,8 @@ AntiCompositeBot
 .. image:: https://coveralls.io/repos/github/AntiCompositeNumber/AntiCompositeBot/badge.svg?branch=master
     :alt: Coverage Status
     :target: https://coveralls.io/github/AntiCompositeNumber/AntiCompositeBot?branch=master
-.. image:: https://img.shields.io/badge/python-v3.9-blue
-    :alt: Python version 3.9
+.. image:: https://img.shields.io/badge/python-v3.7-blue
+    :alt: Python version 3.7
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :alt: Code style: black
     :target: https://github.com/psf/black
@@ -87,7 +87,7 @@ Contributing
 ============
 Issues and pull requests for existing tasks are welcome! If you're interested in becoming a co-maintainer, please contact AntiCompositeNumber on Wikipedia or GitHub.
 
-This project is written for Python 3.9 and ``pywikibot``. Most tasks have a ``__version__`` and use a scheme loosely based on `SemVer`_. Please update this when making changes. A patch-level change is anything that would not noticably affect the output of the task. A minor-level change includes any significant changes to how a task runs or the output of a task. Some tasks do not use patch-level versions, in that case minor changes do not need to update the version number.
+This project is written for Python 3.7 and ``pywikibot``. Most tasks have a ``__version__`` and use a scheme loosely based on `SemVer`_. Please update this when making changes. A patch-level change is anything that would not noticably affect the output of the task. A minor-level change includes any significant changes to how a task runs or the output of a task. Some tasks do not use patch-level versions, in that case minor changes do not need to update the version number.
 
 Dependencies for this project are managed usin Poetry_. You can quickly install all runtime and development dependencies using :code:`poetry install --no-root`.
 
@@ -130,6 +130,6 @@ Updating dependencies
         $ cd AntiCompositeBot
         $ ./upgrade.sh
 
-    ``pip`` (or ``micropipenv`` or ``upgrade.sh``)must always be run from within ``webservice shell``. The Toolforge bastion runs Python 3.5, but the Kubernetes containers used to run the bot use Python 3.9. Virtual environments created in Python 3.5 won't run correctly in Python 3.9.
+    ``pip`` (or ``micropipenv`` or ``upgrade.sh``)must always be run from within ``webservice shell``. The Toolforge bastion runs Python 3.5, but the Kubernetes containers used to run the bot use Python 3.7. Virtual environments created in Python 3.5 won't run correctly in Python 3.7.
 
 .. _`µPipenv`: https://github.com/thoth-station/micropipenv
