@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: harvcheck
-          image: docker-registry.tools.wmflabs.org/toolforge-python37-sssd-base:latest
+          image: docker-registry.tools.wmflabs.org/toolforge-python39-sssd-base:latest
           command: [ "/data/project/anticompositebot/AntiCompositeBot/harvcheck_start.sh", "continuous"]
           workingDir: /data/project/anticompositebot
           env:
