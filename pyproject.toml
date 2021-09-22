@@ -8,24 +8,24 @@ license = "Apache 2.0"
 
 [tool.poetry.dependencies]
 python = "~3.9"
-pywikibot = "^6.6.0"
-mwparserfromhell = "^0.6.3"
-requests = "^2.26.0"
-requests-oauthlib = "^1.3.0"
+pywikibot = "*"
+mwparserfromhell = "*"
+requests = "*"
+requests-oauthlib = "*"
 bs4 = "*"
-toolforge = "^5.0.0"
-redis = "^3.5.3"
-micropipenv = {extras = ["toml"], version = "^1.1.0"}
+toolforge = "*"
+redis = "*"
+micropipenv = {extras = ["toml"], version = "*"}
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
-coveralls = "^3.2.0"
-black = "^21.9b0"
-mypy = "^0.910"
-types-requests = "^2.25.6"
-types-PyMySQL = "^1.0.2"
-types-redis = "^3.5.8"
-flake8 = "^3.9.2"
+pytest = "*"
+coveralls = "*"
+black = "*"
+mypy = "*"
+types-requests = "*"
+types-PyMySQL = "*"
+types-redis = "*"
+flake8 = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
