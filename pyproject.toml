@@ -16,7 +16,7 @@ bs4 = "*"
 toolforge = "*"
 redis = "*"
 micropipenv = {extras = ["toml"], version = "*"}
-acnutils = ">= 0.2.0"
+acnutils = ">= 0.3.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"

@@ -29,8 +29,6 @@ import os
 import toolforge
 import argparse
 import time
-import logging
-import logging.config
 import re
 import acnutils as utils
 
@@ -42,15 +40,13 @@ from typing import Dict, List, Set, Any, Optional, Tuple
 __version__ = "0.7"
 
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
-logging.config.dictConfig(
-    utils.logger_config(
-        "harvcheck" if __name__ == "__main__" else __name__,
-        level="VERBOSE",
-        filename="harvcheck.log",
-    )
-)
 
-logger = logging.getLogger("harvcheck" if __name__ == "__main__" else __name__)
+
+logger = utils.getInitLogger(
+    "harvcheck" if __name__ == "__main__" else __name__,
+    level="VERBOSE",
+    filename="harvcheck.log",
+)
 
 config = utils.load_config("harvcheck", __file__)
 simulate = config.get("simulate", True)

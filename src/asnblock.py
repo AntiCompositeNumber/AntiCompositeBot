@@ -19,8 +19,6 @@
 import pywikibot  # type: ignore
 import toolforge  # type: ignore
 import acnutils as utils
-import logging
-import logging.config
 import requests
 import re
 import csv
@@ -50,13 +48,9 @@ from typing import (
     Set,
 )
 
-__version__ = "1.6.0"
+__version__ = "1.6.1"
 
-pywikibot.bot.init_handlers()
-logging.config.dictConfig(
-    utils.logger_config("ASNBlock", level="VERBOSE", filename="stderr")
-)
-logger = logging.getLogger("ASNBlock")
+logger = utils.getInitLogger("ASNBlock", level="VERBOSE", filename="stderr")
 
 site = pywikibot.Site("en", "wikipedia")
 simulate = False

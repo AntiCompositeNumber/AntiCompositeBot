@@ -22,8 +22,6 @@ import pywikibot  # type: ignore
 import toolforge
 import requests
 import itertools
-import logging
-import logging.config
 import math
 import json
 import acnutils as utils
@@ -34,11 +32,9 @@ from typing import Optional, Tuple, Iterator, Iterable, cast, Dict, Union
 
 __version__ = "1.0"
 
-pywikibot.bot.init_handlers()
-logging.config.dictConfig(
-    utils.logger_config("essayassesment", level="VERBOSE", filename="essayimpact.log")
+logger = utils.getInitLogger(
+    "essayassesment", level="VERBOSE", filename="essayimpact.log"
 )
-logger = logging.getLogger("essayassesment")
 
 site = pywikibot.Site("en", "wikipedia")
 session = requests.session()

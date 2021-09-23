@@ -18,8 +18,6 @@
 # limitations under the License.
 
 import pywikibot  # type: ignore
-import logging
-import logging.config
 import sys
 import toolforge  # type: ignore
 import string
@@ -29,13 +27,9 @@ from typing import Iterator, Tuple
 import acnutils as utils
 
 __version__ = "1.2"
+
+logger = utils.getInitLogger("dcs_redir", level="VERBOSE")
 site = pywikibot.Site("en", "wikipedia")
-
-logging.config.dictConfig(
-    utils.logger_config("dcs_redir", level="VERBOSE", filename="dcs_redir.log")
-)
-logger = logging.getLogger("dcs_redir")
-
 simulate = False
 
 
