@@ -31,7 +31,6 @@ sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
 import nolicense  # noqa: E402
 
 site = nolicense.site
-site.username = lambda: None
 
 
 def test_get_config():
