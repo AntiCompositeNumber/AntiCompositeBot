@@ -18,7 +18,7 @@
 
 import pywikibot  # type: ignore
 import toolforge  # type: ignore
-import utils
+import acnutils as utils
 import logging
 import logging.config
 import requests
@@ -50,7 +50,7 @@ from typing import (
     Set,
 )
 
-__version__ = "1.5.1"
+__version__ = "1.6.0"
 
 pywikibot.bot.init_handlers()
 logging.config.dictConfig(
@@ -110,7 +110,7 @@ class Config:
     use_redis: bool
 
     def __init__(self) -> None:
-        private_config = utils.load_config("ASNBlock")
+        private_config = utils.load_config("ASNBlock", __file__)
         page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock/config.json")
         data = json.loads(page.text)
         data.update(private_config)
@@ -533,7 +533,7 @@ def update_page(
         logger.debug(f"Simulating {page.title(as_link=True)}: {summary}")
         logger.debug(text)
     else:
-        utils.check_runpage(site, "ASNBlock")
+        utils.check_runpage(site, task="ASNBlock")
         try:
             utils.save_page(
                 text=text,
@@ -609,7 +609,7 @@ def provider_dict(items: Iterable[Tuple[str, Any]]) -> Dict[str, Any]:
 
 
 def main(db: str = "enwiki", days: int = 0) -> None:
-    utils.check_runpage(site, "ASNBlock")
+    utils.check_runpage(site, task="ASNBlock")
     start_time = time.monotonic()
     logger.info("Loading configuration data")
     config = Config()

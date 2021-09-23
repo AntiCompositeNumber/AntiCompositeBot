@@ -27,15 +27,14 @@ import pywikibot  # type: ignore
 import toolforge
 import logging
 import logging.config
-import utils
+import acnutils as utils
 from pymysql.err import OperationalError
 from pywikibot import pagegenerators
 from typing import Dict, Iterator, NamedTuple, List, cast, Tuple
 
-__version__ = "2.1"
-logging.config.dictConfig(
-    utils.logger_config("ShouldBeSVG", level="VERBOSE", filename="ShouldBeSVG.log")
-)
+__version__ = "2.2"
+
+logging.config.dictConfig(utils.logger_config("ShouldBeSVG", level="VERBOSE"))
 logger = logging.getLogger("ShouldBeSVG")
 
 
@@ -252,7 +251,7 @@ def main() -> None:
     args = handle_args()
 
     site = pywikibot.Site("commons", "commons")
-    utils.check_runpage(site, "ShouldBeSVG", args.run_override)
+    utils.check_runpage(site, task="ShouldBeSVG", override=args.run_override)
 
     logger.info("Starting up")
 

@@ -32,14 +32,14 @@ import time
 import logging
 import logging.config
 import re
-import utils
+import acnutils as utils
 
 from mwparserfromhell.wikicode import Wikicode  # type: ignore
 from bs4.element import Tag  # type: ignore
 from pywikibot.page import BasePage  # type: ignore
 from typing import Dict, List, Set, Any, Optional, Tuple
 
-__version__ = "0.6"
+__version__ = "0.7"
 
 _conf_dir = os.path.realpath(os.path.dirname(__file__) + "/..")
 logging.config.dictConfig(
@@ -52,15 +52,7 @@ logging.config.dictConfig(
 
 logger = logging.getLogger("harvcheck" if __name__ == "__main__" else __name__)
 
-# load config
-with open(os.path.join(_conf_dir, "default_config.json")) as f:
-    config = json.load(f)["harvcheck"]
-try:
-    with open(os.path.join(_conf_dir, "config.json")) as f:
-        config.update(json.load(f).get("harvcheck", {}))
-except FileNotFoundError:
-    pass
-
+config = utils.load_config("harvcheck", __file__)
 simulate = config.get("simulate", True)
 
 session = requests.Session()
@@ -295,9 +287,7 @@ def save_page(page: BasePage, wikitext: str, summary: str) -> bool:
 
 def check_runpage() -> None:
     """Raises utils.RunpageError if on-wiki runpage is not True"""
-    page = pywikibot.Page(site, config["runpage"])
-    if not page.text.endswith("True"):
-        raise utils.RunpageError("Runpage is false, quitting")
+    utils.check_runpage(site, title=config["runpage"])
 
 
 def check_many_nosave(pages: List[str]) -> None:

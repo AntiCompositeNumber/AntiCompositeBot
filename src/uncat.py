@@ -18,12 +18,12 @@
 
 
 import toolforge  # type: ignore
-import utils
+import acnutils as utils
 import logging
 import logging.config
 import datetime
 
-__version__ = "0.2"
+__version__ = "0.3"
 
 logging.config.dictConfig(utils.logger_config("uncat", level="VERBOSE"))
 logger = logging.getLogger("uncat")

@@ -26,9 +26,9 @@ import string
 
 from typing import Iterator, Tuple
 
-import utils
+import acnutils as utils
 
-__version__ = "1.1"
+__version__ = "1.2"
 site = pywikibot.Site("en", "wikipedia")
 
 logging.config.dictConfig(

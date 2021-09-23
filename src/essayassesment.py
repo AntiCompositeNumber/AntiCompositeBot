@@ -26,23 +26,24 @@ import logging
 import logging.config
 import math
 import json
-import utils
+import acnutils as utils
 from string import Template
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Tuple, Iterator, Iterable, cast, Dict, Union
 
-__version__ = 0.2
+__version__ = "1.0"
+
+pywikibot.bot.init_handlers()
+logging.config.dictConfig(
+    utils.logger_config("essayassesment", level="VERBOSE", filename="essayimpact.log")
+)
+logger = logging.getLogger("essayassesment")
 
 site = pywikibot.Site("en", "wikipedia")
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
 simulate = False
-
-logging.config.dictConfig(
-    utils.logger_config("essayassesment", level="VERBOSE", filename="essayimpact.log")
-)
-logger = logging.getLogger("essayassesment")
 
 
 @dataclass
@@ -284,7 +285,7 @@ def load_wiki_config() -> Tuple[Dict[str, Union[int, float]], str]:
 
 def main() -> None:
     logger.info("Starting up")
-    utils.check_runpage(site, "EssayImpact")
+    utils.check_runpage(site, task="EssayImpact")
     weights, intro = load_wiki_config()
 
     data = []
@@ -298,7 +299,7 @@ def main() -> None:
     datapage = construct_data_page(data)
 
     if not simulate:
-        utils.check_runpage(site, "EssayImpact")
+        utils.check_runpage(site, task="EssayImpact")
         write_table(table)
         write_data_page(datapage)
     else:

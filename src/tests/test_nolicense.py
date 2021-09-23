@@ -25,10 +25,10 @@ import datetime
 import pywikibot
 import pytest
 import unittest.mock as mock
+import acnutils
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
 import nolicense  # noqa: E402
-import utils  # noqa: E402
 
 site = nolicense.site
 
@@ -79,11 +79,11 @@ def test_edit_page():
     page: pywikibot.Page,
     text: str,
     summary: str,
-    throttle: Optional[utils.Throttle] = None,
+    throttle: Optional[acnutils.Throttle] = None,
     )"""
     throttle_throttle = mock.Mock()
     throttle = mock.Mock(throttle=throttle_throttle)
-    with mock.patch("utils.save_page") as save_page:
+    with mock.patch("acnutils.save_page") as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
         page.get.return_value = page.text
         assert (
@@ -111,7 +111,7 @@ def test_edit_page():
 
 
 def test_edit_page_nothrottle():
-    with mock.patch("utils.save_page") as save_page:
+    with mock.patch("acnutils.save_page") as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
         page.get.return_value = page.text
         nolicense.edit_page(
@@ -136,7 +136,7 @@ def test_edit_page_nothrottle():
 
 def test_edit_page_simulate():
     nolicense.simulate = True
-    with mock.patch("utils.save_page") as save_page:
+    with mock.patch("acnutils.save_page") as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
         page.get.return_value = page.text
         nolicense.edit_page(
@@ -151,7 +151,9 @@ def test_edit_page_simulate():
 
 def test_edit_page_exception():
     throttle = mock.Mock()
-    with mock.patch("utils.save_page", side_effect=utils.RunpageError) as save_page:
+    with mock.patch(
+        "acnutils.save_page", side_effect=acnutils.RunpageError
+    ) as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
         page.get.return_value = page.text
         assert (
@@ -301,7 +303,7 @@ def test_tag_page():
             )
 
 
-@mock.patch("utils.get_replag", return_value=datetime.timedelta(seconds=0))
+@mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
 @pytest.mark.parametrize("limit", [1, 2, 3, 4, 5])
@@ -358,7 +360,7 @@ def test_main(tag_page, check_templates, get_replag, limit):
             )
 
 
-@mock.patch("utils.get_replag", return_value=datetime.timedelta(seconds=0))
+@mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
 def test_bep(tag_page, check_templates, get_replag):
@@ -370,7 +372,7 @@ def test_bep(tag_page, check_templates, get_replag):
         check_templates.assert_not_called()
 
 
-@mock.patch("utils.get_replag", return_value=datetime.timedelta(seconds=0))
+@mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
 def test_skip_files(tag_page, check_templates, get_replag):

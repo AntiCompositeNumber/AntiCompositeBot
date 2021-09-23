@@ -21,7 +21,7 @@
 import pywikibot  # type: ignore
 import toolforge
 import datetime
-import utils
+import acnutils as utils
 import logging
 import logging.config
 import argparse
@@ -30,7 +30,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.7"
+__version__ = "1.8"
 
 logging.config.dictConfig(
     utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")

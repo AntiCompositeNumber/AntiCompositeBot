@@ -22,10 +22,10 @@ import toolforge
 import datetime
 import itertools
 from typing import NamedTuple
-import utils
+import acnutils as utils
 
 site = pywikibot.Site("en", "wikipedia")
-__version__ = "1.2"
+__version__ = "1.3"
 
 
 class Row(NamedTuple):

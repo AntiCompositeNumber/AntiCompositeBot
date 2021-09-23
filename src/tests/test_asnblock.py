@@ -21,15 +21,13 @@ import os
 import sys
 import pytest
 import unittest.mock as mock
-
-# import pywikibot
 import ipaddress
 import requests
 import urllib.parse
+import acnutils as utils
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
 import asnblock  # noqa: E402
-import utils  # noqa: E402
 
 session = asnblock.session
 

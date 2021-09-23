@@ -33,11 +33,11 @@ import toolforge
 import re
 import sys
 import time
-import utils
+import acnutils as utils
 import logging
 import logging.config
 
-__version__ = "0.4"
+__version__ = "0.5"
 
 logging.config.dictConfig(
     utils.logger_config("wla_append", filename="stderr", level="VERBOSE")
@@ -107,11 +107,7 @@ def throttle():
 
 
 def run_check():
-    runpage = pywikibot.Page(site, "User:AntiCompositeBot/WLA Tagging/Run")
-    run = runpage.text.strip().endswith("True")
-    if run is False:
-        # FIXME: Use utils.py instead
-        raise Exception("Runpage is false")
+    utils.check_runpage(site, task="WLA Tagging")
 
 
 def main(limit=0):
