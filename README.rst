@@ -16,7 +16,7 @@ AntiCompositeBot
 
 Collection of various bot tasks running on `Wikimedia Commons`_ and the `English Wikipedia`_ maintained by AntiCompositeNumber. All scripts run on `Wikimedia Toolforge`_ from the `anticompositebot tool`_.
 
-This documentation was last updated on 20 September 2021.
+This documentation was last updated on 23 September 2021.
 
 .. _Wikimedia Commons: https://commons.wikimedia.org/wiki/User:AntiCompositeBot
 .. _English Wikipedia:  https://en.wikipedia.org/wiki/User:AntiCompositeBot
@@ -80,8 +80,13 @@ uncat
     :Run now: ``kubectl create job --from anticompositebot.uncat anticompositebot.uncat``
     :Stop: ``kubectl delete CronJob anticompositebot.uncat``
 
-utils.py
-    utils.py is a collection of utilities frequently used in other scripts, including setting up logging, checking runpages, loading configuration, and dealing with database and HTTP connections.
+catwatch
+    Logs the size of https://commons.wikimedia.org/wiki/Category:Files_with_no_machine-readable_license to https://tools-static.wmflabs.org/anticompositebot/Files_with_no_machine-readable_license.json
+
+    :Schedule: Daily at 00:00 UTC
+    :Start: ``kubectl apply -f etc/catwatch_cron.yaml --validate=true``
+    :Run now: ``kubectl create job --from anticompositebot.catwatch anticompositebot.catwatch``
+    :Stop: ``kubectl delete CronJob anticompositebot.catwatch``
 
 Files relating to tasks not on this list are likely not actively maintained. This is likely because they were used for a one-off run that has completed.
 
