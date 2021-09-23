@@ -27,6 +27,7 @@ import urllib.parse
 import acnutils as utils
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
+os.environ["LOG_FILE"] = "stderr"
 import asnblock  # noqa: E402
 
 session = asnblock.session

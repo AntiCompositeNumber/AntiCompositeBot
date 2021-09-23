@@ -23,6 +23,7 @@ import os
 import sys
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
+os.environ["LOG_FILE"] = "stderr"
 import harvcheck  # noqa: E402
 
 session = harvcheck.session

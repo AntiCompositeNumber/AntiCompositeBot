@@ -28,6 +28,7 @@ import unittest.mock as mock
 import acnutils
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
+os.environ["LOG_FILE"] = "stderr"
 import nolicense  # noqa: E402
 
 site = nolicense.site
