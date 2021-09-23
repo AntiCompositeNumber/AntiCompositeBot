@@ -3,11 +3,13 @@ AntiCompositeBot
 ================
 .. image:: https://img.shields.io/github/workflow/status/AntiCompositeNumber/AntiCompositeBot/Python%20application
     :alt: GitHub Workflow Status
+    :target: https://github.com/AntiCompositeNumber/AntiCompositeBot/actions
 .. image:: https://coveralls.io/repos/github/AntiCompositeNumber/AntiCompositeBot/badge.svg?branch=master
     :alt: Coverage Status
     :target: https://coveralls.io/github/AntiCompositeNumber/AntiCompositeBot?branch=master
 .. image:: https://img.shields.io/badge/python-v3.9-blue
     :alt: Python version 3.9
+    :target: https://www.python.org/
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :alt: Code style: black
     :target: https://github.com/psf/black
