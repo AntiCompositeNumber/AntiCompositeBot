@@ -31,6 +31,7 @@ sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
 import nolicense  # noqa: E402
 
 site = nolicense.site
+site.username = lambda: None
 
 
 def test_get_config():
@@ -74,7 +75,8 @@ def test_check_templates(pages, expected):
     assert nolicense.check_templates(page) is expected
 
 
-def test_edit_page():
+@mock.patch("acnutils.check_runpage")
+def test_edit_page(runpage):
     """(
     page: pywikibot.Page,
     text: str,
@@ -108,9 +110,11 @@ def test_edit_page():
             new_ok=True,
         )
     throttle_throttle.assert_called_once()
+    runpage.assert_called_with(site, "NoLicense")
 
 
-def test_edit_page_nothrottle():
+@mock.patch("acnutils.check_runpage")
+def test_edit_page_nothrottle(runpage):
     with mock.patch("acnutils.save_page") as save_page:
         page = mock.Mock(spec=pywikibot.Page, text="foo")
         page.get.return_value = page.text
@@ -132,6 +136,7 @@ def test_edit_page_nothrottle():
             force=False,
             new_ok=False,
         )
+    runpage.assert_called_with(site, "NoLicense")
 
 
 def test_edit_page_simulate():
@@ -149,7 +154,8 @@ def test_edit_page_simulate():
     nolicense.simulate = None
 
 
-def test_edit_page_exception():
+@mock.patch("acnutils.check_runpage")
+def test_edit_page_exception(runpage):
     throttle = mock.Mock()
     with mock.patch(
         "acnutils.save_page", side_effect=acnutils.RunpageError
@@ -166,6 +172,7 @@ def test_edit_page_exception():
             is False
         )
         save_page.assert_called()
+        runpage.assert_called_with(site, "NoLicense")
 
 
 @pytest.mark.parametrize(
@@ -262,7 +269,8 @@ def test_warn_user_empty():
             edit_page.assert_not_called()
 
 
-def test_warn_user_conflict():
+@mock.patch("acnutils.check_runpage")
+def test_warn_user_conflict(runpage):
     test_config = {
         "warn_text": "warn_text($title, $also)",
         "warn_also": "warn_also()",
@@ -285,6 +293,7 @@ def test_warn_user_conflict():
             queue=queue,
             throttle=None,
         )
+    runpage.assert_called_with(site, "NoLicense")
 
 
 def test_tag_page():
@@ -306,8 +315,9 @@ def test_tag_page():
 @mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
+@mock.patch("acnutils.check_runpage")
 @pytest.mark.parametrize("limit", [1, 2, 3, 4, 5])
-def test_main(tag_page, check_templates, get_replag, limit):
+def test_main(runpage, tag_page, check_templates, get_replag, limit):
     pages = [
         mock.Mock(spec=pywikibot.Page, title=lambda: "page1"),
         mock.Mock(spec=pywikibot.Page, title=lambda: "page2"),
@@ -358,24 +368,28 @@ def test_main(tag_page, check_templates, get_replag, limit):
             tag_page.assert_has_calls(
                 [mock.call(call, throttle=mock.ANY) for call in pages[:limit]]
             )
+            runpage.assert_called_with(site, "NoLicense")
 
 
+@mock.patch("acnutils.check_runpage")
 @mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
-def test_bep(tag_page, check_templates, get_replag):
+def test_bep(tag_page, check_templates, get_replag, runpage):
     page = pywikibot.Page(site, "User:AntiCompositeBot/test bep")
     user = mock.sentinel.user1
     iterpages = mock.MagicMock(return_value=[(page, user)])
     with mock.patch("nolicense.iter_files_and_users", iterpages):
         nolicense.main(limit=1, days=mock.sentinel.days)
         check_templates.assert_not_called()
+        runpage.assert_called_with(site, "NoLicense")
 
 
+@mock.patch("acnutils.check_runpage")
 @mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
-def test_skip_files(tag_page, check_templates, get_replag):
+def test_skip_files(tag_page, check_templates, get_replag, runpage):
     page = pywikibot.Page(site, "User:AntiCompositeBot/test bep")
     user = mock.sentinel.user1
     iterpages = mock.MagicMock(return_value=[(page, user)])
@@ -384,3 +398,4 @@ def test_skip_files(tag_page, check_templates, get_replag):
         with mock.patch("nolicense.iter_files_and_users", iterpages):
             nolicense.main(limit=1, days=mock.sentinel.days)
             check_templates.assert_not_called()
+            runpage.assert_called_with(site, "NoLicense")
