@@ -18,15 +18,12 @@
 
 
 import toolforge  # type: ignore
-import acnutils as utils
-import logging
-import logging.config
+import acnutils
 import datetime
 
 __version__ = "0.3"
 
-logging.config.dictConfig(utils.logger_config("uncat", level="VERBOSE"))
-logger = logging.getLogger("uncat")
+logger = acnutils.getInitLogger("uncat", level="VERBOSE")
 
 
 def run_query():
@@ -70,7 +67,7 @@ def make_table(data):
 
 
 def save_page(table):
-    if utils.on_toolforge():
+    if acnutils.on_toolforge():
         filename = "/data/project/anticompositebot/www/static/uncat.html"
     else:
         filename = "uncat.html"

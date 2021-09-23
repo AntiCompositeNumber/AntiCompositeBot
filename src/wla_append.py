@@ -34,15 +34,10 @@ import re
 import sys
 import time
 import acnutils as utils
-import logging
-import logging.config
 
 __version__ = "0.5"
 
-logging.config.dictConfig(
-    utils.logger_config("wla_append", filename="stderr", level="VERBOSE")
-)
-logger = logging.getLogger("wla_append")
+logger = utils.getInitLogger("wla_append", filename="stderr", level="VERBOSE")
 
 site = pywikibot.Site("commons", "commons")
 last_edit = 0

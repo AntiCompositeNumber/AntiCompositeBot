@@ -25,8 +25,6 @@ import re
 import json
 import pywikibot  # type: ignore
 import toolforge
-import logging
-import logging.config
 import acnutils as utils
 from pymysql.err import OperationalError
 from pywikibot import pagegenerators
@@ -34,8 +32,7 @@ from typing import Dict, Iterator, NamedTuple, List, cast, Tuple
 
 __version__ = "2.2"
 
-logging.config.dictConfig(utils.logger_config("ShouldBeSVG", level="VERBOSE"))
-logger = logging.getLogger("ShouldBeSVG")
+logger = utils.getInitLogger("ShouldBeSVG", level="VERBOSE")
 
 
 class FileUsage(NamedTuple):

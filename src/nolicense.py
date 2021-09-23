@@ -22,8 +22,6 @@ import pywikibot  # type: ignore
 import toolforge
 import datetime
 import acnutils as utils
-import logging
-import logging.config
 import argparse
 import string
 import json
@@ -32,10 +30,7 @@ from typing import Tuple, Iterator, Optional, cast, Deque
 
 __version__ = "1.8"
 
-logging.config.dictConfig(
-    utils.logger_config("NoLicense", level="INFO", filename="nolicense.log")
-)
-logger = logging.getLogger("NoLicense")
+logger = utils.getInitLogger("nolicense", level="INFO")
 
 site = pywikibot.Site("commons", "commons")
 cluster = "web"
