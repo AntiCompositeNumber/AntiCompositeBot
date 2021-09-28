@@ -48,7 +48,7 @@ from typing import (
     Set,
 )
 
-__version__ = "1.6.1"
+__version__ = "1.6.2"
 
 logger = utils.getInitLogger("ASNBlock", level="VERBOSE", filename="stderr")
 
@@ -564,11 +564,13 @@ def collect_data(config: Config, db: str, exp_before: str = "") -> List[Provider
                 ranges = amazon_data(provider)
             elif "icloud" in provider.url:
                 ranges = icloud_data(provider)
+            elif "oracle" in provider.url:
+                ranges = oracle_data(provider)
             else:
-                logger.warning(f"{provider.name} has no handler")
+                logger.error(f"{provider.name} has no handler")
                 continue
         else:
-            logger.warning(f"{provider.name} could not be processed")
+            logger.error(f"{provider.name} could not be processed")
             continue
 
         ranges = combine_ranges(ranges)
