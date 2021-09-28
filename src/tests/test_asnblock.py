@@ -319,12 +319,21 @@ def test_make_section(live_config):
         name="chocolate",
         asn=["AS9876"],
         search=["banana", "coffee"],
-        ranges=[
-            ipaddress.IPv4Network("10.0.0.0/16"),
-            ipaddress.IPv4Network("10.1.0.0/32"),
-            ipaddress.IPv6Network("fd00::/19"),
-            ipaddress.IPv6Network("fd00:2000::/128"),
-        ],
+        ranges={
+            "enwiki": [
+                ipaddress.IPv4Network("10.0.0.0/16"),
+                ipaddress.IPv4Network("10.1.0.0/32"),
+                ipaddress.IPv6Network("fd00::/19"),
+                ipaddress.IPv6Network("fd00:2000::/128"),
+            ],
+            "enwiki=30": [
+                ipaddress.IPv4Network("10.1.0.0/32"),
+            ],
+            "centralauth": [
+                ipaddress.IPv6Network("fd00::/19"),
+                ipaddress.IPv6Network("fd00:3000::/128"),
+            ],
+        },
     )
 
     site_config = live_config.sites["enwiki"]
@@ -333,7 +342,7 @@ def test_make_section(live_config):
     mock_template = mock.Mock()
     mock_template.return_value.safe_substitute = mock_subst
     with mock.patch("string.Template", mock_template):
-        section = asnblock.make_section(provider, site_config)
+        section = asnblock.make_section(provider, site_config, "enwiki")
 
     assert "chocolate" in section
     assert "banana" in section
@@ -379,9 +388,143 @@ def test_update_page():
     pass
 
 
+def mock_filter_ranges(targets, ranges, provider, config):
+    return {"enwiki": ranges.copy()}
+
+
 @pytest.mark.skip("Not implemented")
-def test_collect_data():
+def test_filter_ranges():
     pass
+
+
+@mock.patch.multiple(
+    "asnblock",
+    RIRData=mock.DEFAULT,
+    microsoft_data=mock.DEFAULT,
+    google_data=mock.DEFAULT,
+    amazon_data=mock.DEFAULT,
+    icloud_data=mock.DEFAULT,
+    oracle_data=mock.DEFAULT,
+)
+@pytest.mark.parametrize(
+    "datasource,provider",
+    [
+        (
+            "RIRData",
+            asnblock.Provider(
+                name="DigitalOcean",
+                blockname="DigitalOcean",
+                asn=["AS14061"],
+                expiry="",
+                ranges={},
+                url="",
+                src="",
+                search=[
+                    "digitalocean",
+                    "serverstack",
+                    "digital ocean",
+                    "vpn",
+                    "colocation",
+                    "heficed",
+                ],
+            ),
+        ),
+        (
+            "microsoft_data",
+            asnblock.Provider(
+                name="Microsoft Azure",
+                blockname="Microsoft Azure",
+                asn=[],
+                expiry="",
+                ranges={},
+                url="https://www.microsoft.com/en-us/download/details.aspx?id=56519",
+                src="azure ranges",
+                search=[],
+            ),
+        ),
+        (
+            "google_data",
+            asnblock.Provider(
+                name="Google Cloud",
+                blockname="Google Cloud",
+                asn=[],
+                expiry="",
+                ranges={},
+                url="https://cloud.google.com/compute/docs/faq#find_ip_range",
+                src="google ranges",
+                search=[],
+            ),
+        ),
+        (
+            "amazon_data",
+            asnblock.Provider(
+                name="Amazon Web Services",
+                blockname="Amazon Web Services",
+                asn=[],
+                expiry="",
+                ranges={},
+                url="https://ip-ranges.amazonaws.com/ip-ranges.json",
+                src="amazon ranges",
+                search=[],
+            ),
+        ),
+        (
+            "icloud_data",
+            asnblock.Provider(
+                name="iCloud Private Relay",
+                blockname="iCloud Private Relay",
+                asn=[],
+                expiry="",
+                ranges={},
+                url="https://mask-api.icloud.com/egress-ip-ranges.csv",
+                src="iCloud ranges",
+                search=[],
+            ),
+        ),
+        (
+            "oracle_data",
+            asnblock.Provider(
+                name="Oracle Cloud Infrastructure",
+                blockname="Oracle Cloud Infrastructure",
+                asn=[],
+                expiry="",
+                ranges={},
+                url="https://docs.oracle.com/en-us/iaas/tools/public_ip_ranges.json",
+                src="Oracle ranges",
+                search=[],
+            ),
+        ),
+    ],
+)
+def test_collect_data(datasource, provider, live_config, **kwargs):
+    ranges = [
+        ipaddress.ip_network("185.15.56.0/22"),
+        ipaddress.ip_network("2a02:ec80::/29"),
+    ]
+    targets = ["enwiki", "enwiki=30"]
+    live_config.providers = [provider]
+
+    rirdata = kwargs.pop("RIRData")
+    if datasource == "RIRData":
+        data_func = rirdata.return_value.get_asn_ranges
+    else:
+        data_func = kwargs.pop(datasource)
+    data_func.return_value = ranges
+
+    mock_combine = mock.Mock(side_effect=lambda x: x)
+    mock_filter = mock.Mock(side_effect=mock_filter_ranges)
+    with mock.patch.multiple(
+        "asnblock", combine_ranges=mock_combine, filter_ranges=mock_filter
+    ):
+        providers = asnblock.collect_data(live_config, targets)
+
+    assert list(providers[0].ranges["enwiki"]) == ranges
+    mock_combine.assert_called_once_with(ranges)
+    mock_filter.assert_called_once_with(targets, ranges, provider, live_config)
+    for ds in kwargs.values():
+        ds.assert_not_called()
+    rirdata.assert_called_once()
+    data_func.assert_called_once()
 
 
 @pytest.mark.skip("Not implemented")

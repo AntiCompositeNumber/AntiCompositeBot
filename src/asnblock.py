@@ -48,7 +48,7 @@ from typing import (
     Set,
 )
 
-__version__ = "1.6.2"
+__version__ = "2.0.0-beta.2"
 
 logger = utils.getInitLogger("ASNBlock", level="VERBOSE", filename="stderr")
 
@@ -80,7 +80,7 @@ class Provider:
     blockname: str = ""
     asn: List[str] = dataclasses.field(default_factory=list)
     expiry: str = ""
-    ranges: List[IPNetwork] = dataclasses.field(default_factory=list)
+    ranges: Dict[str, List[IPNetwork]] = dataclasses.field(default_factory=dict)
     url: str = ""
     src: str = ""
     search: List[str] = dataclasses.field(default_factory=list)
@@ -295,8 +295,8 @@ def search_whois(
 ) -> bool:
     """Searches for specific strings in the WHOIS data for a network.
 
-    Only the description and name fields of the WHOIS result are compared
-    to the search list. whois.toolforge.org does not support ranges,
+    Returns true if any of the search terms are included in the name or
+    description of the WHOIS data.  whois.toolforge.org does not support ranges,
     so results are obtained for the first address in the range.
 
     Search terms must be lowercase.
@@ -439,7 +439,7 @@ def combine_ranges(all_ranges: Iterable[IPNetwork]) -> Iterator[IPNetwork]:
                 yield net
 
 
-def make_section(provider: Provider, site_config: dict) -> str:
+def make_section(provider: Provider, site_config: dict, target: str) -> str:
     """Prepares wikitext report section for a provider."""
     if provider.url:
         source = "[{0.url} {0.src}]".format(provider)
@@ -454,7 +454,7 @@ def make_section(provider: Provider, site_config: dict) -> str:
     row = string.Template(site_config["row"])
 
     ranges = ""
-    for net in provider.ranges:
+    for net in provider.ranges.get(target, []):
         addr = str(net.network_address)
         # Convert 1-address ranges to that address
         if (net.version == 4 and net.prefixlen == 32) or (
@@ -494,10 +494,10 @@ def make_section(provider: Provider, site_config: dict) -> str:
     return section
 
 
-def make_mass_section(provider: Provider) -> str:
+def make_mass_section(provider: Provider, target: str) -> str:
     """Prepares massblock-compatible report section for a provider."""
     section = f"\n==={provider.name}===\n" + "\n".join(
-        str(net) for net in provider.ranges
+        str(net) for net in provider.ranges.get(target, [])
     )
     return section
 
@@ -544,12 +544,50 @@ def update_page(
             logger.error("Page not saved, continuing", exc_info=e)
 
 
-def collect_data(config: Config, db: str, exp_before: str = "") -> List[Provider]:
+def filter_ranges(
+    targets: List[str], ranges: List[IPNetwork], provider: Provider, config: Config
+) -> Dict[str, List[IPNetwork]]:
+    """Filter a list of IP ranges based on block status and WHOIS data.
+
+    Returns a dict mapping targets to lists of unblocked ranges
+    """
+    cache = Cache(config)
+    throttle = utils.Throttle(1)
+    filtered: Dict[IPNetwork, List[str]] = {}
+
+    for target in targets:
+        db, _, days = target.partition("=")
+        if days:
+            exp_before = (
+                datetime.datetime.utcnow() + datetime.timedelta(days=int(days))
+            ).strftime("%Y%m%d%H%M%S")
+        else:
+            exp_before = ""
+
+        logger.debug(f"{len(ranges)}, {db}, {exp_before}")
+        conn = toolforge.connect(db, cluster="analytics")
+        for net in ranges:
+            if net in config.ignore:
+                continue
+            elif not_blocked(net, conn, exp_before):
+                filtered.setdefault(net, []).append(target)
+        conn.close()
+
+    inverted: Dict[str, List[IPNetwork]] = {}
+    for net, blocks in filtered.items():
+        if not provider.search or cache_search_whois(
+            net, provider.search, cache, throttle=throttle
+        ):
+            for target in blocks:
+                inverted.setdefault(target, []).append(net)
+
+    return inverted
+
+
+def collect_data(config: Config, targets: List[str]) -> List[Provider]:
     """Collect IP address data for various hosting/proxy providers."""
     providers = config.providers
     rir_data = RIRData()
-    cache = Cache(config)
-    throttle = utils.Throttle(1)
 
     for provider in providers:
         logger.info(f"Checking ranges from {provider.name}")
@@ -574,21 +612,7 @@ def collect_data(config: Config, db: str, exp_before: str = "") -> List[Provider
             continue
 
         ranges = combine_ranges(ranges)
-
-        conn = toolforge.connect(db, cluster="analytics")
-        for net in ranges:
-            if (
-                net not in config.ignore
-                and not_blocked(net, conn, exp_before)
-                and (
-                    not provider.search
-                    or cache_search_whois(
-                        net, provider.search, cache, throttle=throttle
-                    )
-                )
-            ):
-                provider.ranges.append(net)
-        conn.close()
+        provider.ranges = filter_ranges(targets, list(ranges), provider, config)
 
     return providers
 
@@ -598,50 +622,18 @@ def provider_dict(items: Iterable[Tuple[str, Any]]) -> Dict[str, Any]:
     output = {}
     for key, value in items:
         if key == "ranges":
-            output[key] = [str(net) for net in value]
+            output[key] = {
+                target: [str(net) for net in nets] for target, nets in value.items()
+            }
         else:
             output[key] = value
     return output
 
 
-def main(db: str = "enwiki", days: int = 0) -> None:
-    utils.check_runpage(site, task="ASNBlock")
-    start_time = time.monotonic()
-    logger.info("Loading configuration data")
-    config = Config()
-
-    if days:
-        exp_before = (
-            datetime.datetime.utcnow() + datetime.timedelta(days=days)
-        ).strftime("%Y%m%d%H%M%S")
-    else:
-        exp_before = ""
-
-    providers = collect_data(config, db, exp_before)
-
-    sites = config.sites
-    site_config = sites.get(db, sites["enwiki"])
-    title = "ASNBlock"
-    if db == "enwiki":
-        pass
-    elif db == "centralauth":
-        title += "/global"
-    else:
-        title += "/" + db
-
-    total_ranges = sum(len(provider.ranges) for provider in providers)
-    total_time = str(datetime.timedelta(seconds=int(time.monotonic() - start_time)))
-    update_time = datetime.datetime.now().isoformat(sep=" ", timespec="seconds")
-    text = mass_text = f"== Hosts ==\nLast updated {update_time} in {total_time}.\n"
-
-    text += "".join(make_section(provider, site_config) for provider in providers)
-    update_page(text, title=title, total=total_ranges, exp=bool(days))
-
-    mass_text += "".join(make_mass_section(provider) for provider in providers)
-    update_page(mass_text, title=title, mass=True, total=total_ranges, exp=bool(days))
-
+def dump_report(title: str, providers: Iterable[Provider]) -> None:
     with open(
-        f"/data/project/anticompositebot/www/static/{title.replace('/', '-')}.json", "w"
+        f"/data/project/anticompositebot/www/static/{title.replace('/', '-')}.json",
+        "w",
     ) as f:
         json.dump(
             [
@@ -651,18 +643,57 @@ def main(db: str = "enwiki", days: int = 0) -> None:
             f,
         )
 
+
+def main(targets: List[str]) -> None:
+    utils.check_runpage(site, task="ASNBlock")
+    start_time = time.monotonic()
+    logger.info("Loading configuration data")
+    config = Config()
+
+    providers = collect_data(config, targets)
+
+    sites = config.sites
+    for target in targets:
+        db, _, days = target.partition("=")
+        site_config = sites.get(db, sites["enwiki"])
+        title = "ASNBlock"
+        if db == "enwiki":
+            pass
+        elif db == "centralauth":
+            title += "/global"
+        else:
+            title += "/" + db
+
+        total_ranges = sum(
+            len(provider.ranges.get(target, [])) for provider in providers
+        )
+        total_time = str(datetime.timedelta(seconds=int(time.monotonic() - start_time)))
+        update_time = datetime.datetime.now().isoformat(sep=" ", timespec="seconds")
+        text = mass_text = f"== Hosts ==\nLast updated {update_time} in {total_time}.\n"
+
+        text += "".join(
+            make_section(provider, site_config, target) for provider in providers
+        )
+        update_page(text, title=title, total=total_ranges, exp=bool(days))
+
+        mass_text += "".join(
+            make_mass_section(provider, target) for provider in providers
+        )
+        update_page(
+            mass_text, title=title, mass=True, total=total_ranges, exp=bool(days)
+        )
+
+        dump_report(title, providers)
+
     logger.info("Finished")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("db")
-    parser.add_argument(
-        "--days", help="Ignore blocks expiring within this number of days", type=int
-    )
+    parser.add_argument("targets", nargs="+")
     args = parser.parse_args()
     try:
-        main(args.db, args.days)
+        main(args.targets)
     except Exception as e:
         logger.exception(e)
         raise

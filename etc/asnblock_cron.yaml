@@ -25,21 +25,7 @@ spec:
               "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
               "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
             ]
-            args: ["enwiki"]
-            workingDir: /data/project/anticompositebot
-            env:
-            - name: HOME
-              value: /data/project/anticompositebot
-            - name: LOG_SMTP
-              value: "True"
-            imagePullPolicy: Always
-          - name: asnblock-exp
-            image: docker-registry.tools.wmflabs.org/toolforge-python39-sssd-base:latest
-            command: [
-              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
-              "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
-            ]
-            args: ["enwiki", "--days", "30"]
+            args: ["enwiki", "enwiki=30"]
             workingDir: /data/project/anticompositebot
             env:
             - name: HOME
