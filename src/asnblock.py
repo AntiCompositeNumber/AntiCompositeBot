@@ -556,6 +556,7 @@ def filter_ranges(
     filtered: Dict[IPNetwork, List[str]] = {}
 
     for target in targets:
+        logger.debug(f"Checking blocks in target {target}")
         db, _, days = target.partition("=")
         if days:
             exp_before = (
