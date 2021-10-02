@@ -48,7 +48,7 @@ from typing import (
     Set,
 )
 
-__version__ = "2.0.0-beta.2"
+__version__ = "2.0.0-beta.3"
 
 logger = utils.getInitLogger("ASNBlock", level="VERBOSE", filename="stderr")
 
@@ -490,7 +490,8 @@ def make_section(provider: Provider, site_config: dict, target: str) -> str:
             ip_range=ip_range, addr=addr, name=provider.name, qs=qs
         )
 
-    section = f"==={provider.name}===\nSearching {source}{search}\n{ranges}"
+    count = f" ({len(provider.ranges.get(target, []))})" if ranges else ""
+    section = f"==={provider.name}{count}===\nSearching {source}{search}\n{ranges}"
     return section
 
 
