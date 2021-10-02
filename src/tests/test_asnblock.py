@@ -59,70 +59,73 @@ def test_get_config(live_config):
 
 
 @pytest.fixture(scope="module")
-def rir_data():
-    return asnblock.RIRData()
+def wmf_provider():
+    return asnblock.Provider(
+        name="Wikimedia Foundation", asn=["AS14907", "43821"], search=["wikimedia"]
+    )
 
 
-@pytest.mark.slow
-def test_rir_data(rir_data):
-    assert isinstance(rir_data.ipv4[0], asnblock.DataRow)
-    assert isinstance(rir_data.ipv6[0], asnblock.DataRow)
-    assert isinstance(rir_data.asn[0], asnblock.DataRow)
+@pytest.fixture(scope="module")
+def wmf_ripestat_ranges(wmf_provider):
+    return list(asnblock.ripestat_data(wmf_provider))
 
 
 @pytest.mark.parametrize(
     "ip",
     [
-        ipaddress.ip_network("185.15.56.0/22"),
-        ipaddress.ip_network("2a02:ec80::/29"),
+        # anycast
+        ipaddress.ip_network("198.35.27.0/24"),
+        ipaddress.ip_network("185.71.138.0/24"),
+        # eqiad
+        ipaddress.ip_network("208.80.154.0/23"),
+        ipaddress.ip_network("2620:0:861::/48"),
+        ipaddress.ip_network("185.15.56.0/24"),  # cloud
+        # codfw
+        ipaddress.ip_network("208.80.152.0/23"),
+        ipaddress.ip_network("185.15.57.0/24"),
+        ipaddress.ip_network("2620:0:860::/48"),
+        # ulsfo
+        ipaddress.ip_network("198.35.26.0/24"),
+        ipaddress.ip_network("2620:0:863::/48"),
+        # eqsin
+        ipaddress.ip_network("103.102.166.0/24"),
+        ipaddress.ip_network("2001:df2:e500::/48"),
+        # esams
         ipaddress.ip_network("91.198.174.0/24"),
-        ipaddress.ip_network("2620:0:860::/46"),
-        ipaddress.ip_network("198.35.26.0/23"),
-        ipaddress.ip_network("208.80.152.0/22"),
-        pytest.param(
-            ipaddress.ip_network("103.102.166.0/24"),
-            marks=pytest.mark.xfail(
-                reason=(
-                    "IP address data in the RIR bulk reports can't be linked "
-                    "to an ASN registered at another RIR"
-                )
-            ),
-        ),
-        pytest.param(
-            ipaddress.ip_network("2001:df2:e500::/48"),
-            marks=pytest.mark.xfail(
-                reason=(
-                    "IP address data in the RIR bulk reports can't be linked "
-                    "to an ASN registered at another RIR"
-                )
-            ),
-        ),
+        ipaddress.ip_network("185.15.58.0/23"),
+        ipaddress.ip_network("2620:0:862::/48"),
+        ipaddress.ip_network("2a02:ec80::/32"),
     ],
 )
-@pytest.mark.slow
-def test_get_asn_ranges(ip, rir_data):
-    # Testing with WMF ranges, current as of 2021-08-17
-    # data from https://wikitech.wikimedia.org/wiki/IP_and_AS_allocations
-    asn_list = ["AS14907", "43821"]
-    assert ip in rir_data.get_asn_ranges(asn_list)
+def test_ripestat_data(ip, wmf_ripestat_ranges):
+    # Testing with WMF ranges, current as of 2021-10-02, data from
+    # https://phabricator.wikimedia.org/diffusion/OHPU/browse/master/config/sites.yaml
+    # https://phabricator.wikimedia.org/diffusion/OHPU/browse/master/templates/includes/customers/64710.policy
+    assert ip in wmf_ripestat_ranges
 
 
 @pytest.mark.parametrize(
     "func,search",
     [
-        (asnblock.microsoft_data, ""),
+        (asnblock.microsoft_data, "microsoft"),
         (asnblock.amazon_data, "amazon"),
-        (asnblock.google_data, ""),
+        (asnblock.google_data, "google"),
         (asnblock.icloud_data, "icloud"),
         (asnblock.oracle_data, "oracle"),
     ],
 )
-def test_provider_api_data(func, search, live_config):
-    if search:
-        provider = next(filter(lambda p: search in p.url, live_config.providers))
-        data = func(provider)
-    else:
-        data = func()
+def test_url_handler_list(func, search):
+    assert asnblock.url_handlers[search] == func
+
+
+@pytest.mark.parametrize(
+    # "search,func", [(search, func) for search, func in asnblock.url_handlers.items()]
+    "search, func",
+    asnblock.url_handlers.items(),
+)
+def test_provider_api_data(search, func, live_config):
+    provider = next(filter(lambda p: search in p.url, live_config.providers))
+    data = func(provider)
 
     once = False
     for prefix in data:
@@ -396,8 +399,8 @@ def test_update_page():
         (40, "", False),
         (20, "30", True),
         (20, "", False),
-        ("infinite", "30", False),
-        ("infinite", "", False),
+        ("infinity", "30", False),
+        ("infinity", "", False),
         ("", "30", True),
         ("", "", True),
     ],
@@ -419,20 +422,11 @@ def test_filter_ranges():
     pass
 
 
-@mock.patch.multiple(
-    "asnblock",
-    RIRData=mock.DEFAULT,
-    microsoft_data=mock.DEFAULT,
-    google_data=mock.DEFAULT,
-    amazon_data=mock.DEFAULT,
-    icloud_data=mock.DEFAULT,
-    oracle_data=mock.DEFAULT,
-)
 @pytest.mark.parametrize(
     "datasource,provider",
     [
         (
-            "RIRData",
+            "ripestat_data",
             asnblock.Provider(
                 name="DigitalOcean",
                 blockname="DigitalOcean",
@@ -452,7 +446,7 @@ def test_filter_ranges():
             ),
         ),
         (
-            "microsoft_data",
+            "microsoft",
             asnblock.Provider(
                 name="Microsoft Azure",
                 blockname="Microsoft Azure",
@@ -465,7 +459,7 @@ def test_filter_ranges():
             ),
         ),
         (
-            "google_data",
+            "google",
             asnblock.Provider(
                 name="Google Cloud",
                 blockname="Google Cloud",
@@ -478,7 +472,7 @@ def test_filter_ranges():
             ),
         ),
         (
-            "amazon_data",
+            "amazon",
             asnblock.Provider(
                 name="Amazon Web Services",
                 blockname="Amazon Web Services",
@@ -491,7 +485,7 @@ def test_filter_ranges():
             ),
         ),
         (
-            "icloud_data",
+            "icloud",
             asnblock.Provider(
                 name="iCloud Private Relay",
                 blockname="iCloud Private Relay",
@@ -504,7 +498,7 @@ def test_filter_ranges():
             ),
         ),
         (
-            "oracle_data",
+            "oracle",
             asnblock.Provider(
                 name="Oracle Cloud Infrastructure",
                 blockname="Oracle Cloud Infrastructure",
@@ -518,7 +512,15 @@ def test_filter_ranges():
         ),
     ],
 )
-def test_collect_data(datasource, provider, live_config, **kwargs):
+def test_collect_data(datasource, provider, live_config):
+    url_handlers = {
+        "microsoft": mock.Mock(),
+        "google": mock.Mock(),
+        "amazon": mock.Mock(),
+        "icloud": mock.Mock(),
+        "oracle": mock.Mock(),
+    }
+
     ranges = [
         ipaddress.ip_network("185.15.56.0/22"),
         ipaddress.ip_network("2a02:ec80::/29"),
@@ -526,26 +528,33 @@ def test_collect_data(datasource, provider, live_config, **kwargs):
     targets = ["enwiki", "enwiki=30"]
     live_config.providers = [provider]
 
-    rirdata = kwargs.pop("RIRData")
-    if datasource == "RIRData":
-        data_func = rirdata.return_value.get_asn_ranges
+    mock_ripestat = mock.Mock()
+    if datasource == "ripestat_data":
+        data_func = mock_ripestat
     else:
-        data_func = kwargs.pop(datasource)
+        data_func = url_handlers[datasource]
     data_func.return_value = ranges
 
     mock_combine = mock.Mock(side_effect=lambda x: x)
     mock_filter = mock.Mock(side_effect=mock_filter_ranges)
+
     with mock.patch.multiple(
-        "asnblock", combine_ranges=mock_combine, filter_ranges=mock_filter
+        "asnblock",
+        combine_ranges=mock_combine,
+        filter_ranges=mock_filter,
+        ripestat_data=mock_ripestat,
     ):
-        providers = asnblock.collect_data(live_config, targets)
+        with mock.patch.dict("asnblock.url_handlers", url_handlers):
+            providers = asnblock.collect_data(live_config, targets)
 
     assert list(providers[0].ranges["enwiki"]) == ranges
     mock_combine.assert_called_once_with(ranges)
     mock_filter.assert_called_once_with(targets, ranges, provider, live_config)
-    for ds in kwargs.values():
-        ds.assert_not_called()
-    rirdata.assert_called_once()
+    for ds, handler in url_handlers.items():
+        if ds != datasource:
+            handler.assert_not_called()
+    if datasource != "ripestat_data":
+        mock_ripestat.assert_not_called()
     data_func.assert_called_once()
 
 

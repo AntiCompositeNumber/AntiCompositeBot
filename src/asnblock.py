@@ -20,9 +20,7 @@ import pywikibot  # type: ignore
 import toolforge  # type: ignore
 import acnutils as utils
 import requests
-import re
 import csv
-import math
 import ipaddress
 import json
 import urllib.parse
@@ -48,7 +46,7 @@ from typing import (
     Set,
 )
 
-__version__ = "2.0.0-beta.3"
+__version__ = "2.0.0-beta.4"
 
 logger = utils.getInitLogger("ASNBlock", level="VERBOSE", filename="stderr")
 
@@ -57,6 +55,8 @@ simulate = False
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
 whois_api = "https://whois-dev.toolforge.org"
+url_handlers = {}
+ripe_calls = 0
 
 IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
 
@@ -80,7 +80,7 @@ class Target(NamedTuple):
     db: str
     days: str
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         if self.days:
             return f"{self.db}={self.days}"
         else:
@@ -94,6 +94,8 @@ class Target(NamedTuple):
 
 @dataclasses.dataclass
 class Provider:
+    """Hosting provider or other network operator"""
+
     name: str
     blockname: str = ""
     asn: List[str] = dataclasses.field(default_factory=list)
@@ -168,80 +170,34 @@ class Cache:
             self._redis.delete(self._prefix + key)
 
 
-class RIRData:
-    def __init__(self) -> None:
-        self.load_rir_data()
-
-    def get_rir_data(self) -> Iterator[str]:
-        """Iterate bulk IP and AS data from the five Regional Internet Registries."""
-        data_urls = dict(
-            APNIC="https://ftp.apnic.net/stats/apnic/delegated-apnic-extended-latest",
-            AFRNIC="https://ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-extended-latest",  # noqa: E501
-            ARIN="https://ftp.arin.net/pub/stats/arin/delegated-arin-extended-latest",
-            LACNIC="https://ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-extended-latest",  # noqa: E501
-            RIPE="https://ftp.ripe.net/ripe/stats/delegated-ripencc-extended-latest",
-        )
-        filter_regex = re.compile(r"^(?:#|\d|.*\*)")
-        regex2 = re.compile(r"(?:allocated|assigned)")
-        for rir, url in data_urls.items():
-            logger.info(f"Loading range data from {rir}")
-            req = session.get(url)
+def ripestat_data(provider: Provider) -> Iterator[IPNetwork]:
+    # uses announced-prefixes API, which shows the prefixes the AS has announced
+    # in the last two weeks. The ris-prefixes api also shows transiting prefixes.
+    url = "https://stat.ripe.net/data/announced-prefixes/data.json"
+    params = {"sourceapp": "toolforge-anticompositebot-asnblock"}
+    throttle = utils.Throttle(1)
+    global ripe_calls
+    for asn in provider.asn:
+        params["resource"] = asn
+        throttle.throttle()
+        try:
+            req = session.get(url, params=params)
+            ripe_calls += 1
             req.raise_for_status()
-            for line in req.text.split("\n"):
-                if (
-                    re.match(filter_regex, line)
-                    or not line
-                    or not re.search(regex2, line)
-                ):
-                    continue
-                else:
-                    yield line
+            data = req.json()
+        except Exception as err:
+            logger.exception(err)
 
-    def load_rir_data(self) -> None:
-        """Download, collate, and prepare data provided by the RIRs."""
-        ipv4 = []
-        ipv6 = []
-        asn = []
-        reader = csv.reader(self.get_rir_data(), delimiter="|")
-        for line in reader:
-            row = DataRow._make(line)
-            if row.type == "ipv4":
-                ipv4.append(row)
-            elif row.type == "ipv6":
-                ipv6.append(row)
-            elif row.type == "asn":  # pragma: no branch
-                asn.append(row)
-        self.ipv4 = ipv4
-        self.ipv6 = ipv6
-        self.asn = asn
-        logger.info("Range data loaded")
+        if data["status"] != "ok":
+            logger.error(f"RIPEStat error: {data.get('message')}")
+        if not data["data_call_status"].startswith("supported"):
+            logger.warning(f"RIPEStat warning: {data['data_call_status']}")
 
-    def get_asn_ranges(self, asn_list: List[str]) -> List[IPNetwork]:
-        """Return a list of IP ranges associated with a list of AS numbers."""
-        # The RIR data files don't prefix AS numbers with AS, so remove it
-        for i, asn in enumerate(asn_list.copy()):
-            if asn.startswith("AS"):
-                asn_list[i] = asn[2:]
-
-        idents = [row.opaque_id for row in self.asn if row.start in asn_list]
-        ranges: List[IPNetwork] = []
-        # IPv4 records are starting ip & total IPs
-        # Need to do some math to get CIDR ranges
-        ranges.extend(
-            ipaddress.IPv4Network((row.start, 32 - int(math.log2(int(row.value)))))
-            for row in self.ipv4
-            if row.opaque_id in idents
-        )
-        # IPv6 records just have the CIDR range.
-        ranges.extend(
-            ipaddress.IPv6Network((row.start, int(row.value)))
-            for row in self.ipv6
-            if row.opaque_id in idents
-        )
-        return ranges
+        for prefix in data.get("data", {}).get("prefixes", []):
+            yield ipaddress.ip_network(prefix["prefix"])
 
 
-def microsoft_data() -> Iterator[IPNetwork]:
+def microsoft_data(provider: Provider) -> Iterator[IPNetwork]:
     """Get IP ranges used by Azure and other Microsoft services."""
     # The IP list is not at a stable or predictable URL (it includes the hash
     # of the file itself, which we don't have yet). Instead, we have to parse
@@ -270,7 +226,7 @@ def amazon_data(provider: Provider) -> Iterator[IPNetwork]:
         yield ipaddress.IPv6Network(prefix["ipv6_prefix"])
 
 
-def google_data() -> Iterator[IPNetwork]:
+def google_data(provider: Provider) -> Iterator[IPNetwork]:
     """Get IP ranges used by Google Cloud Platform."""
     url = "https://www.gstatic.com/ipranges/cloud.json"
     req = session.get(url)
@@ -304,6 +260,15 @@ def oracle_data(provider: Provider) -> Iterator[IPNetwork]:
     for region in data["regions"]:
         for cidr in region["cidrs"]:
             yield ipaddress.ip_network(cidr["cidr"])
+
+
+url_handlers = {
+    "microsoft": microsoft_data,
+    "google": google_data,
+    "amazon": amazon_data,
+    "icloud": icloud_data,
+    "oracle": oracle_data,
+}
 
 
 def search_whois(
@@ -564,7 +529,7 @@ def unblocked_or_expiring(expiry: str, days: str, now: datetime.datetime) -> boo
     if not expiry:
         # Not blocked
         return True
-    elif expiry == "infinite":
+    elif expiry == "infinity":
         # Blocked indef, not going to expire
         return False
     elif not days:
@@ -632,23 +597,16 @@ def filter_ranges(
 def collect_data(config: Config, targets: List[Target]) -> List[Provider]:
     """Collect IP address data for various hosting/proxy providers."""
     providers = config.providers
-    rir_data = RIRData()
 
     for provider in providers:
         logger.info(f"Checking ranges from {provider.name}")
         if provider.asn:
-            ranges: Iterable[IPNetwork] = rir_data.get_asn_ranges(provider.asn.copy())
+            ranges = ripestat_data(provider)
         elif provider.url:
-            if "microsoft" in provider.url:
-                ranges = microsoft_data()
-            elif "google" in provider.url:
-                ranges = google_data()
-            elif "amazon" in provider.url:
-                ranges = amazon_data(provider)
-            elif "icloud" in provider.url:
-                ranges = icloud_data(provider)
-            elif "oracle" in provider.url:
-                ranges = oracle_data(provider)
+            for search, handler in url_handlers.items():
+                if search in provider.url:
+                    ranges = handler(provider)
+                    break
             else:
                 logger.error(f"{provider.name} has no handler")
                 continue
@@ -658,6 +616,8 @@ def collect_data(config: Config, targets: List[Target]) -> List[Provider]:
 
         ranges = combine_ranges(ranges)
         provider.ranges = filter_ranges(targets, list(ranges), provider, config)
+
+    logger.debug(f"RIPEStat calls: {ripe_calls}")
 
     return providers
 
@@ -693,7 +653,7 @@ def dump_report(title: str, providers: Iterable[Provider]) -> None:
 def main(target_strs: List[str]) -> None:
     utils.check_runpage(site, task="ASNBlock")
     start_time = time.monotonic()
-    logger.info("Loading configuration data")
+    logger.info(f"ASNBlock {__version__} starting up, Loading configuration data")
     config = Config()
     targets = [Target.from_str(target) for target in target_strs]
 
