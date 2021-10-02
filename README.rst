@@ -31,9 +31,11 @@ ASNBlock
     :Schedule: Nightly, beginning at 02:30 UTC (for enwiki) and 08:13 UTC (for global)
     :Start: ``kubectl apply -f etc/asnblock_cron.yaml --validate=true``
     :Run now:
-        :enwiki: ``kubectl create job --from anticompositebot.asnblock  anticompositebot.asnblock``
-        :global: ``kubectl create job --from anticompositebot.asnblock-global anticompositebot.asnblock-global``
-    :Stop: ``kubectl delete CronJob anticompositebot.asnblock``
+        :enwiki: ``kubectl create job --from cronjob/anticompositebot.asnblock  anticompositebot.asnblock``
+        :global: ``kubectl create job --from cronjob/anticompositebot.asnblock-global anticompositebot.asnblock-global``
+    :Stop:
+        :enwiki: ``kubectl delete CronJob anticompositebot.asnblock``
+        :global: ``kubectl delete CronJob anticompositebot.asnblock-global``
     :Logs: ``kubectl logs``
     :Config: https://en.wikipedia.org/wiki/User:AntiCompositeBot/ASNBlock/config.json
 
@@ -42,7 +44,7 @@ EssayImpact
 
     :Schedule: Once every two weeks at 01:45 UTC
     :Start: ``kubectl apply -f etc/essayimpact_cron.yaml --validate=true``
-    :Run now: ``kubectl create job --from anticompositebot.essayimpact anticompositebot.essayimpact``
+    :Run now: ``kubectl create job --from cronjob/anticompositebot.essayimpact anticompositebot.essayimpact``
     :Stop: ``kubectl delete CronJob anticompositebot.essayimpact``
     :Logs: ``less ~/logs/essayimpact.log``
     :Config: https://en.wikipedia.org/wiki/User:AntiCompositeBot/EssayImpact/config.json
@@ -52,7 +54,7 @@ NoLicense
 
     :Schedule: Hourly
     :Start: ``kubectl apply -f etc/nolicense_cron.yaml --validate=true``
-    :Run now: ``kubectl create job --from anticompositebot.nolicense-cron anticompositebot.nolicense``
+    :Run now: ``kubectl create job --from cronjob/anticompositebot.nolicense-cron anticompositebot.nolicense``
     :Stop: ``kubectl delete CronJob anticompositebot.nolicense-cron``
     :Logs: ``less ~/logs/nolicense.log``
 
@@ -61,7 +63,7 @@ RedWarnUsers
 
     :Schedule: Weekly at 01:15 UTC
     :Start: ``kubectl apply -f etc/redwarnusers_cron.yaml --validate=true``
-    :Run now: ``kubectl create job --from anticompositebot.redwarnusers anticompositebot.redwarnusers``
+    :Run now: ``kubectl create job --from cronjob/anticompositebot.redwarnusers anticompositebot.redwarnusers``
     :Stop: ``kubectl delete CronJob anticompositebot.redwarnusers``
 
 ShouldBeSvg
@@ -77,7 +79,7 @@ uncat
 
     :Schedule: Weekly at 07:30 UTC
     :Start: ``kubectl apply -f etc/uncat_cron.yaml --validate=true``
-    :Run now: ``kubectl create job --from anticompositebot.uncat anticompositebot.uncat``
+    :Run now: ``kubectl create job --from cronjob/anticompositebot.uncat anticompositebot.uncat``
     :Stop: ``kubectl delete CronJob anticompositebot.uncat``
 
 catwatch
@@ -85,7 +87,7 @@ catwatch
 
     :Schedule: Daily at 00:00 UTC
     :Start: ``kubectl apply -f etc/catwatch_cron.yaml --validate=true``
-    :Run now: ``kubectl create job --from anticompositebot.catwatch anticompositebot.catwatch``
+    :Run now: ``kubectl create job --from cronjob/anticompositebot.catwatch anticompositebot.catwatch``
     :Stop: ``kubectl delete CronJob anticompositebot.catwatch``
 
 Files relating to tasks not on this list are likely not actively maintained. This is likely because they were used for a one-off run that has completed.
