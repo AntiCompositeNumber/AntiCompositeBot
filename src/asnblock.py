@@ -74,13 +74,31 @@ class DataRow(NamedTuple):
     opaque_id: str
 
 
+class Target(NamedTuple):
+    """A report target"""
+
+    db: str
+    days: str
+
+    def __str__(self) -> str:
+        if self.days:
+            return f"{self.db}={self.days}"
+        else:
+            return self.db
+
+    @classmethod
+    def from_str(cls, target_str: str) -> "Target":
+        db, _, days = target_str.partition("=")
+        return cls(db, days)
+
+
 @dataclasses.dataclass
 class Provider:
     name: str
     blockname: str = ""
     asn: List[str] = dataclasses.field(default_factory=list)
     expiry: str = ""
-    ranges: Dict[str, List[IPNetwork]] = dataclasses.field(default_factory=dict)
+    ranges: Dict[Target, List[IPNetwork]] = dataclasses.field(default_factory=dict)
     url: str = ""
     src: str = ""
     search: List[str] = dataclasses.field(default_factory=list)
@@ -364,9 +382,7 @@ def db_network(net: IPNetwork) -> Dict[str, str]:
     return dict(start=start, end=end, prefix=prefix)
 
 
-def not_blocked(
-    net: IPNetwork, conn: pymysql.connections.Connection, exp_before: str = ""
-) -> bool:
+def get_blocks(net: IPNetwork, conn: pymysql.connections.Connection) -> str:
     """Query the database to determine if a range is currently blocked.
 
     Blocked ranges return False, unblocked ranges return True.
@@ -379,23 +395,18 @@ def not_blocked(
 
     db_args = db_network(net)
 
-    if exp_before:
-        db_args["exp"] = exp_before
-
     if conn.db == b"centralauth_p":
         query = """
-SELECT gb_id
+SELECT gb_expiry
 FROM globalblocks
 WHERE
     gb_range_start LIKE %(prefix)s
     AND gb_range_start <= %(start)s
     AND gb_range_end >= %(end)s
 """
-        if exp_before:
-            query += "AND (gb_expiry = 'infinity' OR gb_expiry >= %(exp)s)"
     else:
         query = """
-SELECT ipb_id
+SELECT ipb_expiry
 FROM ipblocks
 WHERE
     ipb_range_start LIKE %(prefix)s
@@ -404,15 +415,17 @@ WHERE
     AND ipb_sitewide = 1
     AND ipb_auto = 0
 """
-        if exp_before:
-            query += "AND (ipb_expiry = 'infinity' OR ipb_expiry >= %(exp)s)"
     try:
         with conn.cursor() as cur:
             count = cur.execute(query, args=db_args)
-            return count == 0
+            if count > 0:
+                return str(cur.fetchall()[0][0], encoding="utf-8")
+            else:
+                return ""
+
     except Exception as e:
         logger.exception(e)
-        return False
+        return ""
 
 
 def combine_ranges(all_ranges: Iterable[IPNetwork]) -> Iterator[IPNetwork]:
@@ -439,7 +452,7 @@ def combine_ranges(all_ranges: Iterable[IPNetwork]) -> Iterator[IPNetwork]:
                 yield net
 
 
-def make_section(provider: Provider, site_config: dict, target: str) -> str:
+def make_section(provider: Provider, site_config: dict, target: Target) -> str:
     """Prepares wikitext report section for a provider."""
     if provider.url:
         source = "[{0.url} {0.src}]".format(provider)
@@ -495,7 +508,7 @@ def make_section(provider: Provider, site_config: dict, target: str) -> str:
     return section
 
 
-def make_mass_section(provider: Provider, target: str) -> str:
+def make_mass_section(provider: Provider, target: Target) -> str:
     """Prepares massblock-compatible report section for a provider."""
     section = f"\n==={provider.name}===\n" + "\n".join(
         str(net) for net in provider.ranges.get(target, [])
@@ -545,37 +558,67 @@ def update_page(
             logger.error("Page not saved, continuing", exc_info=e)
 
 
+def unblocked_or_expiring(expiry: str, days: str, now: datetime.datetime) -> bool:
+    # True: unblocked or expiring before days
+    # False: Blocked
+    if not expiry:
+        # Not blocked
+        return True
+    elif expiry == "infinite":
+        # Blocked indef, not going to expire
+        return False
+    elif not days:
+        # Target doesn't care about expiring blocks
+        return False
+    elif datetime.datetime.strptime(expiry, "%Y%m%d%H%M%S") - now >= datetime.timedelta(
+        days=int(days)
+    ):
+        return False
+    else:
+        return True
+
+
 def filter_ranges(
-    targets: List[str], ranges: List[IPNetwork], provider: Provider, config: Config
-) -> Dict[str, List[IPNetwork]]:
+    targets: List[Target], ranges: List[IPNetwork], provider: Provider, config: Config
+) -> Dict[Target, List[IPNetwork]]:
     """Filter a list of IP ranges based on block status and WHOIS data.
 
     Returns a dict mapping targets to lists of unblocked ranges
     """
     cache = Cache(config)
     throttle = utils.Throttle(1)
-    filtered: Dict[IPNetwork, List[str]] = {}
+    filtered: Dict[IPNetwork, List[Target]] = {}
+    now = datetime.datetime.utcnow()
 
+    # Group targets with the same db
+    dbs: Dict[str, List[Target]] = {}
     for target in targets:
-        logger.debug(f"Checking blocks in target {target}")
-        db, _, days = target.partition("=")
-        if days:
-            exp_before = (
-                datetime.datetime.utcnow() + datetime.timedelta(days=int(days))
-            ).strftime("%Y%m%d%H%M%S")
-        else:
-            exp_before = ""
+        dbs.setdefault(target.db, []).append(target)
 
-        logger.debug(f"{len(ranges)}, {db}, {exp_before}")
+    for db, targets in dbs.items():
+        logger.debug(f"Checking blocks in {targets}")
+        # if target.days:
+        #     exp_before = (
+        #         datetime.datetime.utcnow() + datetime.timedelta(days=int(target.days))
+        #     ).strftime("%Y%m%d%H%M%S")
+        # else:
+        #     exp_before = ""
+
+        logger.debug(f"{len(ranges)}, {db}")
         conn = toolforge.connect(db, cluster="analytics")
         for net in ranges:
             if net in config.ignore:
                 continue
-            elif not_blocked(net, conn, exp_before):
-                filtered.setdefault(net, []).append(target)
+            expiry = get_blocks(net, conn)
+            unblocked = [
+                target
+                for target in targets
+                if unblocked_or_expiring(expiry, target.days, now)
+            ]
+            filtered.setdefault(net, []).extend(unblocked)
         conn.close()
 
-    inverted: Dict[str, List[IPNetwork]] = {}
+    inverted: Dict[Target, List[IPNetwork]] = {}
     for net, blocks in filtered.items():
         if not provider.search or cache_search_whois(
             net, provider.search, cache, throttle=throttle
@@ -586,7 +629,7 @@ def filter_ranges(
     return inverted
 
 
-def collect_data(config: Config, targets: List[str]) -> List[Provider]:
+def collect_data(config: Config, targets: List[Target]) -> List[Provider]:
     """Collect IP address data for various hosting/proxy providers."""
     providers = config.providers
     rir_data = RIRData()
@@ -625,7 +668,8 @@ def provider_dict(items: Iterable[Tuple[str, Any]]) -> Dict[str, Any]:
     for key, value in items:
         if key == "ranges":
             output[key] = {
-                target: [str(net) for net in nets] for target, nets in value.items()
+                str(target): [str(net) for net in nets]
+                for target, nets in value.items()
             }
         else:
             output[key] = value
@@ -646,25 +690,25 @@ def dump_report(title: str, providers: Iterable[Provider]) -> None:
         )
 
 
-def main(targets: List[str]) -> None:
+def main(target_strs: List[str]) -> None:
     utils.check_runpage(site, task="ASNBlock")
     start_time = time.monotonic()
     logger.info("Loading configuration data")
     config = Config()
+    targets = [Target.from_str(target) for target in target_strs]
 
     providers = collect_data(config, targets)
 
     sites = config.sites
     for target in targets:
-        db, _, days = target.partition("=")
-        site_config = sites.get(db, sites["enwiki"])
+        site_config = sites.get(target.db, sites["enwiki"])
         title = "ASNBlock"
-        if db == "enwiki":
+        if target.db == "enwiki":
             pass
-        elif db == "centralauth":
+        elif target.db == "centralauth":
             title += "/global"
         else:
-            title += "/" + db
+            title += "/" + target.db
 
         total_ranges = sum(
             len(provider.ranges.get(target, [])) for provider in providers
@@ -676,13 +720,13 @@ def main(targets: List[str]) -> None:
         text += "".join(
             make_section(provider, site_config, target) for provider in providers
         )
-        update_page(text, title=title, total=total_ranges, exp=bool(days))
+        update_page(text, title=title, total=total_ranges, exp=bool(target.days))
 
         mass_text += "".join(
             make_mass_section(provider, target) for provider in providers
         )
         update_page(
-            mass_text, title=title, mass=True, total=total_ranges, exp=bool(days)
+            mass_text, title=title, mass=True, total=total_ranges, exp=bool(target.days)
         )
 
         dump_report(title, providers)

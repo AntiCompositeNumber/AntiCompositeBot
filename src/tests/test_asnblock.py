@@ -22,6 +22,7 @@ import sys
 import pytest
 import unittest.mock as mock
 import ipaddress
+import datetime
 import requests
 import urllib.parse
 import acnutils as utils
@@ -247,7 +248,7 @@ def test_db_network(net, expected):
 
 
 @pytest.mark.skip("Not implemented")
-def test_not_blocked():
+def test_get_blocks():
     pass
 
 
@@ -386,6 +387,27 @@ def test_make_mass_section():
 @pytest.mark.skip("Not implemented")
 def test_update_page():
     pass
+
+
+@pytest.mark.parametrize(
+    "expiry,days,expected",
+    [
+        (40, "30", False),
+        (40, "", False),
+        (20, "30", True),
+        (20, "", False),
+        ("infinite", "30", False),
+        ("infinite", "", False),
+        ("", "30", True),
+        ("", "", True),
+    ],
+)
+def test_unblocked_or_expiring(expiry, days, expected):
+    now = datetime.datetime.utcnow()
+    if isinstance(expiry, int):
+        expiry = (now + datetime.timedelta(days=int(expiry))).strftime("%Y%m%d%H%M%S")
+    result = asnblock.unblocked_or_expiring(expiry, days, now)
+    assert result is expected
 
 
 def mock_filter_ranges(targets, ranges, provider, config):
