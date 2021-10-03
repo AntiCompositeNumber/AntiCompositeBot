@@ -8,6 +8,7 @@ metadata:
     toolforge: tool
 spec:
   schedule: "11 2,10,18 * * *"
+  successfulJobsHistoryLimit: 1
   jobTemplate:
     spec:
       backoffLimit: 2

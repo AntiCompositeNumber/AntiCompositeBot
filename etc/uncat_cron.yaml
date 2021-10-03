@@ -9,6 +9,7 @@ metadata:
 spec:
   schedule: "30 7 */7 * *"
   concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 1
   jobTemplate:
     spec:
       template:
