@@ -30,8 +30,8 @@ import random
 import dataclasses
 import datetime
 import argparse
+import concurrent.futures
 from bs4 import BeautifulSoup  # type: ignore
-import pymysql
 import redis
 from typing import (
     NamedTuple,
@@ -48,7 +48,9 @@ from typing import (
 
 __version__ = "2.0.0-beta.5"
 
-logger = utils.getInitLogger("ASNBlock", level="VERBOSE", filename="stderr")
+logger = utils.getInitLogger(
+    "ASNBlock", level="VERBOSE", filename="stderr", thread=True
+)
 
 site = pywikibot.Site("en", "wikipedia")
 simulate = False
@@ -191,28 +193,6 @@ class Cache:
     def __delitem__(self, key: str) -> None:
         if self._redis:
             self._redis.delete(self._prefix + key)
-
-
-class RedisThrottle(utils.Throttle):
-    """Concurrency-safe throttle using Redis"""
-
-    def __init__(self, delay: float, name: str, config: Config) -> None:
-        """
-        :param delay: Seconds between `throttle` calls
-        :param name: Throttle name
-        """
-        self.delay = delay
-        self.name = name
-        self._redis: Optional[redis.Redis] = None
-        if config.redis_host:
-            self._redis = redis.Redis(host=config.redis_host, port=config.redis_port)
-            self._prefix = config.redis_prefix
-        else:
-            super().__init__(delay)
-
-    def throttle(self) -> None:
-        if self._redis:
-            pass
 
 
 def ripestat_data(provider: Provider) -> Iterator[IPNetwork]:
@@ -398,7 +378,7 @@ def db_network(net: IPNetwork) -> Dict[str, str]:
     return dict(start=start, end=end, prefix=prefix)
 
 
-def get_blocks(net: IPNetwork, conn: pymysql.connections.Connection) -> str:
+def query_blocks(net: IPNetwork, db: str) -> str:
     """Query the database to determine if a range is currently blocked.
 
     Blocked ranges return False, unblocked ranges return True.
@@ -411,7 +391,7 @@ def get_blocks(net: IPNetwork, conn: pymysql.connections.Connection) -> str:
 
     db_args = db_network(net)
 
-    if conn.db == b"centralauth_p":
+    if db.startswith("centralauth"):
         query = """
 SELECT gb_expiry
 FROM globalblocks
@@ -432,12 +412,13 @@ WHERE
     AND ipb_auto = 0
 """
     try:
-        with conn.cursor() as cur:
-            count = cur.execute(query, args=db_args)
-            if count > 0:
-                return str(cur.fetchall()[0][0], encoding="utf-8")
-            else:
-                return ""
+        with toolforge.connect(db, cluster="analytics") as conn:  # type: ignore
+            with conn.cursor() as cur:
+                count = cur.execute(query, args=db_args)
+                if count > 0:
+                    return str(cur.fetchall()[0][0], encoding="utf-8")
+                else:
+                    return ""
 
     except Exception as e:
         logger.exception(e)
@@ -594,6 +575,21 @@ def unblocked_or_expiring(expiry: str, days: str, now: datetime.datetime) -> boo
         return True
 
 
+def get_blocks(
+    net: IPNetwork,
+    db: str,
+    targets: Iterable[Target],
+    now: datetime.datetime,
+    config: Config,
+) -> List[Target]:
+    if net in config.ignore:
+        return []
+    expiry = query_blocks(net, db)
+    return [
+        target for target in targets if unblocked_or_expiring(expiry, target.days, now)
+    ]
+
+
 def filter_ranges(
     targets: Iterable[Target],
     ranges: List[IPNetwork],
@@ -617,21 +613,21 @@ def filter_ranges(
     for db, targets in dbs.items():
         logger.debug(f"Checking blocks in {targets}")
         logger.debug(f"{len(ranges)}, {db}")
-        conn = toolforge.connect(db, cluster="analytics")
-        for net in ranges:
-            if net in config.ignore:
-                continue
-            expiry = get_blocks(net, conn)
-            unblocked = [
-                target
-                for target in targets
-                if unblocked_or_expiring(expiry, target.days, now)
-            ]
-            filtered.setdefault(net, []).extend(unblocked)
-        conn.close()
+
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=config.workers
+        ) as executor:
+            future_blocks = {
+                executor.submit(get_blocks, net, db, targets, now, config): net
+                for net in ranges
+            }
+            for future in concurrent.futures.as_completed(future_blocks):
+                net = future_blocks[future]
+                filtered.setdefault(net, []).extend(future.result())
 
     inverted: Dict[Target, List[IPNetwork]] = {}
-    for net, blocks in filtered.items():
+    for net in sorted(filtered, key=ipaddress.get_mixed_type_key):  # type: ignore
+        blocks = filtered[net]
         if not provider.search or cache_search_whois(
             net, provider.search, cache, throttle=throttle
         ):
@@ -641,7 +637,7 @@ def filter_ranges(
     return inverted
 
 
-def collect_data(config: Config, targets: List[Target]) -> List[Provider]:
+def collect_data(config: Config, targets: Iterable[Target]) -> List[Provider]:
     """Collect IP address data for various hosting/proxy providers."""
     providers = config.providers
 
@@ -684,7 +680,7 @@ def main(target_strs: List[str]) -> None:
     start_time = time.monotonic()
     logger.info(f"ASNBlock {__version__} starting up, Loading configuration data")
     config = Config.load()
-    targets = (Target.from_str(target) for target in target_strs)
+    targets = tuple(Target.from_str(target) for target in target_strs)
 
     providers = collect_data(config, targets)
 

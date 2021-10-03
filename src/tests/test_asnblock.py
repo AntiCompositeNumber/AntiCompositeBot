@@ -360,28 +360,43 @@ def test_combine_ranges():
     assert list(asnblock.combine_ranges(ranges)) == expected
 
 
-def test_make_section(live_config):
-    provider = asnblock.Provider(
-        name="chocolate",
-        asn=["AS9876"],
-        search=["banana", "coffee"],
-        ranges={
-            asnblock.Target("enwiki"): [
-                ipaddress.IPv4Network("10.0.0.0/16"),
-                ipaddress.IPv4Network("10.1.0.0/32"),
-                ipaddress.IPv6Network("fd00::/19"),
-                ipaddress.IPv6Network("fd00:2000::/128"),
-            ],
-            asnblock.Target("enwiki", "30"): [
-                ipaddress.IPv4Network("10.1.0.0/32"),
-            ],
-            asnblock.Target("centralauth"): [
-                ipaddress.IPv6Network("fd00::/19"),
-                ipaddress.IPv6Network("fd00:3000::/128"),
-            ],
-        },
-    )
-
+@pytest.mark.parametrize(
+    "provider,asserts",
+    [
+        (
+            asnblock.Provider(
+                name="chocolate",
+                asn=["AS9876"],
+                search=["banana", "coffee"],
+            ),
+            ["chocolate", "banana", "coffee", "AS9876"],
+        ),
+        (
+            asnblock.Provider(
+                name="chocolate",
+                url="http://example.com/coffee",
+                src="banana",
+            ),
+            ["chocolate", "banana", "coffee"],
+        ),
+    ],
+)
+def test_make_section(provider, asserts, live_config):
+    provider.ranges = {
+        asnblock.Target("enwiki"): [
+            ipaddress.IPv4Network("10.0.0.0/16"),
+            ipaddress.IPv4Network("10.1.0.0/32"),
+            ipaddress.IPv6Network("fd00::/19"),
+            ipaddress.IPv6Network("fd00:2000::/128"),
+        ],
+        asnblock.Target("enwiki", "30"): [
+            ipaddress.IPv4Network("10.1.0.0/32"),
+        ],
+        asnblock.Target("centralauth"): [
+            ipaddress.IPv6Network("fd00::/19"),
+            ipaddress.IPv6Network("fd00:3000::/128"),
+        ],
+    }
     site_config = live_config.sites["enwiki"]
 
     mock_subst = mock.Mock(return_value="")
@@ -392,10 +407,8 @@ def test_make_section(live_config):
             provider, site_config, asnblock.Target("enwiki")
         )
 
-    assert "chocolate" in section
-    assert "banana" in section
-    assert "coffee" in section
-    assert "AS9876" in section
+    for statement in asserts:
+        assert statement in section
 
     ranges = [
         "fd00:2000::",
@@ -426,9 +439,33 @@ def test_make_section(live_config):
     assert len(expiries) == 4
 
 
-@pytest.mark.skip("Not implemented")
 def test_make_mass_section():
-    pass
+    provider = asnblock.Provider(
+        name="chocolate",
+        asn=["AS9876"],
+        search=["banana", "coffee"],
+        ranges={
+            asnblock.Target("enwiki"): [
+                ipaddress.IPv4Network("10.0.0.0/16"),
+                ipaddress.IPv4Network("10.1.0.0/32"),
+                ipaddress.IPv6Network("fd00::/19"),
+                ipaddress.IPv6Network("fd00:2000::/128"),
+            ],
+            asnblock.Target("enwiki", "30"): [
+                ipaddress.IPv4Network("10.1.0.0/32"),
+            ],
+            asnblock.Target("centralauth"): [
+                ipaddress.IPv6Network("fd00::/19"),
+                ipaddress.IPv6Network("fd00:3000::/128"),
+            ],
+        },
+    )
+    target = asnblock.Target("enwiki")
+
+    section = asnblock.make_mass_section(provider, target)
+
+    assert provider.name in section
+    assert len(section.split()) == 5
 
 
 @pytest.mark.skip("Not implemented")
@@ -461,9 +498,43 @@ def mock_filter_ranges(targets, ranges, provider, config):
     return {targets[0]: ranges.copy()}
 
 
-@pytest.mark.skip("Not implemented")
-def test_filter_ranges():
-    pass
+def fuzz_side_effect(*args, **kwargs):
+    time.sleep(random.random())
+    return mock.DEFAULT
+
+
+def test_filter_ranges(wmf_provider, live_config):
+    targets = (asnblock.Target("enwiki"), asnblock.Target("enwiki", "30"))
+    ranges = [
+        ipaddress.ip_network("91.198.174.0/24"),
+        ipaddress.ip_network("103.102.166.0/24"),
+        ipaddress.ip_network("185.15.56.0/22"),
+        ipaddress.ip_network("185.71.138.0/24"),
+        ipaddress.ip_network("198.35.26.0/23"),
+        ipaddress.ip_network("208.80.152.0/22"),
+        ipaddress.ip_network("2001:df2:e500::/48"),
+        ipaddress.ip_network("2620:0:860::/46"),
+        ipaddress.ip_network("2a02:ec80::/32"),
+    ]
+    config = live_config
+
+    mock_get_blocks = mock.Mock()
+    mock_get_blocks.side_effect = fuzz_side_effect
+    mock_get_blocks.return_value = list(targets)
+    mock_search = mock.Mock(return_value=True)
+
+    with mock.patch.multiple(
+        "asnblock", get_blocks=mock_get_blocks, cache_search_whois=mock_search
+    ):
+        result = asnblock.filter_ranges(targets, ranges, wmf_provider, config)
+
+    mock_get_blocks.assert_has_calls(
+        [mock.call(net, "enwiki", list(targets), mock.ANY, config) for net in ranges],
+        any_order=True,
+    )
+    assert mock_search.call_count == len(ranges)
+    assert result[targets[0]] == ranges
+    assert result[targets[1]] == ranges
 
 
 @pytest.mark.parametrize(
@@ -664,18 +735,12 @@ def test_provider_getranges_error(provider, live_config):
     mock_ripestat.assert_not_called()
 
 
-def fuzz_side_effect(*args, **kwargs):
-    time.sleep(random.random())
-    return mock.DEFAULT
-
-
 def test_collect_data(live_config):
     providers = []
     for provider in live_config.providers[:30]:
         mock_prov = mock.create_autospec(provider)
         mock_prov.name = provider.name
         mock_prov.get_ranges.return_value = getattr(mock.sentinel, provider.name)
-        mock_prov.get_ranges.side_effect = fuzz_side_effect
         providers.append(mock_prov)
 
     targets = (asnblock.Target("enwiki"), asnblock.Target("enwiki", "30"))
