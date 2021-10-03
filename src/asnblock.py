@@ -202,6 +202,8 @@ def ripestat_data(provider: Provider) -> Iterator[IPNetwork]:
     params = {"sourceapp": "toolforge-anticompositebot-asnblock"}
     throttle = utils.Throttle(1)
     for asn in provider.asn:
+        if not asn:
+            continue
         params["resource"] = asn
         throttle.throttle()
         try:
@@ -321,7 +323,7 @@ def search_whois(
         req.raise_for_status()
         for whois_net in req.json()["nets"]:
             for search in search_list:
-                if (
+                if search and (
                     search in str(whois_net.get("description", "")).lower()
                     or search in str(whois_net.get("name", "")).lower()
                 ):
