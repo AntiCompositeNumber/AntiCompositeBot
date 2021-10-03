@@ -46,7 +46,7 @@ from typing import (
     Set,
 )
 
-__version__ = "2.0.0-beta.4"
+__version__ = "2.0.0-beta.5"
 
 logger = utils.getInitLogger("ASNBlock", level="VERBOSE", filename="stderr")
 
@@ -55,8 +55,6 @@ simulate = False
 session = requests.session()
 session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
 whois_api = "https://whois-dev.toolforge.org"
-url_handlers = {}
-ripe_calls = 0
 
 IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
 
@@ -78,7 +76,7 @@ class Target(NamedTuple):
     """A report target"""
 
     db: str
-    days: str
+    days: str = ""
 
     def __repr__(self) -> str:
         if self.days:
@@ -111,9 +109,29 @@ class Provider:
         if self.search:
             self.search = [entry.lower() for entry in self.search]
 
+    def get_ranges(
+        self, config: "Config", targets: Iterable[Target]
+    ) -> Dict[Target, List[IPNetwork]]:
+        logger.info(f"Checking ranges from {self.name}")
+        if self.asn:
+            ranges = ripestat_data(self)
+        elif self.url:
+            for search, handler in url_handlers.items():
+                if search in self.url:
+                    ranges = handler(self)
+                    break
+            else:
+                logger.error(f"{self.name} has no handler")
+                return {}
+        else:
+            logger.error(f"{self.name} could not be processed")
+            return {}
 
-@dataclasses.dataclass
-class Config:
+        ranges = combine_ranges(ranges)
+        return filter_ranges(targets, list(ranges), self, config)
+
+
+class Config(NamedTuple):
     providers: List[Provider]
     ignore: Set[IPNetwork]
     sites: Dict[str, Dict[str, str]]
@@ -122,22 +140,27 @@ class Config:
     redis_host: str
     redis_port: int
     use_redis: bool
+    workers: int
 
-    def __init__(self) -> None:
+    @classmethod
+    def load(cls) -> "Config":
+        """Load configuration data from disk and the wiki"""
         private_config = utils.load_config("ASNBlock", __file__)
         page = pywikibot.Page(site, "User:AntiCompositeBot/ASNBlock/config.json")
         data = json.loads(page.text)
         data.update(private_config)
 
-        self.redis_prefix = data.get("redis_prefix", "")
-        self.redis_host = data.get("redis_host", "")
-        self.redis_port = int(data.get("redis_port", "6379"))
-        self.use_redis = data.get("use_redis", False)
-
-        self.last_modified = page.editTime()
-        self.providers = [Provider(**provider) for provider in data["providers"]]
-        self.ignore = {ipaddress.ip_network(net) for net in data["ignore"]}
-        self.sites = data["sites"]
+        return cls(
+            redis_prefix=data.get("redis_prefix", ""),
+            redis_host=data.get("redis_host", ""),
+            redis_port=int(data.get("redis_port", "6379")),
+            use_redis=data.get("use_redis", False),
+            last_modified=page.editTime(),
+            providers=[Provider(**provider) for provider in data["providers"]],
+            ignore={ipaddress.ip_network(net) for net in data["ignore"]},
+            sites=data["sites"],
+            workers=data.get("workers", 3),
+        )
 
 
 class Cache:
@@ -170,27 +193,48 @@ class Cache:
             self._redis.delete(self._prefix + key)
 
 
+class RedisThrottle(utils.Throttle):
+    """Concurrency-safe throttle using Redis"""
+
+    def __init__(self, delay: float, name: str, config: Config) -> None:
+        """
+        :param delay: Seconds between `throttle` calls
+        :param name: Throttle name
+        """
+        self.delay = delay
+        self.name = name
+        self._redis: Optional[redis.Redis] = None
+        if config.redis_host:
+            self._redis = redis.Redis(host=config.redis_host, port=config.redis_port)
+            self._prefix = config.redis_prefix
+        else:
+            super().__init__(delay)
+
+    def throttle(self) -> None:
+        if self._redis:
+            pass
+
+
 def ripestat_data(provider: Provider) -> Iterator[IPNetwork]:
     # uses announced-prefixes API, which shows the prefixes the AS has announced
     # in the last two weeks. The ris-prefixes api also shows transiting prefixes.
     url = "https://stat.ripe.net/data/announced-prefixes/data.json"
     params = {"sourceapp": "toolforge-anticompositebot-asnblock"}
     throttle = utils.Throttle(1)
-    global ripe_calls
     for asn in provider.asn:
         params["resource"] = asn
         throttle.throttle()
         try:
             req = session.get(url, params=params)
-            ripe_calls += 1
             req.raise_for_status()
             data = req.json()
         except Exception as err:
             logger.exception(err)
+            data = {}
 
-        if data["status"] != "ok":
+        if data.get("status", "ok") != "ok":
             logger.error(f"RIPEStat error: {data.get('message')}")
-        if not data["data_call_status"].startswith("supported"):
+        if not data.get("data_call_status", "supported").startswith("supported"):
             logger.warning(f"RIPEStat warning: {data['data_call_status']}")
 
         for prefix in data.get("data", {}).get("prefixes", []):
@@ -290,6 +334,10 @@ def search_whois(
     url = f"{whois_api}/w/{net[0]}/lookup/json"
     try:
         req = session.get(url)
+        if req.status_code == 429:
+            logger.warning(f"429: Too many requests on {url}")
+            time.sleep(60)
+            req = session.get(url)
         req.raise_for_status()
         for whois_net in req.json()["nets"]:
             for search in search_list:
@@ -344,6 +392,9 @@ def db_network(net: IPNetwork) -> Dict[str, str]:
             format(format(net6, "0>128b")[: net.prefixlen], "1<128"), base=2
         )
         prefix = start[:7] + "%"
+    else:  # pragma: no cover
+        raise ValueError(net)
+
     return dict(start=start, end=end, prefix=prefix)
 
 
@@ -544,14 +595,17 @@ def unblocked_or_expiring(expiry: str, days: str, now: datetime.datetime) -> boo
 
 
 def filter_ranges(
-    targets: List[Target], ranges: List[IPNetwork], provider: Provider, config: Config
+    targets: Iterable[Target],
+    ranges: List[IPNetwork],
+    provider: Provider,
+    config: Config,
 ) -> Dict[Target, List[IPNetwork]]:
     """Filter a list of IP ranges based on block status and WHOIS data.
 
     Returns a dict mapping targets to lists of unblocked ranges
     """
     cache = Cache(config)
-    throttle = utils.Throttle(1)
+    throttle = utils.Throttle(1.5)
     filtered: Dict[IPNetwork, List[Target]] = {}
     now = datetime.datetime.utcnow()
 
@@ -562,13 +616,6 @@ def filter_ranges(
 
     for db, targets in dbs.items():
         logger.debug(f"Checking blocks in {targets}")
-        # if target.days:
-        #     exp_before = (
-        #         datetime.datetime.utcnow() + datetime.timedelta(days=int(target.days))
-        #     ).strftime("%Y%m%d%H%M%S")
-        # else:
-        #     exp_before = ""
-
         logger.debug(f"{len(ranges)}, {db}")
         conn = toolforge.connect(db, cluster="analytics")
         for net in ranges:
@@ -599,25 +646,7 @@ def collect_data(config: Config, targets: List[Target]) -> List[Provider]:
     providers = config.providers
 
     for provider in providers:
-        logger.info(f"Checking ranges from {provider.name}")
-        if provider.asn:
-            ranges = ripestat_data(provider)
-        elif provider.url:
-            for search, handler in url_handlers.items():
-                if search in provider.url:
-                    ranges = handler(provider)
-                    break
-            else:
-                logger.error(f"{provider.name} has no handler")
-                continue
-        else:
-            logger.error(f"{provider.name} could not be processed")
-            continue
-
-        ranges = combine_ranges(ranges)
-        provider.ranges = filter_ranges(targets, list(ranges), provider, config)
-
-    logger.debug(f"RIPEStat calls: {ripe_calls}")
+        provider.ranges = provider.get_ranges(config, targets)
 
     return providers
 
@@ -654,8 +683,8 @@ def main(target_strs: List[str]) -> None:
     utils.check_runpage(site, task="ASNBlock")
     start_time = time.monotonic()
     logger.info(f"ASNBlock {__version__} starting up, Loading configuration data")
-    config = Config()
-    targets = [Target.from_str(target) for target in target_strs]
+    config = Config.load()
+    targets = (Target.from_str(target) for target in target_strs)
 
     providers = collect_data(config, targets)
 

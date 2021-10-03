@@ -25,6 +25,8 @@ import ipaddress
 import datetime
 import requests
 import urllib.parse
+import time
+import random
 import acnutils as utils
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
@@ -32,6 +34,31 @@ os.environ["LOG_FILE"] = "stderr"
 import asnblock  # noqa: E402
 
 session = asnblock.session
+
+
+@pytest.mark.parametrize(
+    "target,db,days,to_str",
+    [
+        (asnblock.Target("enwiki"), "enwiki", "", "enwiki"),
+        (asnblock.Target("enwiki", "30"), "enwiki", "30", "enwiki=30"),
+        (asnblock.Target("centralauth", ""), "centralauth", "", "centralauth"),
+        (asnblock.Target("centralauth", "30"), "centralauth", "30", "centralauth=30"),
+        (asnblock.Target.from_str("enwiki"), "enwiki", "", "enwiki"),
+        (asnblock.Target.from_str("centralauth"), "centralauth", "", "centralauth"),
+        (asnblock.Target.from_str("enwiki=30"), "enwiki", "30", "enwiki=30"),
+        (
+            asnblock.Target.from_str("centralauth=30"),
+            "centralauth",
+            "30",
+            "centralauth=30",
+        ),
+    ],
+)
+def test_target(target, db, days, to_str):
+    assert isinstance(target, asnblock.Target)
+    assert target.db == db
+    assert target.days == days
+    assert str(target) == to_str
 
 
 def test_provider():
@@ -49,13 +76,18 @@ def test_provider_empty():
 
 @pytest.fixture(scope="module")
 def live_config():
-    return asnblock.Config()
+    return asnblock.Config.load()
 
 
 def test_get_config(live_config):
     assert live_config.providers
     assert live_config.ignore
     assert live_config.sites
+
+
+@pytest.mark.skip("Not implemented")
+def test_cache():
+    pass
 
 
 @pytest.fixture(scope="module")
@@ -102,6 +134,16 @@ def test_ripestat_data(ip, wmf_ripestat_ranges):
     # https://phabricator.wikimedia.org/diffusion/OHPU/browse/master/config/sites.yaml
     # https://phabricator.wikimedia.org/diffusion/OHPU/browse/master/templates/includes/customers/64710.policy
     assert ip in wmf_ripestat_ranges
+
+
+def test_ripestat_data_raise(wmf_provider):
+    mock_get = mock.Mock(spec=session.get)
+    mock_req = mock_get.return_value
+    mock_req.raise_for_status.side_effect = requests.exceptions.HTTPError
+    with mock.patch("asnblock.session.get", mock_get):
+        assert list(asnblock.ripestat_data(wmf_provider)) == []
+
+    mock_get.assert_called()
 
 
 @pytest.mark.parametrize(
@@ -324,16 +366,16 @@ def test_make_section(live_config):
         asn=["AS9876"],
         search=["banana", "coffee"],
         ranges={
-            "enwiki": [
+            asnblock.Target("enwiki"): [
                 ipaddress.IPv4Network("10.0.0.0/16"),
                 ipaddress.IPv4Network("10.1.0.0/32"),
                 ipaddress.IPv6Network("fd00::/19"),
                 ipaddress.IPv6Network("fd00:2000::/128"),
             ],
-            "enwiki=30": [
+            asnblock.Target("enwiki", "30"): [
                 ipaddress.IPv4Network("10.1.0.0/32"),
             ],
-            "centralauth": [
+            asnblock.Target("centralauth"): [
                 ipaddress.IPv6Network("fd00::/19"),
                 ipaddress.IPv6Network("fd00:3000::/128"),
             ],
@@ -346,7 +388,9 @@ def test_make_section(live_config):
     mock_template = mock.Mock()
     mock_template.return_value.safe_substitute = mock_subst
     with mock.patch("string.Template", mock_template):
-        section = asnblock.make_section(provider, site_config, "enwiki")
+        section = asnblock.make_section(
+            provider, site_config, asnblock.Target("enwiki")
+        )
 
     assert "chocolate" in section
     assert "banana" in section
@@ -414,7 +458,7 @@ def test_unblocked_or_expiring(expiry, days, expected):
 
 
 def mock_filter_ranges(targets, ranges, provider, config):
-    return {"enwiki": ranges.copy()}
+    return {targets[0]: ranges.copy()}
 
 
 @pytest.mark.skip("Not implemented")
@@ -512,7 +556,7 @@ def test_filter_ranges():
         ),
     ],
 )
-def test_collect_data(datasource, provider, live_config):
+def test_provider_getranges(datasource, provider, live_config):
     url_handlers = {
         "microsoft": mock.Mock(),
         "google": mock.Mock(),
@@ -525,15 +569,16 @@ def test_collect_data(datasource, provider, live_config):
         ipaddress.ip_network("185.15.56.0/22"),
         ipaddress.ip_network("2a02:ec80::/29"),
     ]
-    targets = ["enwiki", "enwiki=30"]
-    live_config.providers = [provider]
+    targets = (asnblock.Target("enwiki"), asnblock.Target("enwiki", "30"))
+    config = live_config._replace(providers=[provider])
 
     mock_ripestat = mock.Mock()
     if datasource == "ripestat_data":
         data_func = mock_ripestat
     else:
         data_func = url_handlers[datasource]
-    data_func.return_value = ranges
+
+    data_func.return_value = ranges.copy()
 
     mock_combine = mock.Mock(side_effect=lambda x: x)
     mock_filter = mock.Mock(side_effect=mock_filter_ranges)
@@ -545,17 +590,101 @@ def test_collect_data(datasource, provider, live_config):
         ripestat_data=mock_ripestat,
     ):
         with mock.patch.dict("asnblock.url_handlers", url_handlers):
-            providers = asnblock.collect_data(live_config, targets)
+            actual = provider.get_ranges(config, targets)
 
-    assert list(providers[0].ranges["enwiki"]) == ranges
+    assert actual.get(targets[0], []) == ranges
     mock_combine.assert_called_once_with(ranges)
-    mock_filter.assert_called_once_with(targets, ranges, provider, live_config)
+    mock_filter.assert_called_once_with(targets, ranges, provider, config)
     for ds, handler in url_handlers.items():
         if ds != datasource:
             handler.assert_not_called()
     if datasource != "ripestat_data":
         mock_ripestat.assert_not_called()
+
     data_func.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "provider",
+    [
+        asnblock.Provider(
+            name="Example",
+            blockname="Example",
+            asn=[],
+            expiry="",
+            ranges={},
+            url="http://example.com",
+            src="Example ranges",
+            search=[],
+        ),
+        asnblock.Provider(
+            name="Broken",
+            blockname="Broken",
+            asn=[],
+            expiry="",
+            ranges={},
+            url="",
+            src="",
+            search=[],
+        ),
+    ],
+)
+def test_provider_getranges_error(provider, live_config):
+    url_handlers = {
+        "microsoft": mock.Mock(),
+        "google": mock.Mock(),
+        "amazon": mock.Mock(),
+        "icloud": mock.Mock(),
+        "oracle": mock.Mock(),
+    }
+
+    targets = (asnblock.Target("enwiki"), asnblock.Target("enwiki", "30"))
+    config = live_config._replace(providers=[provider])
+
+    ranges = []
+
+    mock_ripestat = mock.Mock()
+    mock_combine = mock.Mock()
+    mock_filter = mock.Mock()
+
+    with mock.patch.multiple(
+        "asnblock",
+        combine_ranges=mock_combine,
+        filter_ranges=mock_filter,
+        ripestat_data=mock_ripestat,
+    ):
+        with mock.patch.dict("asnblock.url_handlers", url_handlers):
+            actual = provider.get_ranges(config, targets)
+
+    assert actual.get(targets[0], []) == ranges
+    mock_combine.assert_not_called()
+    mock_filter.assert_not_called()
+    for handler in url_handlers.values():
+        handler.assert_not_called()
+    mock_ripestat.assert_not_called()
+
+
+def fuzz_side_effect(*args, **kwargs):
+    time.sleep(random.random())
+    return mock.DEFAULT
+
+
+def test_collect_data(live_config):
+    providers = []
+    for provider in live_config.providers[:30]:
+        mock_prov = mock.create_autospec(provider)
+        mock_prov.name = provider.name
+        mock_prov.get_ranges.return_value = getattr(mock.sentinel, provider.name)
+        mock_prov.get_ranges.side_effect = fuzz_side_effect
+        providers.append(mock_prov)
+
+    targets = (asnblock.Target("enwiki"), asnblock.Target("enwiki", "30"))
+    config = live_config._replace(providers=providers)
+    result = asnblock.collect_data(config, targets)
+
+    for provider in result:
+        provider.get_ranges.assert_called_once_with(config, targets)
+        assert provider.ranges is getattr(mock.sentinel, provider.name)
 
 
 @pytest.mark.skip("Not implemented")
