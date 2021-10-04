@@ -147,30 +147,15 @@ def test_ripestat_data_raise(wmf_provider):
 
 
 @pytest.mark.parametrize(
-    "func,search",
-    [
-        (asnblock.microsoft_data, "microsoft"),
-        (asnblock.amazon_data, "amazon"),
-        (asnblock.google_data, "google"),
-        (asnblock.icloud_data, "icloud"),
-        (asnblock.oracle_data, "oracle"),
-    ],
+    "search",
+    [name for name in vars(asnblock.URLHandler) if not name.startswith("_")],
 )
-def test_url_handler_list(func, search):
-    assert asnblock.url_handlers[search] == func
-
-
-@pytest.mark.parametrize(
-    # "search,func", [(search, func) for search, func in asnblock.url_handlers.items()]
-    "search, func",
-    asnblock.url_handlers.items(),
-)
-def test_provider_api_data(search, func, live_config):
+def test_URLHandler(search, live_config):
     provider = next(filter(lambda p: search in p.url, live_config.providers))
-    data = func(provider)
+    ranges = asnblock.URLHandler(provider)
 
     once = False
-    for prefix in data:
+    for prefix in ranges:
         assert isinstance(prefix, ipaddress.IPv4Network) or isinstance(
             prefix, ipaddress.IPv6Network
         )
@@ -290,6 +275,11 @@ def test_cache_search_whois(net, expected, mock_cache):
 def test_db_network(net, expected):
     result = asnblock.db_network(net)
     assert expected == result
+
+
+@pytest.mark.skip("Not implemented")
+def test_query_blocks():
+    pass
 
 
 @pytest.mark.skip("Not implemented")
@@ -503,19 +493,25 @@ def fuzz_side_effect(*args, **kwargs):
     return mock.DEFAULT
 
 
-def test_filter_ranges(wmf_provider, live_config):
+@pytest.mark.parametrize(
+    "ranges",
+    [
+        [
+            ipaddress.ip_network("91.198.174.0/24"),
+            ipaddress.ip_network("103.102.166.0/24"),
+            ipaddress.ip_network("185.15.56.0/22"),
+            ipaddress.ip_network("185.71.138.0/24"),
+            ipaddress.ip_network("198.35.26.0/23"),
+            ipaddress.ip_network("208.80.152.0/22"),
+            ipaddress.ip_network("2001:df2:e500::/48"),
+            ipaddress.ip_network("2620:0:860::/46"),
+            ipaddress.ip_network("2a02:ec80::/32"),
+        ],
+        [],
+    ],
+)
+def test_filter_ranges(ranges, wmf_provider, live_config):
     targets = (asnblock.Target("enwiki"), asnblock.Target("enwiki", "30"))
-    ranges = [
-        ipaddress.ip_network("91.198.174.0/24"),
-        ipaddress.ip_network("103.102.166.0/24"),
-        ipaddress.ip_network("185.15.56.0/22"),
-        ipaddress.ip_network("185.71.138.0/24"),
-        ipaddress.ip_network("198.35.26.0/23"),
-        ipaddress.ip_network("208.80.152.0/22"),
-        ipaddress.ip_network("2001:df2:e500::/48"),
-        ipaddress.ip_network("2620:0:860::/46"),
-        ipaddress.ip_network("2a02:ec80::/32"),
-    ]
     config = live_config
 
     mock_get_blocks = mock.Mock()
@@ -533,8 +529,8 @@ def test_filter_ranges(wmf_provider, live_config):
         any_order=True,
     )
     assert mock_search.call_count == len(ranges)
-    assert result[targets[0]] == ranges
-    assert result[targets[1]] == ranges
+    for target in targets:
+        assert result.get(target, []) == ranges
 
 
 @pytest.mark.parametrize(
@@ -600,6 +596,20 @@ def test_filter_ranges(wmf_provider, live_config):
             ),
         ),
         (
+            "amazon",
+            asnblock.Provider(
+                name="Amazon Web Services",
+                blockname="Amazon Web Services",
+                asn=[],
+                expiry="",
+                ranges={},
+                url="https://ip-ranges.amazonaws.com/ip-ranges.json",
+                src="amazon ranges",
+                search=[],
+                handler="amazon",
+            ),
+        ),
+        (
             "icloud",
             asnblock.Provider(
                 name="iCloud Private Relay",
@@ -627,15 +637,15 @@ def test_filter_ranges(wmf_provider, live_config):
         ),
     ],
 )
-def test_provider_getranges(datasource, provider, live_config):
-    url_handlers = {
-        "microsoft": mock.Mock(),
-        "google": mock.Mock(),
-        "amazon": mock.Mock(),
-        "icloud": mock.Mock(),
-        "oracle": mock.Mock(),
-    }
-
+@mock.patch.multiple(
+    "asnblock.URLHandler",
+    microsoft=mock.DEFAULT,
+    google=mock.DEFAULT,
+    amazon=mock.DEFAULT,
+    icloud=mock.DEFAULT,
+    oracle=mock.DEFAULT,
+)
+def test_provider_getranges(datasource, provider, live_config, **url_handlers):
     ranges = [
         ipaddress.ip_network("185.15.56.0/22"),
         ipaddress.ip_network("2a02:ec80::/29"),
@@ -660,11 +670,10 @@ def test_provider_getranges(datasource, provider, live_config):
         filter_ranges=mock_filter,
         ripestat_data=mock_ripestat,
     ):
-        with mock.patch.dict("asnblock.url_handlers", url_handlers):
-            actual = provider.get_ranges(config, targets)
+        actual = provider.get_ranges(config, targets)
 
     assert actual.get(targets[0], []) == ranges
-    mock_combine.assert_called_once_with(ranges)
+    mock_combine.assert_called_once()
     mock_filter.assert_called_once_with(targets, ranges, provider, config)
     for ds, handler in url_handlers.items():
         if ds != datasource:
@@ -700,23 +709,23 @@ def test_provider_getranges(datasource, provider, live_config):
         ),
     ],
 )
-def test_provider_getranges_error(provider, live_config):
-    url_handlers = {
-        "microsoft": mock.Mock(),
-        "google": mock.Mock(),
-        "amazon": mock.Mock(),
-        "icloud": mock.Mock(),
-        "oracle": mock.Mock(),
-    }
-
+@mock.patch.multiple(
+    "asnblock.URLHandler",
+    microsoft=mock.DEFAULT,
+    google=mock.DEFAULT,
+    amazon=mock.DEFAULT,
+    icloud=mock.DEFAULT,
+    oracle=mock.DEFAULT,
+)
+def test_provider_getranges_error(provider, live_config, **url_handlers):
     targets = (asnblock.Target("enwiki"), asnblock.Target("enwiki", "30"))
     config = live_config._replace(providers=[provider])
 
     ranges = []
 
     mock_ripestat = mock.Mock()
-    mock_combine = mock.Mock()
-    mock_filter = mock.Mock()
+    mock_combine = mock.Mock(side_effect=lambda x: x)
+    mock_filter = mock.Mock(side_effect=mock_filter_ranges)
 
     with mock.patch.multiple(
         "asnblock",
@@ -724,12 +733,11 @@ def test_provider_getranges_error(provider, live_config):
         filter_ranges=mock_filter,
         ripestat_data=mock_ripestat,
     ):
-        with mock.patch.dict("asnblock.url_handlers", url_handlers):
-            actual = provider.get_ranges(config, targets)
+        actual = provider.get_ranges(config, targets)
 
     assert actual.get(targets[0], []) == ranges
-    mock_combine.assert_not_called()
-    mock_filter.assert_not_called()
+    # mock_combine.assert_not_called()
+    # mock_filter.assert_not_called()
     for handler in url_handlers.values():
         handler.assert_not_called()
     mock_ripestat.assert_not_called()

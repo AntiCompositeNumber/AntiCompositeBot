@@ -17,7 +17,7 @@
 # limitations under the License.
 
 import pywikibot  # type: ignore
-import toolforge  # type: ignore
+import toolforge
 import acnutils as utils
 import requests
 import csv
@@ -46,7 +46,7 @@ from typing import (
     Set,
 )
 
-__version__ = "2.0.0-beta.5"
+__version__ = "2.0.0-beta.6"
 
 logger = utils.getInitLogger(
     "ASNBlock", level="VERBOSE", filename="stderr", thread=True
@@ -55,7 +55,12 @@ logger = utils.getInitLogger(
 site = pywikibot.Site("en", "wikipedia")
 simulate = False
 session = requests.session()
-session.headers.update({"User-Agent": toolforge.set_user_agent("anticompositebot")})
+session.headers.update(
+    {
+        "User-Agent": toolforge.set_user_agent("anticompositebot")
+        + f" ASNBlock/{__version__}"
+    }
+)
 whois_api = "https://whois-dev.toolforge.org"
 
 IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
@@ -104,6 +109,7 @@ class Provider:
     url: str = ""
     src: str = ""
     search: List[str] = dataclasses.field(default_factory=list)
+    handler: str = ""
 
     def __post_init__(self) -> None:
         if not self.blockname:
@@ -116,15 +122,9 @@ class Provider:
     ) -> Dict[Target, List[IPNetwork]]:
         logger.info(f"Checking ranges from {self.name}")
         if self.asn:
-            ranges = ripestat_data(self)
-        elif self.url:
-            for search, handler in url_handlers.items():
-                if search in self.url:
-                    ranges = handler(self)
-                    break
-            else:
-                logger.error(f"{self.name} has no handler")
-                return {}
+            ranges: Iterable[IPNetwork] = ripestat_data(self)
+        elif self.url or self.handler:
+            ranges = URLHandler(self)
         else:
             logger.error(f"{self.name} could not be processed")
             return {}
@@ -223,78 +223,84 @@ def ripestat_data(provider: Provider) -> Iterator[IPNetwork]:
             yield ipaddress.ip_network(prefix["prefix"])
 
 
-def microsoft_data(provider: Provider) -> Iterator[IPNetwork]:
-    """Get IP ranges used by Azure and other Microsoft services."""
-    # The IP list is not at a stable or predictable URL (it includes the hash
-    # of the file itself, which we don't have yet). Instead, we have to parse
-    # the "click here to download manually" link out of the download page.
-    url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
-    gate = session.get(url)
-    gate.raise_for_status()
-    soup = BeautifulSoup(gate.text, "html.parser")
-    link = soup.find("a", class_="failoverLink").get("href")
-    req = session.get(link)
-    req.raise_for_status()
-    data = req.json()
-    for group in data["values"]:
-        for prefix in group["properties"]["addressPrefixes"]:
-            yield ipaddress.ip_network(prefix)
+@dataclasses.dataclass
+class URLHandler:
+    provider: Provider
 
+    def __iter__(self) -> Iterator[IPNetwork]:
+        handler = None
+        if self.provider.handler:
+            handler = getattr(self, self.provider.handler, None)
+        if not handler and self.provider.url:
+            for name in vars(type(self)):
+                if (not name.startswith("_")) and (name in self.provider.url):
+                    handler = getattr(self, name, None)
+                    break
+        if handler is not None:
+            yield from handler()
+        else:
+            logger.error(f"{self.provider.name} has no handler")
+            yield from []
 
-def amazon_data(provider: Provider) -> Iterator[IPNetwork]:
-    """Get IP ranges used by AWS."""
-    req = session.get(provider.url)
-    req.raise_for_status()
-    data = req.json()
-    for prefix in data["prefixes"]:
-        yield ipaddress.IPv4Network(prefix["ip_prefix"])
-    for prefix in data["ipv6_prefixes"]:
-        yield ipaddress.IPv6Network(prefix["ipv6_prefix"])
+    def microsoft(self) -> Iterator[IPNetwork]:
+        """Get IP ranges used by Azure and other Microsoft services."""
+        # The IP list is not at a stable or predictable URL (it includes the hash
+        # of the file itself, which we don't have yet). Instead, we have to parse
+        # the "click here to download manually" link out of the download page.
+        url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
+        gate = session.get(url)
+        gate.raise_for_status()
+        soup = BeautifulSoup(gate.text, "html.parser")
+        link = soup.find("a", class_="failoverLink").get("href")
+        req = session.get(link)
+        req.raise_for_status()
+        data = req.json()
+        for group in data["values"]:
+            for prefix in group["properties"]["addressPrefixes"]:
+                yield ipaddress.ip_network(prefix)
 
+    def amazon(self) -> Iterator[IPNetwork]:
+        """Get IP ranges used by AWS."""
+        req = session.get(self.provider.url)
+        req.raise_for_status()
+        data = req.json()
+        for prefix in data["prefixes"]:
+            yield ipaddress.IPv4Network(prefix["ip_prefix"])
+        for prefix in data["ipv6_prefixes"]:
+            yield ipaddress.IPv6Network(prefix["ipv6_prefix"])
 
-def google_data(provider: Provider) -> Iterator[IPNetwork]:
-    """Get IP ranges used by Google Cloud Platform."""
-    url = "https://www.gstatic.com/ipranges/cloud.json"
-    req = session.get(url)
-    req.raise_for_status()
-    data = req.json()
-    for prefix in data["prefixes"]:
-        if "ipv4Prefix" in prefix.keys():
-            yield ipaddress.ip_network(prefix["ipv4Prefix"])
-        if "ipv6Prefix" in prefix.keys():
-            yield ipaddress.ip_network(prefix["ipv6Prefix"])
+    def google(self) -> Iterator[IPNetwork]:
+        """Get IP ranges used by Google Cloud Platform."""
+        url = "https://www.gstatic.com/ipranges/cloud.json"
+        req = session.get(url)
+        req.raise_for_status()
+        data = req.json()
+        for prefix in data["prefixes"]:
+            if "ipv4Prefix" in prefix.keys():
+                yield ipaddress.ip_network(prefix["ipv4Prefix"])
+            if "ipv6Prefix" in prefix.keys():
+                yield ipaddress.ip_network(prefix["ipv6Prefix"])
 
+    def icloud(self) -> Iterator[IPNetwork]:
+        """Get IP ranges used by iCloud Private Relay."""
+        req = session.get(self.provider.url)
+        req.raise_for_status()
+        reader = csv.reader(line for line in req.text.split("\n") if line)
+        for prefix, *_ in reader:
+            try:
+                yield ipaddress.ip_network(prefix)
+            except ValueError as e:
+                logger.warning("Invalid IP network in iCloud data", exc_info=e)
+                continue
 
-def icloud_data(provider: Provider) -> Iterator[IPNetwork]:
-    """Get IP ranges used by iCloud Private Relay."""
-    req = session.get(provider.url)
-    req.raise_for_status()
-    reader = csv.reader(line for line in req.text.split("\n") if line)
-    for prefix, *_ in reader:
-        try:
-            yield ipaddress.ip_network(prefix)
-        except ValueError as e:
-            logger.warning("Invalid IP network in iCloud data", exc_info=e)
-            continue
-
-
-def oracle_data(provider: Provider) -> Iterator[IPNetwork]:
-    """Get IP ranges used by Oracle Cloud Infrastructure."""
-    req = session.get(provider.url)
-    req.raise_for_status()
-    data = req.json()
-    for region in data["regions"]:
-        for cidr in region["cidrs"]:
-            yield ipaddress.ip_network(cidr["cidr"])
-
-
-url_handlers = {
-    "microsoft": microsoft_data,
-    "google": google_data,
-    "amazon": amazon_data,
-    "icloud": icloud_data,
-    "oracle": oracle_data,
-}
+    def oracle(self) -> Iterator[IPNetwork]:
+        """Get IP ranges used by Oracle Cloud Infrastructure."""
+        req = session.get(self.provider.url)
+        req.raise_for_status()
+        data = req.json()
+        for region in data["regions"]:
+            for cidr in region["cidrs"]:
+                yield ipaddress.ip_network(cidr["cidr"])
 
 
 def search_whois(
@@ -455,7 +461,7 @@ def make_section(provider: Provider, site_config: dict, target: Target) -> str:
     """Prepares wikitext report section for a provider."""
     if provider.url:
         source = "[{0.url} {0.src}]".format(provider)
-    elif provider.asn:
+    elif provider.asn:  # pragma: no branch
         source = ", ".join(f"[https://bgp.he.net/{asn} {asn}]" for asn in provider.asn)
 
     if provider.search:
@@ -602,6 +608,9 @@ def filter_ranges(
 
     Returns a dict mapping targets to lists of unblocked ranges
     """
+    if not ranges:
+        return {}
+
     cache = Cache(config)
     throttle = utils.Throttle(1.5)
     filtered: Dict[IPNetwork, List[Target]] = {}
