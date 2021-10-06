@@ -165,6 +165,9 @@ def test_URLHandler(search, live_config):
 
 
 @pytest.mark.parametrize(
+    "whois", [asnblock.search_toolforge_whois, asnblock.search_ripestat_whois]
+)
+@pytest.mark.parametrize(
     "net,expected",
     [
         (ipaddress.ip_network("198.35.26.0/23"), True),
@@ -177,20 +180,21 @@ def test_URLHandler(search, live_config):
     session.head(asnblock.whois_api).status_code == 503,
     reason="Toolforge whois is down",
 )
-def test_search_whois(net, expected, search):
+def test_search_toolforge_whois(whois, net, expected, search):
     throttle = mock.Mock(spec=utils.Throttle)
-    assert asnblock.search_whois(net, [search], throttle=throttle) is expected
+    assert asnblock.search_toolforge_whois(net, [search], throttle=throttle) is expected
     throttle.throttle.assert_called_once()
 
 
-def test_search_whois_exception():
+def test_search_toolforge_whois_exception():
     mock_session = mock.Mock()
     mock_session.get.return_value.raise_for_status.side_effect = (
         requests.exceptions.HTTPError
     )
     with mock.patch("asnblock.session", mock_session):
         assert (
-            asnblock.search_whois(ipaddress.ip_network("127.0.0.1/32"), [""]) is False
+            asnblock.search_toolforge_whois(ipaddress.ip_network("127.0.0.1/32"), [""])
+            is False
         )
 
 
@@ -226,7 +230,11 @@ def test_cache_search_whois(net, expected, mock_cache):
     search = ["Wikimedia"]
     mock_search = mock.Mock(return_value=expected)
     mock_throttle = mock.Mock(spec=utils.Throttle)
-    with mock.patch("asnblock.search_whois", mock_search):
+    with mock.patch.multiple(
+        "asnblock",
+        search_toolforge_whois=mock_search,
+        search_ripestat_whois=mock_search,
+    ):
         res = asnblock.cache_search_whois(
             net, search, mock_cache, throttle=mock_throttle
         )

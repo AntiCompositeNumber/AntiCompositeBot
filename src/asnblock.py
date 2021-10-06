@@ -55,12 +55,9 @@ logger = utils.getInitLogger(
 site = pywikibot.Site("en", "wikipedia")
 simulate = False
 session = requests.session()
-session.headers.update(
-    {
-        "User-Agent": toolforge.set_user_agent("anticompositebot")
-        + f" ASNBlock/{__version__}"
-    }
-)
+session.headers[
+    "User-Agent"
+] = f"ASNBlock/{__version__} {toolforge.set_user_agent('anticompositebot')}"
 whois_api = "https://whois-dev.toolforge.org"
 
 IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
@@ -195,30 +192,35 @@ class Cache:
             self._redis.delete(self._prefix + key)
 
 
+def query_ripestat(api: str, **kwargs) -> dict:
+    url = f"https://stat.ripe.net/data/{api}/data.json"
+    params = {"sourceapp": "toolforge-anticompositebot-asnblock"}
+    params.update(kwargs)
+    try:
+        req = session.get(url, params=params)
+        req.raise_for_status()
+        data = req.json()
+    except Exception as err:
+        logger.exception(err)
+        data = {}
+
+    if data.get("status", "ok") != "ok":
+        logger.error(f"RIPEStat error: {data.get('message')}")
+    if not data.get("data_call_status", "supported").startswith("supported"):
+        logger.warning(f"RIPEStat warning: {data['data_call_status']}")
+
+    return data
+
+
 def ripestat_data(provider: Provider) -> Iterator[IPNetwork]:
     # uses announced-prefixes API, which shows the prefixes the AS has announced
     # in the last two weeks. The ris-prefixes api also shows transiting prefixes.
-    url = "https://stat.ripe.net/data/announced-prefixes/data.json"
-    params = {"sourceapp": "toolforge-anticompositebot-asnblock"}
     throttle = utils.Throttle(1)
     for asn in provider.asn:
         if not asn:
             continue
-        params["resource"] = asn
         throttle.throttle()
-        try:
-            req = session.get(url, params=params)
-            req.raise_for_status()
-            data = req.json()
-        except Exception as err:
-            logger.exception(err)
-            data = {}
-
-        if data.get("status", "ok") != "ok":
-            logger.error(f"RIPEStat error: {data.get('message')}")
-        if not data.get("data_call_status", "supported").startswith("supported"):
-            logger.warning(f"RIPEStat warning: {data['data_call_status']}")
-
+        data = query_ripestat("announced-prefixes", resource=asn)
         for prefix in data.get("data", {}).get("prefixes", []):
             yield ipaddress.ip_network(prefix["prefix"])
 
@@ -303,7 +305,7 @@ class URLHandler:
                 yield ipaddress.ip_network(cidr["cidr"])
 
 
-def search_whois(
+def search_toolforge_whois(
     net: IPNetwork,
     search_list: Iterable[str],
     throttle: Optional[utils.Throttle] = None,
@@ -339,6 +341,26 @@ def search_whois(
     return False
 
 
+def search_ripestat_whois(
+    net: IPNetwork,
+    search_list: Iterable[str],
+    throttle: Optional[utils.Throttle] = None,
+) -> bool:
+    logger.debug(f"Searching RIPEStat WHOIS for {search_list} in {net}")
+    if throttle:
+        throttle.throttle()
+
+    data = query_ripestat("whois", resource=str(net)).get("data", {})
+    for records in ["records", "irr_records"]:
+        for record in data.get(records, []):
+            for entry in record:
+                if entry["key"] in {"descr", "netname"}:
+                    for search in search_list:
+                        if search and (search in entry["value"].lower()):
+                            return True
+    return False
+
+
 def cache_search_whois(
     net: IPNetwork,
     search_list: Iterable[str],
@@ -351,7 +373,13 @@ def cache_search_whois(
         logger.debug(f"Cached WHOIS for {net}: {bool(cached)}")
         return bool(cached)
 
-    result = search_whois(net, search_list, throttle=throttle)
+    # seed the rng so that the same net always gets the same WHOIS source
+    # is this overkill for a coin flip? yes lol
+    rand = random.Random(str(net))
+    if rand.choice([True, False]):
+        result = search_toolforge_whois(net, search_list, throttle=throttle)
+    else:
+        result = search_ripestat_whois(net, search_list, throttle=throttle)
     cache[str(net)] = "1" if result else ""
     return result
 
