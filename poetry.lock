@@ -194,7 +194,7 @@ python-versions = "*"
 
 [[package]]
 name = "micropipenv"
-version = "1.1.1"
+version = "1.1.2"
 description = "A simple wrapper around pip to support requirements.txt, Pipenv and Poetry files for containerized applications"
 category = "main"
 optional = false
@@ -646,8 +646,8 @@ mccabe = [
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
 ]
 micropipenv = [
-    {file = "micropipenv-1.1.1-py3-none-any.whl", hash = "sha256:97c3ad47fe7340465a92f85400d92a744b99e26496e57531d10c24d619ec8b88"},
-    {file = "micropipenv-1.1.1.tar.gz", hash = "sha256:5bcb4df113b30c360ca2ead2ba1543625862913eb06f5eb8a44c79eefdfe5e99"},
+    {file = "micropipenv-1.1.2-py3-none-any.whl", hash = "sha256:6c1844b3c6a07226af78b2884f0fbf846b643e5c47ef379685fcfc1056786cef"},
+    {file = "micropipenv-1.1.2.tar.gz", hash = "sha256:58233d00ce7bf995dc6bb3a4b4b211d783f39f290e2ebecd560e822dfaa0f3b2"},
 ]
 mwparserfromhell = [
     {file = "mwparserfromhell-0.6.3-cp35-cp35m-macosx_10_14_x86_64.whl", hash = "sha256:264b5006cbd5b3fd9c0fbcec1aa804f0f6dc0e12937224a647fe555b20b85807"},
