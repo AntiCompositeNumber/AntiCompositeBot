@@ -112,7 +112,7 @@ class Provider:
         if not self.blockname:
             self.blockname = self.name
         if self.search:
-            self.search = [entry.lower() for entry in self.search]
+            self.search = [entry.lower() for entry in self.search if entry]
 
     def get_ranges(
         self, config: "Config", targets: Iterable[Target]
@@ -330,11 +330,10 @@ def search_toolforge_whois(
             req = session.get(url)
         req.raise_for_status()
         for whois_net in req.json()["nets"]:
+            name = str(whois_net.get("name", "")).lower()
+            desc = str(whois_net.get("description", "")).lower()
             for search in search_list:
-                if search and (
-                    search in str(whois_net.get("description", "")).lower()
-                    or search in str(whois_net.get("name", "")).lower()
-                ):
+                if search in name or search in desc:
                     return True
     except Exception as e:
         logger.exception(e)
@@ -354,9 +353,10 @@ def search_ripestat_whois(
     for records in ["records", "irr_records"]:
         for record in data.get(records, []):
             for entry in record:
-                if entry["key"] in {"descr", "netname"}:
+                if entry.get("key") in {"descr", "netname"}:
+                    val = entry.get("value", "").lower()
                     for search in search_list:
-                        if search and (search in entry["value"].lower()):
+                        if search in val:
                             return True
     return False
 
