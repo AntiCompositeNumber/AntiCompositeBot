@@ -446,7 +446,7 @@ WHERE
     else:
         query = """
 SELECT ipb_expiry
-FROM ipblocks
+FROM ipblocks_ipindex
 WHERE
     ipb_range_start LIKE %(prefix)s
     AND ipb_range_start <= %(start)s
