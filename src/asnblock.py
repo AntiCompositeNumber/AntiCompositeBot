@@ -31,6 +31,7 @@ import dataclasses
 import datetime
 import argparse
 import concurrent.futures
+import hashlib
 from bs4 import BeautifulSoup  # type: ignore
 import redis
 from typing import (
@@ -165,16 +166,22 @@ class Config(NamedTuple):
 class Cache:
     """Stores and retrieves data stored in Redis"""
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, prefix_data: str) -> None:
         self._redis: Optional[redis.Redis] = None
         if config.redis_host and config.use_redis:
             logger.debug("Setting up Redis cache")
             self._redis = redis.Redis(host=config.redis_host, port=config.redis_port)
-            self._prefix = config.redis_prefix + str(
-                int(config.last_modified.timestamp())
+            self._prefix = (
+                config.redis_prefix
+                + "_"
+                + hashlib.blake2b(bytes(prefix_data, encoding="utf-8")).hexdigest()
+                + "_"
             )
 
-    def __getitem__(self, key: str) -> Optional[bytes]:
+    def __getitem__(
+        self,
+        key: str,
+    ) -> Optional[bytes]:
         if not self._redis:
             return None
         return self._redis.get(self._prefix + key)
@@ -639,7 +646,7 @@ def filter_ranges(
     if not ranges:
         return {}
 
-    cache = Cache(config)
+    cache = Cache(config, ",".join(provider.search))
     throttle = utils.Throttle(1.5)
     filtered: Dict[IPNetwork, List[Target]] = {}
     now = datetime.datetime.utcnow()
