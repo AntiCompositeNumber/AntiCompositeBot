@@ -47,7 +47,7 @@ from typing import (
     Set,
 )
 
-__version__ = "2.0.0-beta.6"
+__version__ = "2.0.0-beta.7"
 
 logger = utils.getInitLogger(
     "ASNBlock", level="VERBOSE", filename="stderr", thread=True
@@ -127,8 +127,9 @@ class Provider:
             logger.error(f"{self.name} could not be processed")
             return {}
 
-        ranges = combine_ranges(ranges)
-        return filter_ranges(targets, list(ranges), self, config)
+        ranges = list(combine_ranges(ranges))
+        logger.info(f"{self.name}: {len(ranges)} ranges to check")
+        return filter_ranges(targets, ranges, self, config)
 
 
 class Config(NamedTuple):
@@ -316,7 +317,7 @@ def search_toolforge_whois(
     net: IPNetwork,
     search_list: Iterable[str],
     throttle: Optional[utils.Throttle] = None,
-) -> bool:
+) -> Optional[bool]:
     """Searches for specific strings in the WHOIS data for a network.
 
     Returns true if any of the search terms are included in the name or
@@ -344,6 +345,7 @@ def search_toolforge_whois(
                     return True
     except Exception as e:
         logger.exception(e)
+        return None
     return False
 
 
@@ -351,12 +353,14 @@ def search_ripestat_whois(
     net: IPNetwork,
     search_list: Iterable[str],
     throttle: Optional[utils.Throttle] = None,
-) -> bool:
+) -> Optional[bool]:
     logger.debug(f"Searching RIPEStat WHOIS for {search_list} in {net}")
     if throttle:
         throttle.throttle()
 
     data = query_ripestat("whois", resource=str(net)).get("data", {})
+    if not data:
+        return None
     for records in ["records", "irr_records"]:
         for record in data.get(records, []):
             for entry in record:
@@ -386,8 +390,9 @@ def cache_search_whois(
         [search_toolforge_whois, search_ripestat_whois], weights=[40, 60]
     )[0]
     result = func(net, search_list, throttle=throttle)
-    cache[str(net)] = "1" if result else ""
-    return result
+    if result is not None:
+        cache[str(net)] = "1" if result else ""
+    return bool(result)
 
 
 def db_network(net: IPNetwork) -> Dict[str, str]:
@@ -685,6 +690,7 @@ def filter_ranges(
 def collect_data(config: Config, targets: Iterable[Target]) -> List[Provider]:
     """Collect IP address data for various hosting/proxy providers."""
     providers = config.providers
+    logger.info(f"Loaded {len(providers)} providers")
 
     for provider in providers:
         provider.ranges = provider.get_ranges(config, targets)
