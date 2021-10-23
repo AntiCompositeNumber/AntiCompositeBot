@@ -15,7 +15,6 @@ requests-oauthlib = "*"
 bs4 = "*"
 toolforge = "*"
 redis = "*"
-micropipenv = {extras = ["toml"], version = "*"}
 acnutils = {extras = ["db"], version = "^0.5.0"}
 
 [tool.poetry.dev-dependencies]
