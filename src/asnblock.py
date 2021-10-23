@@ -202,7 +202,7 @@ class Cache:
             self._redis.delete(self._prefix + key)
 
 
-def query_ripestat(api: str, **kwargs) -> dict:
+def query_ripestat(api: str, catch: bool = True, /, **kwargs) -> dict:
     url = f"https://stat.ripe.net/data/{api}/data.json"
     params = {"sourceapp": "toolforge-anticompositebot-asnblock"}
     params.update(kwargs)
@@ -211,8 +211,11 @@ def query_ripestat(api: str, **kwargs) -> dict:
         req.raise_for_status()
         data = req.json()
     except Exception as err:
-        logger.exception(err)
-        data = {}
+        if catch:
+            logger.exception(err)
+            data = {}
+        else:
+            raise err
 
     if data.get("status", "ok") != "ok":
         logger.error(f"RIPEStat error: {data.get('message')}")
@@ -345,8 +348,11 @@ def search_toolforge_whois(
             for search in search_list:
                 if search in name or search in desc:
                     return True
+    except requests.exceptions.HTTPError as e:
+        logger.warning(e, exc_info=True)
+        return None
     except Exception as e:
-        logger.exception(e)
+        logger.warning(e, exc_info=True)
         return None
     return False
 
@@ -360,9 +366,15 @@ def search_ripestat_whois(
     if throttle:
         throttle.throttle()
 
-    data = query_ripestat("whois", resource=str(net)).get("data", {})
-    if not data:
+    try:
+        data = query_ripestat("whois", False, resource=str(net)).get("data", {})
+    except requests.exceptions.HTTPError as e:
+        logger.warning(e, exc_info=True)
         return None
+    except Exception as e:
+        logger.exception(e)
+        return None
+
     for records in ["records", "irr_records"]:
         for record in data.get(records, []):
             for entry in record:
