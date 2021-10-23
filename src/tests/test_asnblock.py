@@ -124,7 +124,7 @@ def wmf_ripestat_ranges(wmf_provider):
         ipaddress.ip_network("2001:df2:e500::/48"),
         # esams
         ipaddress.ip_network("91.198.174.0/24"),
-        ipaddress.ip_network("185.15.58.0/23"),
+        ipaddress.ip_network("185.15.59.0/24"),
         ipaddress.ip_network("2620:0:862::/48"),
         ipaddress.ip_network("2a02:ec80::/32"),
     ],

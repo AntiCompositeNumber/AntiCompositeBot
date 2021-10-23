@@ -320,7 +320,7 @@ def search_toolforge_whois(
     """Searches for specific strings in the WHOIS data for a network.
 
     Returns true if any of the search terms are included in the name or
-    description of the WHOIS data.  whois.toolforge.org does not support ranges,
+    description of the WHOIS data. whois.toolforge.org does not support ranges,
     so results are obtained for the first address in the range.
 
     Search terms must be lowercase.
@@ -381,12 +381,11 @@ def cache_search_whois(
         return bool(cached)
 
     # seed the rng so that the same net always gets the same WHOIS source
-    # is this overkill for a coin flip? yes lol
     rand = random.Random(str(net))
-    if rand.choice([True, False]):
-        result = search_toolforge_whois(net, search_list, throttle=throttle)
-    else:
-        result = search_ripestat_whois(net, search_list, throttle=throttle)
+    func = rand.choices(
+        [search_toolforge_whois, search_ripestat_whois], weights=[40, 60]
+    )[0]
+    result = func(net, search_list, throttle=throttle)
     cache[str(net)] = "1" if result else ""
     return result
 
