@@ -108,6 +108,7 @@ class Provider:
     src: str = ""
     search: List[str] = dataclasses.field(default_factory=list)
     handler: str = ""
+    block_reason: Union[str, Dict[str, str]] = ""
 
     def __post_init__(self) -> None:
         if not self.blockname:
@@ -533,14 +534,23 @@ def make_section(provider: Provider, site_config: dict, target: Target) -> str:
             rand = random.Random(addr + str(datetime.date.today().year))
             expiry = f"{rand.randint(24, 36)} months"
 
+        if isinstance(provider.block_reason, str) and provider.block_reason:
+            block_reason = provider.block_reason
+        elif (
+            isinstance(provider.block_reason, dict)
+            and target.db in provider.block_reason
+        ):
+            block_reason = provider.block_reason[target.db]
+        else:
+            block_reason = site_config.get("block_reason", "")
         qs = urllib.parse.urlencode(
             {
                 "wpExpiry": expiry,
                 "wpHardBlock": 1,
                 "wpReason": "other",
-                "wpReason-other": string.Template(
-                    site_config.get("block_reason", "")
-                ).safe_substitute(blockname=provider.blockname),
+                "wpReason-other": string.Template(block_reason).safe_substitute(
+                    blockname=provider.blockname
+                ),
             }
         )
         ranges += row.safe_substitute(

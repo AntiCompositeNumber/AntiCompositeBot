@@ -27,6 +27,7 @@ import requests
 import urllib.parse
 import time
 import random
+import string
 import acnutils as utils
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
@@ -133,6 +134,8 @@ def test_ripestat_data(ip, wmf_ripestat_ranges):
     # Testing with WMF ranges, current as of 2021-10-02, data from
     # https://phabricator.wikimedia.org/diffusion/OHPU/browse/master/config/sites.yaml
     # https://phabricator.wikimedia.org/diffusion/OHPU/browse/master/templates/includes/customers/64710.policy
+    # XXX: this should be implemented with a yaml parser instead of hardcoded ranges
+    #      the WMF doesn't change ranges often, but it does happen
     assert ip in wmf_ripestat_ranges
 
 
@@ -194,7 +197,7 @@ def test_search_toolforge_whois_exception():
     with mock.patch("asnblock.session", mock_session):
         assert (
             asnblock.search_toolforge_whois(ipaddress.ip_network("127.0.0.1/32"), [""])
-            is False
+            is None
         )
 
 
@@ -377,6 +380,24 @@ def test_combine_ranges():
             ),
             ["chocolate", "banana", "coffee"],
         ),
+        (
+            asnblock.Provider(
+                name="chocolate",
+                asn=["AS9876"],
+                search=["banana", "coffee"],
+                block_reason="oreo",
+            ),
+            ["chocolate", "banana", "coffee"],
+        ),
+        (
+            asnblock.Provider(
+                name="chocolate",
+                asn=["AS9876"],
+                search=["banana", "coffee"],
+                block_reason={"enwiki": "oreo", "centralauth": "spinach"},
+            ),
+            ["chocolate", "banana", "coffee"],
+        ),
     ],
 )
 def test_make_section(provider, asserts, live_config):
@@ -398,7 +419,7 @@ def test_make_section(provider, asserts, live_config):
     site_config = live_config.sites["enwiki"]
 
     mock_subst = mock.Mock(return_value="")
-    mock_template = mock.Mock()
+    mock_template = mock.Mock(spec=string.Template)
     mock_template.return_value.safe_substitute = mock_subst
     with mock.patch("string.Template", mock_template):
         section = asnblock.make_section(
@@ -415,7 +436,10 @@ def test_make_section(provider, asserts, live_config):
         "10.0.0.0/16",
     ]
     expiries = set()
+    if provider.block_reason:
+        mock_template.assert_any_call("oreo")
     mock_subst.assert_called()
+
     for name, args, kwargs in mock_subst.mock_calls:
         assert not args
         # string.Template is used in 2 places, to fill the block reason
