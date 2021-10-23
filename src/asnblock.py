@@ -45,6 +45,7 @@ from typing import (
     Any,
     Tuple,
     Set,
+    Sequence,
 )
 
 __version__ = "2.0.0-beta.7"
@@ -102,7 +103,7 @@ class Provider:
     name: str
     blockname: str = ""
     asn: List[str] = dataclasses.field(default_factory=list)
-    expiry: str = ""
+    expiry: Union[str, Sequence[int]] = ""
     ranges: Dict[Target, List[IPNetwork]] = dataclasses.field(default_factory=dict)
     url: str = ""
     src: str = ""
@@ -497,6 +498,30 @@ def combine_ranges(all_ranges: Iterable[IPNetwork]) -> Iterator[IPNetwork]:
                 yield net
 
 
+def get_expiry(addr: str, provider: Provider, site_config: dict) -> str:
+    # first check if there's a provider override
+    for raw_exp in [provider.expiry, site_config.get("expiry")]:
+        if raw_exp:
+            if isinstance(raw_exp, str):
+                # constant expiry, just return that
+                return raw_exp
+            elif len(raw_exp) == 2:
+                exp_range = raw_exp
+                break
+            else:
+                logger.error(f"{raw_exp} is not a valid expiry for {provider.name}")
+    else:
+        exp_range = [24, 36]
+
+    # Expiries are random by default, that way a bunch of blocks created at the
+    # same time don't all expire at the same time.  The PRNG is seeded with the
+    # address and the year so that block lengths are different between
+    # different addresses and different blocks of the same address are suitably
+    # random, but do not change daily. This keeps diffs readable.
+    rand = random.Random(addr + str(datetime.date.today().year))
+    return f"{rand.randint(*exp_range)} months"
+
+
 def make_section(provider: Provider, site_config: dict, target: Target) -> str:
     """Prepares wikitext report section for a provider."""
     if provider.url:
@@ -522,18 +547,6 @@ def make_section(provider: Provider, site_config: dict, target: Target) -> str:
         else:
             ip_range = str(net)
 
-        if provider.expiry:
-            expiry = provider.expiry
-        else:
-            # Expiries are random, that way a bunch of blocks created at the
-            # same time don't all expire at the same time.
-            # The PRNG is seeded with the address and the year so that block
-            # lengths are different between different addresses and different
-            # blocks of the same address are suitably random, but do not change
-            # daily. This keeps diffs readable.
-            rand = random.Random(addr + str(datetime.date.today().year))
-            expiry = f"{rand.randint(24, 36)} months"
-
         if isinstance(provider.block_reason, str) and provider.block_reason:
             block_reason = provider.block_reason
         elif (
@@ -545,7 +558,7 @@ def make_section(provider: Provider, site_config: dict, target: Target) -> str:
             block_reason = site_config.get("block_reason", "")
         qs = urllib.parse.urlencode(
             {
-                "wpExpiry": expiry,
+                "wpExpiry": get_expiry(addr, provider, site_config),
                 "wpHardBlock": 1,
                 "wpReason": "other",
                 "wpReason-other": string.Template(block_reason).safe_substitute(

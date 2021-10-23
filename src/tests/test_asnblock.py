@@ -362,6 +362,37 @@ def test_combine_ranges():
 
 
 @pytest.mark.parametrize(
+    "prov_expiry, site_expiry, expected",
+    [
+        ("", "", (24, 36)),
+        ("", None, (24, 36)),
+        ([10, 12], "", (10, 12)),
+        ([10, 12], None, (10, 12)),
+        ("", [14, 16], (14, 16)),
+        ("31 hours", "", "31 hours"),
+        ("31 hours", None, "31 hours"),
+        ("", "72 hours", "72 hours"),
+        ([10, 12], [18, 20], (10, 12)),
+        ([10, 12], "72 hours", (10, 12)),
+    ],
+)
+def test_get_expiry(prov_expiry, site_expiry, expected):
+    site_config = {}
+    if site_expiry is not None:
+        site_config["expiry"] = site_expiry
+    provider = asnblock.Provider("foo", expiry=prov_expiry)
+
+    result = asnblock.get_expiry("", provider, site_config)
+
+    if isinstance(expected, tuple):
+        val = int(result.replace(" months", ""))
+        assert val >= expected[0]
+        assert val <= expected[1]
+    else:
+        assert result == expected
+
+
+@pytest.mark.parametrize(
     "provider,asserts",
     [
         (
@@ -386,6 +417,7 @@ def test_combine_ranges():
                 asn=["AS9876"],
                 search=["banana", "coffee"],
                 block_reason="oreo",
+                expiry="25 months",
             ),
             ["chocolate", "banana", "coffee"],
         ),
@@ -395,6 +427,7 @@ def test_combine_ranges():
                 asn=["AS9876"],
                 search=["banana", "coffee"],
                 block_reason={"enwiki": "oreo", "centralauth": "spinach"},
+                expiry=[28, 34],
             ),
             ["chocolate", "banana", "coffee"],
         ),
@@ -458,7 +491,78 @@ def test_make_section(provider, asserts, live_config):
         assert (exp >= 24) and (exp <= 36)
         expiries.add(exp)
 
-    assert len(expiries) == 4
+    assert len(expiries) == 4 if not isinstance(provider.expiry, str) else 1
+
+
+@pytest.mark.parametrize(
+    "provider,asserts",
+    [
+        (
+            asnblock.Provider(
+                name="chocolate",
+                asn=["AS9876"],
+                search=["banana", "coffee"],
+            ),
+            ["chocolate", "banana", "coffee", "AS9876", "Colocationwebhost"],
+        ),
+        (
+            asnblock.Provider(
+                name="chocolate",
+                url="http://example.com/coffee",
+                src="banana",
+            ),
+            ["chocolate", "banana", "coffee", "example.com", "Colocationwebhost"],
+        ),
+        (
+            asnblock.Provider(
+                name="chocolate",
+                asn=["AS9876"],
+                search=["banana", "coffee"],
+                block_reason="oreo <!-- $blockname -->",
+                blockname="mint",
+                expiry="25 months",
+            ),
+            ["chocolate", "banana", "coffee", "oreo", "25+months"],
+        ),
+        (
+            asnblock.Provider(
+                name="chocolate",
+                asn=["AS9876"],
+                search=["banana", "coffee"],
+                blockname="mint",
+                block_reason={
+                    "enwiki": "oreo <!-- $blockname -->",
+                    "centralauth": "spinach",
+                },
+                expiry=[28, 34],
+            ),
+            ["chocolate", "banana", "coffee", "oreo", "mint"],
+        ),
+    ],
+)
+def test_make_section_nomock(provider, asserts, live_config):
+    provider.ranges = {
+        asnblock.Target("enwiki"): [
+            ipaddress.IPv4Network("10.0.0.0/16"),
+            ipaddress.IPv4Network("10.1.0.0/32"),
+            ipaddress.IPv6Network("fd00::/19"),
+            ipaddress.IPv6Network("fd00:2000::/128"),
+        ],
+        asnblock.Target("enwiki", "30"): [
+            ipaddress.IPv4Network("10.1.0.0/32"),
+        ],
+        asnblock.Target("centralauth"): [
+            ipaddress.IPv6Network("fd00::/19"),
+            ipaddress.IPv6Network("fd00:3000::/128"),
+        ],
+    }
+    site_config = live_config.sites["enwiki"]
+
+    section = asnblock.make_section(provider, site_config, asnblock.Target("enwiki"))
+
+    for statement in asserts:
+        assert statement in section
+    assert "spinach" not in section
 
 
 def test_make_mass_section():
