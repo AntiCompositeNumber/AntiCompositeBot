@@ -120,7 +120,6 @@ class Provider:
     def get_ranges(
         self, config: "Config", targets: Iterable[Target]
     ) -> Dict[Target, List[IPNetwork]]:
-        logger.info(f"Checking ranges from {self.name}")
         if self.asn:
             ranges: Iterable[IPNetwork] = ripestat_data(self)
         elif self.url or self.handler:
@@ -725,9 +724,11 @@ def filter_ranges(
 def collect_data(config: Config, targets: Iterable[Target]) -> List[Provider]:
     """Collect IP address data for various hosting/proxy providers."""
     providers = config.providers
-    logger.info(f"Loaded {len(providers)} providers")
+    tot = len(providers)
+    logger.info(f"Loaded {tot} providers")
 
-    for provider in providers:
+    for i, provider in enumerate(providers, start=1):
+        logger.info(f"Checking ranges from {provider.name} ({i}/{tot})")
         provider.ranges = provider.get_ranges(config, targets)
 
     return providers
