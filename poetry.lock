@@ -1,6 +1,6 @@
 [[package]]
 name = "acnutils"
-version = "0.5.0"
+version = "0.6.0"
 description = "Various utilities used in AntiCompositeNumber's bots"
 category = "main"
 optional = false
@@ -518,12 +518,12 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.9"
-content-hash = "86de10c9670d76ee429cbb7645c948dfe2ce9613e7c42f4e49815130f0aecb39"
+content-hash = "f54e87cfa938aa00a852bc14e0b3c690ccd9b0e08c8d94ca24240cac42df5c6d"
 
 [metadata.files]
 acnutils = [
-    {file = "acnutils-0.5.0-py3-none-any.whl", hash = "sha256:6e2c8b45ead57582fea0fe6b5faf06a1cd0125903b8117178a6ebe25045513af"},
-    {file = "acnutils-0.5.0.tar.gz", hash = "sha256:1431c0b25f70c32c31ff89149badcdc2e750cba693b896a983f5c8d2696b66b0"},
+    {file = "acnutils-0.6.0-py3-none-any.whl", hash = "sha256:66083c8984750ac4c2019dfc24cd5b3eb1ae115cdc2e39bb98e577474d6e4625"},
+    {file = "acnutils-0.6.0.tar.gz", hash = "sha256:1dee18173e94d7504b9094f1efdecff8d1df9b01cd67a13029b5c23cc353abd0"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.0-py2.py3-none-any.whl", hash = "sha256:6d1784dea7c0c8d4a5172b6c620f40b6e4cbfdf96d783691f2e1302a7b88e197"},
