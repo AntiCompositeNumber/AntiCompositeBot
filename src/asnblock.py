@@ -48,7 +48,7 @@ from typing import (
     Sequence,
 )
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 logger = utils.getInitLogger(
     "ASNBlock", level="VERBOSE", filename="stderr", thread=True
@@ -374,14 +374,13 @@ def search_ripestat_whois(
         logger.exception(e)
         return None
 
-    for records in ["records", "irr_records"]:
-        for record in data.get(records, []):
-            for entry in record:
-                if entry.get("key") in {"descr", "netname"}:
-                    val = entry.get("value", "").lower()
-                    for search in search_list:
-                        if search in val:
-                            return True
+    for record in data.get("records", []):
+        for entry in record:
+            if entry.get("key") in {"descr", "netname"}:
+                val = entry.get("value", "").lower()
+                for search in search_list:
+                    if search in val:
+                        return True
     return False
 
 
