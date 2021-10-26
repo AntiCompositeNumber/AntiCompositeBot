@@ -48,7 +48,7 @@ from typing import (
     Sequence,
 )
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 logger = utils.getInitLogger(
     "ASNBlock", level="VERBOSE", filename="stderr", thread=True
@@ -788,7 +788,7 @@ def main(target_strs: List[str]) -> None:
         update_time = datetime.datetime.now().isoformat(sep=" ", timespec="seconds")
         text = mass_text = f"== Hosts ==\nLast updated {update_time} in {total_time}.\n"
 
-        text += "".join(
+        text += "\n".join(
             make_section(provider, site_config, target) for provider in providers
         )
         update_page(text, title=title, total=total_ranges, exp=bool(target.days))
