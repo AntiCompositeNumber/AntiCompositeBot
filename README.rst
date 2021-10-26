@@ -28,15 +28,11 @@ Active tasks
 ASNBlock
     Maintains reports of unblocked ranges used by known hosting providers at https://en.wikipedia.org/wiki/User:AntiCompositeBot/ASNBlock.
 
-    :Schedule: Nightly, beginning at 02:30 UTC (for enwiki) and 08:13 UTC (for global)
+    :Schedule: Nightly, beginning at 02:30 UTC
     :Start: ``kubectl apply -f etc/asnblock_cron.yaml --validate=true``
-    :Run now:
-        :enwiki: ``kubectl create job --from cronjob/anticompositebot.asnblock  anticompositebot.asnblock``
-        :global: ``kubectl create job --from cronjob/anticompositebot.asnblock-global anticompositebot.asnblock-global``
-    :Stop:
-        :enwiki: ``kubectl delete CronJob anticompositebot.asnblock``
-        :global: ``kubectl delete CronJob anticompositebot.asnblock-global``
-    :Logs: ``kubectl logs``
+    :Run now: ``kubectl create job --from cronjob/anticompositebot.asnblock anticompositebot.asnblock``
+    :Stop: ``kubectl delete CronJob anticompositebot.asnblock``
+    :Logs: ``kubectl logs job/anticompositebot.asnblock``
     :Config: https://en.wikipedia.org/wiki/User:AntiCompositeBot/ASNBlock/config.json
 
 EssayImpact
