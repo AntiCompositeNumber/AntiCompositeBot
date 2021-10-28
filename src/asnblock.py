@@ -48,7 +48,7 @@ from typing import (
     Sequence,
 )
 
-__version__ = "2.0.2"
+__version__ = "2.0.3"
 
 logger = utils.getInitLogger(
     "ASNBlock", level="VERBOSE", filename="stderr", thread=True
@@ -366,7 +366,7 @@ def search_ripestat_whois(
         throttle.throttle()
 
     try:
-        data = query_ripestat("whois", False, resource=str(net)).get("data", {})
+        data = query_ripestat("whois", False, resource=str(net[0])).get("data", {})
     except requests.exceptions.HTTPError as e:
         logger.warning(e, exc_info=True)
         return None
