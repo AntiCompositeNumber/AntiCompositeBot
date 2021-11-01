@@ -354,7 +354,7 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "requests", "xm
 
 [[package]]
 name = "pywikibot"
-version = "6.6.1"
+version = "6.6.2"
 description = "Python MediaWiki Bot Framework"
 category = "main"
 optional = false
@@ -736,7 +736,7 @@ pytest = [
     {file = "pytest-6.2.5.tar.gz", hash = "sha256:131b36680866a76e6781d13f101efb86cf674ebb9762eb70d3082b6f29889e89"},
 ]
 pywikibot = [
-    {file = "pywikibot-6.6.1.tar.gz", hash = "sha256:22e587318eb4148b92ae759010a13f2defd8c711c73656ab2dd5b5c19ac4084b"},
+    {file = "pywikibot-6.6.2.tar.gz", hash = "sha256:1f242384e975bc08f32347f237887f93beb30948d7a949e2bd43c020882f5bbe"},
 ]
 redis = [
     {file = "redis-3.5.3-py2.py3-none-any.whl", hash = "sha256:432b788c4530cfe16d8d943a09d40ca6c16149727e4afe8c2c9d5580c59d9f24"},
