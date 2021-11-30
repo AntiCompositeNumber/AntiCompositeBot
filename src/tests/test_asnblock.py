@@ -28,6 +28,7 @@ import urllib.parse
 import time
 import random
 import string
+import yaml
 import acnutils as utils
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/.."))
@@ -100,43 +101,25 @@ def wmf_provider():
 
 @pytest.fixture(scope="module")
 def wmf_ripestat_ranges(wmf_provider):
-    return list(asnblock.ripestat_data(wmf_provider))
+    return set(asnblock.ripestat_data(wmf_provider))
 
 
-@pytest.mark.parametrize(
-    "ip",
-    [
-        # anycast
-        ipaddress.ip_network("198.35.27.0/24"),
-        ipaddress.ip_network("185.71.138.0/24"),
-        # eqiad
-        ipaddress.ip_network("208.80.154.0/23"),
-        ipaddress.ip_network("2620:0:861::/48"),
-        ipaddress.ip_network("185.15.56.0/24"),  # cloud
-        # codfw
-        ipaddress.ip_network("208.80.152.0/23"),
-        ipaddress.ip_network("185.15.57.0/24"),
-        ipaddress.ip_network("2620:0:860::/48"),
-        # ulsfo
-        ipaddress.ip_network("198.35.26.0/24"),
-        ipaddress.ip_network("2620:0:863::/48"),
-        # eqsin
-        ipaddress.ip_network("103.102.166.0/24"),
-        ipaddress.ip_network("2001:df2:e500::/48"),
-        # esams
-        ipaddress.ip_network("91.198.174.0/24"),
-        ipaddress.ip_network("185.15.59.0/24"),
-        ipaddress.ip_network("2620:0:862::/48"),
-        ipaddress.ip_network("2a02:ec80::/32"),
-    ],
-)
-def test_ripestat_data(ip, wmf_ripestat_ranges):
-    # Testing with WMF ranges, current as of 2021-10-02, data from
-    # https://phabricator.wikimedia.org/diffusion/OHPU/browse/master/config/sites.yaml
-    # https://phabricator.wikimedia.org/diffusion/OHPU/browse/master/templates/includes/customers/64710.policy
-    # XXX: this should be implemented with a yaml parser instead of hardcoded ranges
-    #      the WMF doesn't change ranges often, but it does happen
-    assert ip in wmf_ripestat_ranges
+def test_ripestat_data(wmf_ripestat_ranges):
+    res = session.get(
+        "https://phabricator.wikimedia.org/diffusion/OHPU"
+        "/browse/master/config/sites.yaml?view=raw"
+    )
+    res.raise_for_status()
+    sites = yaml.safe_load(res.text)
+    called_once = False
+    for site in sites.values():
+        for net in site.get("bgp_out", {}):
+            called_once = True
+            assert ipaddress.ip_network(net) in wmf_ripestat_ranges
+        for net in site.get("bgp6_out", {}):
+            called_once = True
+            assert ipaddress.ip_network(net) in wmf_ripestat_ranges
+    assert called_once
 
 
 def test_ripestat_data_raise(wmf_provider):
