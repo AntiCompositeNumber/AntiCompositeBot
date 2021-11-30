@@ -26,6 +26,7 @@ types-requests = "*"
 types-PyMySQL = "*"
 types-redis = "*"
 flake8 = "*"
+PyYAML = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
