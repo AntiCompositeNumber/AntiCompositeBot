@@ -145,16 +145,11 @@ class Essay:
         return wikitext
 
     def data_row(self, key: str, rank: int = 0) -> str:
-        wikitext = "".join(
-            str(o)
-            for o in (
-                "    |",
-                self.page.title(insite=site),
-                " = ",
-                rank if (key == "rank") else getattr(self, key, ""),
-            )
-        )
-        return wikitext
+        if key == "rank":
+            val = str(rank)
+        else:
+            val = getattr(self, key, "")
+        return f"    |{self.page.title(insite=site)} = {val}"
 
 
 def iter_project_pages() -> Iterator[pywikibot.Page]:
