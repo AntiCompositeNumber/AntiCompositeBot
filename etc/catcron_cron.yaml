@@ -1,0 +1,37 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: anticompositebot.catcron
+  labels:
+    name: anticompositebot.catcron
+    toolforge: tool
+spec:
+  schedule: "30 12 ** *"
+  concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            toolforge: tool
+        spec:
+          containers:
+          - name: catcron
+            image: docker-registry.tools.wmflabs.org/toolforge-python39-sssd-base:latest
+            command: [
+              "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
+              "/data/project/anticompositebot/AntiCompositeBot/src/catcron.py"
+            ]
+            workingDir: /data/project/anticompositebot
+            env:
+              - name: HOME
+                value: /data/project/anticompositebot
+              - name: LOG_SMTP
+                value: "True"
+            imagePullPolicy: Always
+            resources:
+              limits:
+                memory: 4Gi
+          restartPolicy: OnFailure
