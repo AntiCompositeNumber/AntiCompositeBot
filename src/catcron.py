@@ -61,7 +61,7 @@ class Target:
 
         return cls(**kwargs)
 
-    def should_run(self, date: datetime.date) -> None:
+    def should_run(self, date: datetime.date) -> bool:
         if self.schedule == "yearly" and not (date.month == 1 and date.day == 1):
             return False
         elif self.schedule == "monthly" and not (date.day == 1):
