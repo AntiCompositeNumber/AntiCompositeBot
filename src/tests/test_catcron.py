@@ -37,9 +37,10 @@ DAYS = [
 BLANK = string.Template("")
 
 
+@mock.patch("acnutils.check_runpage")
 class TestShouldRun:
     @pytest.mark.parametrize(["today", "expected"], zip(DAYS, [True, True, True, True]))
-    def test_daily(self, today: datetime.datetime, expected: bool):
+    def test_daily(self, runpage, today: datetime.datetime, expected: bool):
         target = catcron.Target("daily", BLANK, BLANK)
         assert target.should_run(today) is expected
         with mock.patch("acnutils.save_page") as save_page:
@@ -53,7 +54,7 @@ class TestShouldRun:
     @pytest.mark.parametrize(
         ["today", "expected"], zip(DAYS, [True, False, True, False])
     )
-    def test_monthly(self, today: datetime.datetime, expected: bool):
+    def test_monthly(self, runpage, today: datetime.datetime, expected: bool):
         target = catcron.Target("monthly", BLANK, BLANK)
         assert target.should_run(today) is expected
         with mock.patch("acnutils.save_page") as save_page:
@@ -67,7 +68,7 @@ class TestShouldRun:
     @pytest.mark.parametrize(
         ["today", "expected"], zip(DAYS, [True, False, False, False])
     )
-    def test_yearly(self, today: datetime.datetime, expected: bool):
+    def test_yearly(self, runpage, today: datetime.datetime, expected: bool):
         target = catcron.Target("yearly", BLANK, BLANK)
         assert target.should_run(today) is expected
         with mock.patch("acnutils.save_page") as save_page:
