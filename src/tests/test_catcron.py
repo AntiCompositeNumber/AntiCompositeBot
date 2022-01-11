@@ -40,7 +40,7 @@ BLANK = string.Template("")
 @mock.patch("acnutils.check_runpage")
 class TestShouldRun:
     @pytest.mark.parametrize(["today", "expected"], zip(DAYS, [True, True, True, True]))
-    def test_daily(self, runpage, today: datetime.datetime, expected: bool):
+    def test_daily(self, runpage: mock.Mock, today: datetime.datetime, expected: bool):
         target = catcron.Target("daily", BLANK, BLANK)
         assert target.should_run(today) is expected
         with mock.patch("acnutils.save_page") as save_page:
@@ -54,7 +54,9 @@ class TestShouldRun:
     @pytest.mark.parametrize(
         ["today", "expected"], zip(DAYS, [True, False, True, False])
     )
-    def test_monthly(self, runpage, today: datetime.datetime, expected: bool):
+    def test_monthly(
+        self, runpage: mock.Mock, today: datetime.datetime, expected: bool
+    ):
         target = catcron.Target("monthly", BLANK, BLANK)
         assert target.should_run(today) is expected
         with mock.patch("acnutils.save_page") as save_page:
@@ -68,7 +70,7 @@ class TestShouldRun:
     @pytest.mark.parametrize(
         ["today", "expected"], zip(DAYS, [True, False, False, False])
     )
-    def test_yearly(self, runpage, today: datetime.datetime, expected: bool):
+    def test_yearly(self, runpage: mock.Mock, today: datetime.datetime, expected: bool):
         target = catcron.Target("yearly", BLANK, BLANK)
         assert target.should_run(today) is expected
         with mock.patch("acnutils.save_page") as save_page:
@@ -109,7 +111,8 @@ class TestShouldRun:
         ),
     ],
 )
-def test_create(target: catcron.Target, title: str, text: str):
+@mock.patch("acnutils.check_runpage")
+def test_create(runpage: mock.Mock, target: catcron.Target, title: str, text: str):
     date = datetime.date(2022, 2, 1)
     with mock.patch("acnutils.save_page") as save_page:
         with mock.patch("pywikibot.Page.exists", return_value=False):
@@ -117,6 +120,8 @@ def test_create(target: catcron.Target, title: str, text: str):
             save_page.assert_called_once()
             assert save_page.call_args.kwargs["page"].title() == title
             assert save_page.call_args.kwargs["text"] == text
+
+    runpage.assert_called()
 
 
 @pytest.mark.parametrize(
