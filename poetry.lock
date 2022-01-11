@@ -495,7 +495,7 @@ python-versions = "*"
 
 [[package]]
 name = "types-redis"
-version = "4.0.6"
+version = "4.1.7"
 description = "Typing stubs for redis"
 category = "dev"
 optional = false
@@ -826,8 +826,8 @@ types-pymysql = [
     {file = "types_PyMySQL-1.0.7-py3-none-any.whl", hash = "sha256:8b553effda99b43406b938384fe6b0f38d5844e6efb49d2da97fdddd000ef20a"},
 ]
 types-redis = [
-    {file = "types-redis-4.0.6.tar.gz", hash = "sha256:3d870147794303077598343125727ee24a1a8961dca1a6870013152f2ba2a81b"},
-    {file = "types_redis-4.0.6-py3-none-any.whl", hash = "sha256:56fc26ec5034dcd14d83597f917ee4805c251dc67bbb1d22ce5993c34cf17820"},
+    {file = "types-redis-4.1.7.tar.gz", hash = "sha256:dc4d78558b5354cdc35aad789f7925d1b80889226c9a599c39147a4892b52c56"},
+    {file = "types_redis-4.1.7-py3-none-any.whl", hash = "sha256:95ef23c6fb56c8d2cf97e6141c197456b86928bc1ff2a04d7c4444aece83f8c3"},
 ]
 types-requests = [
     {file = "types-requests-2.26.2.tar.gz", hash = "sha256:0e22d9cdeff4c3eb068eb883d59b127c98d80525f3d0412a1c4499c6ae1f711e"},
