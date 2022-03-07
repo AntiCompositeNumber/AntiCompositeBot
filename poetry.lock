@@ -1,13 +1,13 @@
 [[package]]
 name = "acnutils"
-version = "0.6.0"
+version = "0.6.1"
 description = "Various utilities used in AntiCompositeNumber's bots"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
-pywikibot = ">=6.6.1,<7.0.0"
+pywikibot = ">=6.6.1,<8.0.0"
 toolforge = {version = ">=5.0.0,<6.0.0", optional = true, markers = "extra == \"db\""}
 
 [package.extras]
@@ -546,12 +546,12 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.9"
-content-hash = "92761ab6810aa21d2f2ed1c2ef8329784ee870081e76d67c48ca05d68dd95b41"
+content-hash = "fe4acb50dd7accf56a67ba628b13175069e471b2bdcb8dc3254bb964b2d0dad0"
 
 [metadata.files]
 acnutils = [
-    {file = "acnutils-0.6.0-py3-none-any.whl", hash = "sha256:66083c8984750ac4c2019dfc24cd5b3eb1ae115cdc2e39bb98e577474d6e4625"},
-    {file = "acnutils-0.6.0.tar.gz", hash = "sha256:1dee18173e94d7504b9094f1efdecff8d1df9b01cd67a13029b5c23cc353abd0"},
+    {file = "acnutils-0.6.1-py3-none-any.whl", hash = "sha256:ab51280e2117dc5f2f73d497a6213e9b877c306fa4fd18b210a0a3893f0cc357"},
+    {file = "acnutils-0.6.1.tar.gz", hash = "sha256:6bc723e7ed18414c0c6b8da180a3e53386afc7e447a114b41d15c3829a56b22c"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.0-py2.py3-none-any.whl", hash = "sha256:6d1784dea7c0c8d4a5172b6c620f40b6e4cbfdf96d783691f2e1302a7b88e197"},
