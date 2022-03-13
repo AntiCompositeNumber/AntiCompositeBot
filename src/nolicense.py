@@ -89,6 +89,7 @@ WHERE
         AND log_action = "upload"
     )
   )
+GROUP BY page_id
 ORDER BY actor_id
 """
     conn = toolforge.connect("commonswiki_p", cluster=cluster)
