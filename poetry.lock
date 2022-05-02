@@ -491,7 +491,7 @@ requests = "*"
 
 [[package]]
 name = "types-pymysql"
-version = "1.0.18"
+version = "1.0.19"
 description = "Typing stubs for PyMySQL"
 category = "dev"
 optional = false
@@ -859,8 +859,8 @@ toolforge = [
     {file = "toolforge-5.0.0.tar.gz", hash = "sha256:c8fbd199437faf7db6597c8cb1072de97f01fed706cd83740edf7a9ac9831065"},
 ]
 types-pymysql = [
-    {file = "types-PyMySQL-1.0.18.tar.gz", hash = "sha256:58bd6ac8c0e3a9ed503f60a0d476b18835d3c7d01eda1e5c77a922facec826b1"},
-    {file = "types_PyMySQL-1.0.18-py3-none-any.whl", hash = "sha256:40bab5103aff611f445f5f1f2b4d5c91f6ca141349134fb84133c18c9e5d47d4"},
+    {file = "types-PyMySQL-1.0.19.tar.gz", hash = "sha256:f79a1f4d9df4a65db999537f9a47de419be162dfeab3b2c91bcba8bb1a362a65"},
+    {file = "types_PyMySQL-1.0.19-py3-none-any.whl", hash = "sha256:fc43dceda3f3fc4ac388db7dd57b157c13d94cb84e30cca4848df590c314bf68"},
 ]
 types-redis = [
     {file = "types-redis-4.2.0.tar.gz", hash = "sha256:c9b61894c7621b801db44efd63f843ead93cbbcf034186d7343f7f5771e1106a"},
