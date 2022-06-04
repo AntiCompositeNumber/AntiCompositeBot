@@ -493,8 +493,16 @@ def combine_ranges(all_ranges: Iterable[IPNetwork]) -> Iterator[IPNetwork]:
     ranges of that size or smaller.
     """
     # ipaddress.collapse_addresses can't handle v4 and v6 ranges at the same time
-    ipv4 = [net for net in all_ranges if net.version == 4]
-    ipv6 = [net for net in all_ranges if net.version == 6]
+    ipv4, ipv6 = [], []
+    # only consume all_ranges once
+    for anet in all_ranges:
+        if anet.version == 4:
+            ipv4.append(anet)
+        elif anet.version == 6:
+            ipv6.append(anet)
+        else:
+            raise TypeError(anet)
+
     for ranges in [ipv4, ipv6]:
         ranges = list(ipaddress.collapse_addresses(sorted(ranges)))  # type: ignore
         for net in ranges:
