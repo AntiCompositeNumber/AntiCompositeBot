@@ -507,7 +507,7 @@ python-versions = "*"
 
 [[package]]
 name = "types-requests"
-version = "2.27.30"
+version = "2.28.0"
 description = "Typing stubs for requests"
 category = "dev"
 optional = false
@@ -867,8 +867,8 @@ types-redis = [
     {file = "types_redis-4.2.6-py3-none-any.whl", hash = "sha256:1136af954ade0be33b487f440c8cbcbee29f089a83e685484ec91f363c6c69fe"},
 ]
 types-requests = [
-    {file = "types-requests-2.27.30.tar.gz", hash = "sha256:ca8d7cc549c3d10dbcb3c69c1b53e3ffd1270089c1001a65c1e9e1017eb5e704"},
-    {file = "types_requests-2.27.30-py3-none-any.whl", hash = "sha256:b9b6cd0a6e5d500e56419b79f44ec96f316e9375ff6c8ee566c39d25e9612621"},
+    {file = "types-requests-2.28.0.tar.gz", hash = "sha256:9863d16dfbb3fa55dcda64fa3b989e76e8859033b26c1e1623e30465cfe294d3"},
+    {file = "types_requests-2.28.0-py3-none-any.whl", hash = "sha256:85383b4ef0535f639c3f06c5bbb6494bbf59570c4cd88bbcf540f0b2ac1b49ab"},
 ]
 types-urllib3 = [
     {file = "types-urllib3-1.26.13.tar.gz", hash = "sha256:40f8fb5e8cd7d57e8aefdee3fdd5e930aa1a1bb4179cdadd55226cea588af790"},
