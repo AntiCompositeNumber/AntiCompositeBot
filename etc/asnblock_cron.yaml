@@ -8,11 +8,12 @@ metadata:
     toolforge: tool
 spec:
   schedule: "30 2 * * *"
-  concurrencyPolicy: Forbid
+  concurrencyPolicy: Replace
   successfulJobsHistoryLimit: 2
   jobTemplate:
     spec:
       backoffLimit: 0
+      activeDeadlineSeconds: 28800
       template:
         metadata:
           labels:
