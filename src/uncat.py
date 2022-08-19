@@ -31,10 +31,11 @@ def run_query():
 SELECT page_title, COUNT(*)
 FROM page
 JOIN templatelinks ON tl_from = page_id
+JOIN linktarget ON lt_id = tl_target_id
 JOIN globalimagelinks ON page_title = gil_to
 WHERE
-    tl_title = "Uncategorized"
-    AND tl_namespace = 10
+    lt_title = "Uncategorized"
+    AND lt_namespace = 10
     AND page_namespace = 6
 GROUP BY page_id
 ORDER BY COUNT(*) DESC
