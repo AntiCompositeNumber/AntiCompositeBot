@@ -28,7 +28,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.8"
+__version__ = "1.9"
 
 logger = utils.getInitLogger("nolicense", level="INFO")
 
@@ -72,10 +72,11 @@ WHERE
   AND log_timestamp > %(start_ts) s
   AND log_timestamp < %(end_ts) s
   AND "Deletion_template_tag" NOT IN (
-    SELECT tl_title
+    SELECT lt_title
     FROM templatelinks
+    JOIN linktarget ON lt_id = tl_target_id
     WHERE
-      tl_namespace = 10
+      lt_namespace = 10
       AND tl_from = p0.page_id
   )
   AND (
