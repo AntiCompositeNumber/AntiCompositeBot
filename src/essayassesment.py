@@ -156,10 +156,11 @@ def iter_project_pages() -> Iterator[pywikibot.Page]:
     query = """
         SELECT page_namespace - 1, page_title
         FROM templatelinks
+        JOIN linktarget ON lt_id = tl_target_id
         JOIN page ON tl_from = page_id
         WHERE
-            tl_title = "WikiProject_Essays"
-            and tl_namespace = 10
+            lt_title = "WikiProject_Essays"
+            and lt_namespace = 10
             and page_namespace in (3, 5, 13)
         """
     conn = toolforge.connect("enwiki_p")
