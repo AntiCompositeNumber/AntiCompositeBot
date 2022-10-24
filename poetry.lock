@@ -41,7 +41,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 dev = ["cloudpickle", "coverage[toml] (>=5.0.2)", "furo", "hypothesis", "mypy", "pre-commit", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six", "sphinx", "sphinx-notfound-page", "zope.interface"]
 docs = ["furo", "sphinx", "sphinx-notfound-page", "zope.interface"]
 tests = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six", "zope.interface"]
-tests_no_zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six"]
+tests-no-zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "six"]
 
 [[package]]
 name = "beautifulsoup4"
@@ -108,7 +108,7 @@ optional = false
 python-versions = ">=3.5.0"
 
 [package.extras]
-unicode_backport = ["unicodedata2"]
+unicode-backport = ["unicodedata2"]
 
 [[package]]
 name = "click"
@@ -386,7 +386,7 @@ requests = {version = ">=2.20.1", markers = "python_version >= \"3.7\""}
 setuptools = {version = ">=38.5.2", markers = "python_version >= \"3.7\" and python_version < \"3.10\""}
 
 [package.extras]
-"commons_information.py" = ["mwparserfromhell (>=0.5.0)"]
+commons-information-py = ["mwparserfromhell (>=0.5.0)"]
 eventstreams = ["sseclient (>=0.0.18,<0.0.23)"]
 flake8 = ["darglint", "flake8 (>=3.9.1)", "flake8-bugbear (!=21.4.1,!=21.11.28)", "flake8-coding", "flake8-colors (>=0.1.9)", "flake8-comprehensions (>=2.2.0)", "flake8-comprehensions (>=3.1.4)", "flake8-docstrings (>=1.3.1)", "flake8-mock (>=0.3)", "flake8-no-u-prefixed-strings (>=0.2)", "flake8-print (>=2.0.1)", "flake8-quotes (>=2.0.1)", "flake8-string-format", "flake8-tuple (>=0.2.8)", "pep8-naming (>=0.12.1)", "pep8-naming (>=0.12.1,<0.13.0)", "pydocstyle (>=4.0.0)", "pyflakes (>=2.1.0)"]
 google = ["google (>=1.7)"]
@@ -399,10 +399,10 @@ memento = ["memento-client (==0.6.1)"]
 mwoauth = ["mwoauth (>=0.2.4,!=0.3.1)"]
 mwparserfromhell = ["mwparserfromhell (>=0.5.0)"]
 mysql = ["PyMySQL (>=0.7.11,<1.0.0)", "PyMySQL (>=1.0.0)"]
-"patrol.py" = ["mwparserfromhell (>=0.5.0)"]
+patrol-py = ["mwparserfromhell (>=0.5.0)"]
 scripts = ["memento-client (==0.6.1)", "mwparserfromhell (>=0.5.0)"]
 tkinter = ["Pillow (>=8.1.1)"]
-"weblinkchecker.py" = ["memento-client (==0.6.1)"]
+weblinkchecker-py = ["memento-client (==0.6.1)"]
 wikitextparser = ["wikitextparser (>=0.47.0)", "wikitextparser (>=0.47.5)"]
 
 [[package]]
@@ -446,7 +446,7 @@ urllib3 = ">=1.21.1,<1.27"
 
 [package.extras]
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
-use_chardet_on_py3 = ["chardet (>=3.0.2,<6)"]
+use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "requests-oauthlib"
@@ -514,7 +514,7 @@ python-versions = "*"
 
 [[package]]
 name = "types-redis"
-version = "4.3.13"
+version = "4.3.21.3"
 description = "Typing stubs for redis"
 category = "dev"
 optional = false
@@ -890,8 +890,8 @@ types-pymysql = [
     {file = "types_PyMySQL-1.0.19-py3-none-any.whl", hash = "sha256:fc43dceda3f3fc4ac388db7dd57b157c13d94cb84e30cca4848df590c314bf68"},
 ]
 types-redis = [
-    {file = "types-redis-4.3.13.tar.gz", hash = "sha256:b8334a96a2f431521bfa72205b343129acdc5a646ffcfb304d80a1cd0deff548"},
-    {file = "types_redis-4.3.13-py3-none-any.whl", hash = "sha256:cc2209ecfab2ad6df1e3eec730c06f9b2dec77f4164eb86e04dad455a651b394"},
+    {file = "types-redis-4.3.21.3.tar.gz", hash = "sha256:2e1f184056188c8754ded0b5173dc01824d2bfe41975fe318068a68beedfb62c"},
+    {file = "types_redis-4.3.21.3-py3-none-any.whl", hash = "sha256:77ee5b8ca3a779e09807348c7f0b33c0f38a46096cd6c8a2e0176b28b3784b34"},
 ]
 types-requests = [
     {file = "types-requests-2.28.8.tar.gz", hash = "sha256:7a9f7b152d594a1c18dd4932cdd2596b8efbeedfd73caa4e4abb3755805b4685"},
