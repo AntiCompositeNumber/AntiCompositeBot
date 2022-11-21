@@ -126,7 +126,7 @@ def api_get_usage(cat: pywikibot.Category, depth: int, total: int) -> UsageResul
                 try:
                     usage = pywikibot.FilePage.globalusage(page)
                     usage_counts.append(FileUsage(page.title(), len(list(usage))))
-                except (pywikibot.NoUsername, pywikibot.PageRelatedError):
+                except (pywikibot.NoUsernameError, pywikibot.PageRelatedError):
                     # Pywikibot complains if the bot doesn't have an account
                     # on a wiki where a file is used. If that happens,
                     # skip the file.
