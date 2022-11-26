@@ -300,6 +300,7 @@ def test_tag_page():
     test_config = {"tag_text": "tag_text()", "tag_summary": "tag_summary($version)"}
     page = mock.Mock(text="old_text()", spec=pywikibot.Page)
     page.get.return_value = page.text
+    page.isRedirectPage.return_value = False
     with mock.patch.dict("nolicense.config", test_config):
         with mock.patch("nolicense.edit_page") as edit_page:
             nolicense.tag_page(page, mock.sentinel.throttle)
@@ -310,6 +311,51 @@ def test_tag_page():
                 throttle=mock.sentinel.throttle,
                 mode="prepend",
             )
+
+
+def test_tag_page_redirect():
+    test_config = {
+        "dupe_text": "dupe_text($target)",
+        "dupe_summary": "dupe_summary($version)",
+    }
+    page = mock.Mock(text="#REDIRECT [[TARGET]]", spec=pywikibot.Page)
+    page.get.return_value = page.text
+    page.isRedirectPage.return_value = True
+    page.getRedirectTarget.return_value.title.return_value = "TARGET"
+    with mock.patch.dict("nolicense.config", test_config):
+        with mock.patch("nolicense.edit_page") as edit_page:
+            res = nolicense.tag_page(page, mock.sentinel.throttle)
+            edit_page.assert_called_once_with(
+                page,
+                "dupe_text(TARGET)",
+                f"dupe_summary({nolicense.__version__})",
+                throttle=mock.sentinel.throttle,
+                mode="prepend",
+            )
+            assert res is False
+
+
+def test_tag_page_redirect_disabled():
+    test_config = {
+        "tag_text": "tag_text()",
+        "tag_summary": "tag_summary($version)",
+        "tag_redirects": False,
+    }
+    page = mock.Mock(text="old_text()", spec=pywikibot.Page)
+    page.get.return_value = page.text
+    page.isRedirectPage.return_value = True
+    with mock.patch.dict("nolicense.config", test_config):
+        with mock.patch("nolicense.edit_page") as edit_page:
+            with mock.patch("nolicense.tag_redirect") as tag_redirect:
+                nolicense.tag_page(page, mock.sentinel.throttle)
+                edit_page.assert_called_once_with(
+                    page,
+                    "tag_text()",
+                    f"tag_summary({nolicense.__version__})",
+                    throttle=mock.sentinel.throttle,
+                    mode="prepend",
+                )
+                tag_redirect.assert_not_called()
 
 
 @mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
