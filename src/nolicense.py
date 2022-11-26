@@ -28,7 +28,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.9"
+__version__ = "1.10"
 
 logger = utils.getInitLogger("nolicense", level="INFO")
 
@@ -123,10 +123,29 @@ def check_templates(page: pywikibot.Page) -> bool:
 
 
 def tag_page(page: pywikibot.Page, throttle: Optional[utils.Throttle] = None) -> bool:
+    if config.get("tag_redirects") and page.isRedirectPage():
+        return tag_redirect(page, throttle)
     tag = config["tag_text"]
     summary_template = config["tag_summary"]
     summary = string.Template(summary_template).safe_substitute(version=__version__)
     return edit_page(page, tag, summary, throttle=throttle, mode="prepend")
+
+
+def tag_redirect(
+    page: pywikibot.Page, throttle: Optional[utils.Throttle] = None
+) -> bool:
+    # Note: This function intentionally does not check if the page is actually
+    # a duplicate of the target. Redirects with file content are still a licensing
+    # problem, and need to be dealt with by humans. {{duplicate}} is just the easiest
+    # bin to throw them in.
+    target = page.getRedirectTarget().title()
+    tag = string.Template(config["dupe_text"]).safe_substitute(target=target)
+    summary = string.Template(config["dupe_summary"]).safe_substitute(
+        version=__version__
+    )
+    edit_page(page, tag, summary, throttle=throttle, mode="prepend")
+    # Return False here to prevent the user from being warned
+    return False
 
 
 def warn_user(
