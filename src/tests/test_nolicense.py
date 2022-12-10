@@ -317,6 +317,7 @@ def test_tag_page_redirect():
     test_config = {
         "dupe_text": "dupe_text($target)",
         "dupe_summary": "dupe_summary($version)",
+        "tag_redirects": True,
     }
     page = mock.Mock(text="#REDIRECT [[TARGET]]", spec=pywikibot.Page)
     page.get.return_value = page.text
