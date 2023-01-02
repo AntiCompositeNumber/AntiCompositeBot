@@ -530,7 +530,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.9"
-content-hash = "fe4acb50dd7accf56a67ba628b13175069e471b2bdcb8dc3254bb964b2d0dad0"
+content-hash = "c375a2da904d7f9e4ba0fcce3d0607a4ecb00a5a1408d1700e74ca713c22351a"
 
 [metadata.files]
 acnutils = [

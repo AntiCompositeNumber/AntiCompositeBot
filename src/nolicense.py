@@ -143,7 +143,7 @@ def tag_redirect(
     summary = string.Template(config["dupe_summary"]).safe_substitute(
         version=__version__
     )
-    edit_page(page, tag, summary, throttle=throttle, mode="prepend")
+    edit_page(page, tag, summary, throttle=throttle, mode="prepend", edit_redirect=True)
     # Return False here to prevent the user from being warned
     return False
 
@@ -198,6 +198,7 @@ def edit_page(
     mode: str = "replace",
     force: bool = False,
     new_ok=False,
+    edit_redirect=False,
 ) -> bool:
     if throttle is not None:
         throttle.throttle()
