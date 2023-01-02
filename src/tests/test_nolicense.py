@@ -332,6 +332,7 @@ def test_tag_page_redirect():
                 f"dupe_summary({nolicense.__version__})",
                 throttle=mock.sentinel.throttle,
                 mode="prepend",
+                edit_redirect=True,
             )
             assert res is False
 
