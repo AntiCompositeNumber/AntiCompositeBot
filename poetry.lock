@@ -343,7 +343,7 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.
 
 [[package]]
 name = "pywikibot"
-version = "7.7.2"
+version = "7.7.3"
 description = "Python MediaWiki Bot Framework"
 category = "main"
 optional = false
@@ -362,7 +362,7 @@ google = ["google (>=1.7)"]
 graphviz = ["pydot (>=1.2)"]
 hacking = ["hacking", "importlib-metadata (<5.0.0)"]
 html = ["BeautifulSoup4"]
-http = ["fake-useragent"]
+http = ["fake-useragent (<0.1.14)", "fake-useragent (>1.0.1)"]
 isbn = ["python-stdnum (>=1.17)"]
 memento = ["memento-client (==0.6.1)"]
 mwoauth = ["mwoauth (>=0.2.4,!=0.3.1)"]
@@ -764,8 +764,8 @@ pytest = [
     {file = "pytest-7.2.0.tar.gz", hash = "sha256:c4014eb40e10f11f355ad4e3c2fb2c6c6d1919c73f3b5a433de4708202cade59"},
 ]
 pywikibot = [
-    {file = "pywikibot-7.7.2-py3-none-any.whl", hash = "sha256:d3040e6edd1d37b25450f146e12f577f94c8c08b4ec72ede01fb625de47e0dec"},
-    {file = "pywikibot-7.7.2.tar.gz", hash = "sha256:0367ce34538ad4a61d87430a6330375a126e5ac7ab3624de14e3b3c7295b295a"},
+    {file = "pywikibot-7.7.3-py3-none-any.whl", hash = "sha256:0787458bcb2f86bf21f7e900b4148a61316540dca31b0fa0b04250d8197a0344"},
+    {file = "pywikibot-7.7.3.tar.gz", hash = "sha256:071b8883c2396c061f210b2369dc1e8cfe2a5dad14fb10a20639df30d729fb5c"},
 ]
 pyyaml = [
     {file = "PyYAML-6.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:d4db7c7aef085872ef65a8fd7d6d09a14ae91f691dec3e87ee5ee0539d516f53"},
