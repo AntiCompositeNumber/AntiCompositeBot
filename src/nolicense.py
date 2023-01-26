@@ -220,6 +220,7 @@ def edit_page(
             minor=False,
             force=force,
             new_ok=new_ok,
+            edit_redirect=edit_redirect,
         )
     except Exception as err:
         logger.exception(err)
