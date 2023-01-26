@@ -108,6 +108,7 @@ def test_edit_page(runpage):
             mode=mock.sentinel.mode,
             force=False,
             new_ok=True,
+            edit_redirect=False,
         )
     throttle_throttle.assert_called_once()
     runpage.assert_called_with(site, "NoLicense")
@@ -135,6 +136,7 @@ def test_edit_page_nothrottle(runpage):
             mode=mock.sentinel.mode,
             force=False,
             new_ok=False,
+            edit_redirect=False,
         )
     runpage.assert_called_with(site, "NoLicense")
 
