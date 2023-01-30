@@ -912,14 +912,14 @@ requests = "*"
 
 [[package]]
 name = "types-pymysql"
-version = "1.0.19.1"
+version = "1.0.19.2"
 description = "Typing stubs for PyMySQL"
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-PyMySQL-1.0.19.1.tar.gz", hash = "sha256:c24ce221cd76a24445b4614fff84b13644d7fb4966fc7a07a742e8546da29507"},
-    {file = "types_PyMySQL-1.0.19.1-py3-none-any.whl", hash = "sha256:6748b3d830b9fc0299bd85ebf0f4a29de8c51f452a11fee83690ee4b26deede8"},
+    {file = "types-PyMySQL-1.0.19.2.tar.gz", hash = "sha256:cf2926741d46b299d13b631aa0a178b5a4277706a0a1f2462b31c9c20bbf1cdf"},
+    {file = "types_PyMySQL-1.0.19.2-py3-none-any.whl", hash = "sha256:753fc786288d4d856490ba3d804d347a0de764cdd354d3ae716f159d696788d8"},
 ]
 
 [[package]]
