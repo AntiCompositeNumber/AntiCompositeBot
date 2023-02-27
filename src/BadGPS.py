@@ -131,7 +131,6 @@ def main():
     seconds_between_edits = config.get("seconds_between_edits")
 
     for i in range(blocks):
-
         run_check(site)
 
         # Try to get data from Petscan 5 times.
