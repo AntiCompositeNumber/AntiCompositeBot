@@ -1,7 +1,7 @@
 ================
 AntiCompositeBot
 ================
-.. image:: https://img.shields.io/github/workflow/status/AntiCompositeNumber/AntiCompositeBot/Python%20application
+.. image:: https://img.shields.io/github/actions/workflow/status/AntiCompositeNumber/AntiCompositeBot/pythonapp.yml?branch=master
     :alt: GitHub Workflow Status
     :target: https://github.com/AntiCompositeNumber/AntiCompositeBot/actions
 .. image:: https://coveralls.io/repos/github/AntiCompositeNumber/AntiCompositeBot/badge.svg?branch=master
