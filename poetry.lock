@@ -931,14 +931,14 @@ cryptography = ">=35.0.0"
 
 [[package]]
 name = "types-redis"
-version = "4.5.4.1"
+version = "4.5.5.2"
 description = "Typing stubs for redis"
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-redis-4.5.4.1.tar.gz", hash = "sha256:bf04192f415b2b42ecefd70bb4b91eb0352e48f2716a213e038e35c096a639c2"},
-    {file = "types_redis-4.5.4.1-py3-none-any.whl", hash = "sha256:2db530f54facec3149147bfe61d5ac24f5fe4e871823d95a601cd2c1d775d8a0"},
+    {file = "types-redis-4.5.5.2.tar.gz", hash = "sha256:2fe82f374d9dddf007deaf23d81fddcfd9523d9522bf11523c5c43bc5b27099e"},
+    {file = "types_redis-4.5.5.2-py3-none-any.whl", hash = "sha256:bf8692252038dbe03b007ca4fde87d3ae8e10610854a6858e3bf5d01721a7c4b"},
 ]
 
 [package.dependencies]
