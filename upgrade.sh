@@ -4,14 +4,14 @@
 
 # Automatically install/upgrade Python dependencies in a virtual environment
 # Assumes the venv is in `venv` in the current directory.
-# Pip, wheel, and micropipenv will be upgraded to the latest version. All other
+# Pip, wheel, and poetry will be upgraded to the latest version. All other
 # dependencies are installed based on poetry.lock. This script should be called
 # from the root directory of the repository.
 
 source venv/bin/activate
 
-pip install --upgrade pip wheel 'micropipenv[toml]'
+pip install --upgrade pip wheel poetry
 
-MICROPIPENV_NO_LOCKFILE_PRINT=1 MICROPIPENV_NO_LOCKFILE_WRITE=1 micropipenv install
+poetry install --no-root
 
 deactivate
