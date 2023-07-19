@@ -71,7 +71,7 @@ JOIN actor_revision ON rev_actor = actor_id
 JOIN `user` ON actor_user = user_id
 LEFT JOIN user_groups ON ug_user = user_id AND ug_group = "extendedconfirmed"
 LEFT JOIN ipblocks ON user_id = ipb_user
-WHERE ct_tag_id = 577 -- RedWarn
+WHERE ct_tag_id in (577, 618) -- RedWarn, Ultraviolet
 GROUP BY actor_name
 ORDER BY user_registration DESC
 """
