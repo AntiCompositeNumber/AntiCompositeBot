@@ -124,7 +124,7 @@ Deploying code
     Kubernetes will automatically load the new code for the next run.
 
 Updating dependencies
-    Dependencies are managed using Poetry_, but are installed on Toolforge using `µPipenv`_. Dependabot will automatically create pull requests if a dependency is out of date. To manually update all dependencies, run the following::
+    Dependencies are managed using Poetry_. Dependabot will automatically create pull requests if a dependency is out of date. To manually update all dependencies, run the following::
 
         $ poetry update && git commit -a -m "Update dependencies" && git push
 
@@ -135,6 +135,4 @@ Updating dependencies
         $ cd AntiCompositeBot
         $ ./upgrade.sh
 
-    ``pip`` (or ``micropipenv`` or ``upgrade.sh``)must always be run from within ``webservice shell``. The Toolforge bastion runs Python 3.5, but the Kubernetes containers used to run the bot use Python 3.9. Virtual environments created in Python 3.5 won't run correctly in Python 3.9.
-
-.. _`µPipenv`: https://github.com/thoth-station/micropipenv
+    ``pip`` (or ``upgrade.sh``) must always be run from within ``webservice shell``. The Toolforge bastion runs Python 3.5, but the Kubernetes containers used to run the bot use Python 3.9. Virtual environments created in Python 3.5 won't run correctly in Python 3.9.
