@@ -36,5 +36,5 @@ spec:
             imagePullPolicy: Always
             resources:
               requests:
-                cpu: 4Gi
+                memory: 4Gi
           restartPolicy: Never
