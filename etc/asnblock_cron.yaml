@@ -35,6 +35,6 @@ spec:
               value: "True"
             imagePullPolicy: Always
             resources:
-              requests:
+              limits:
                 memory: 4Gi
           restartPolicy: Never
