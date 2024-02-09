@@ -57,9 +57,9 @@ logger = utils.getInitLogger(
 site = pywikibot.Site("en", "wikipedia")
 simulate = False
 session = requests.session()
-session.headers[
-    "User-Agent"
-] = f"ASNBlock/{__version__} {toolforge.set_user_agent('anticompositebot')}"
+session.headers["User-Agent"] = (
+    f"ASNBlock/{__version__} {toolforge.set_user_agent('anticompositebot')}"
+)
 whois_api = "https://whois-dev.toolforge.org"
 
 IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
