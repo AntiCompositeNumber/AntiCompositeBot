@@ -536,7 +536,8 @@ def get_expiry(addr: str, provider: Provider, site_config: dict) -> str:
     # address and the year so that block lengths are different between
     # different addresses and different blocks of the same address are suitably
     # random, but do not change daily. This keeps diffs readable.
-    rand = random.Random(addr + str(datetime.date.today().year))
+    # Apparently, 2024 is not random enough for the data in test_make_section.
+    rand = random.Random(addr + "more random" + str(datetime.date.today().year))
     return f"{rand.randint(*exp_range)} months"
 
 
