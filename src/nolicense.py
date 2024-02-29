@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-# Copyright 2020 AntiCompositeNumber
+# Copyright 2024 AntiCompositeNumber
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.10"
+__version__ = "1.11"
 
 logger = utils.getInitLogger("nolicense", level="INFO")
 
@@ -111,15 +111,36 @@ ORDER BY actor_id
 
 
 def check_templates(page: pywikibot.Page) -> bool:
-    """Returns true if page has no license tag and is not tagged for deletion"""
-    default_skip = ["Template:Deletion_template_tag", "Template:License template tag"]
+    """Returns true if page is not tagged for deletion"""
+    default_skip = ["Template:Deletion_template_tag"]
     templates = {
         pywikibot.Page(site, title)
         for title in config.get("skip_templates", default_skip)
     }
-    assert len(templates) >= 2
     page_templates = set(page.itertemplates())
+
+    # Log error if license template tag found
+    ltt = pywikibot.Page(site, "Template:License template tag")
+    if ltt.exists() and ltt not in page_templates:
+        logger.error(f"License template tag found in {page}")
     return page_templates.isdisjoint(templates)
+
+
+def ensure_fail_categories(page: pywikibot.Page) -> bool:
+    """
+    Returns true if page has all fail categories
+
+    This uses the same license template detection method as the database query,
+    but is not succeptible to database lag.
+    ref https://phabricator.wikimedia.org/T343131
+    """
+    default_fail = ["Category:Files with no machine-readable license"]
+    fail_cats = {
+        pywikibot.Category(site, title)
+        for title in config.get("fail_categories", default_fail)
+    }
+    page_cats = set(page.categories())
+    return fail_cats.issubset(page_cats)
 
 
 def tag_page(page: pywikibot.Page, throttle: Optional[utils.Throttle] = None) -> bool:
@@ -256,7 +277,11 @@ def main(limit: int = 0, days: int = 30) -> None:
             elif page.title() in config.get("skip_files", []):
                 logger.info("Page is on skip list, skipping.")
                 continue
-            elif check_templates(page) and tag_page(page, throttle=throttle):
+            elif (
+                ensure_fail_categories(page)
+                and check_templates(page)
+                and tag_page(page, throttle=throttle)
+            ):
                 queue.append(page)
                 total += 1
             else:

@@ -75,6 +75,38 @@ def test_check_templates(pages, expected):
     assert nolicense.check_templates(page) is expected
 
 
+@pytest.mark.parametrize(
+    "categories,expected",
+    [
+        (
+            [
+                pywikibot.Category(
+                    site, "Category:Files with no machine-readable license"
+                )
+            ],
+            True,
+        ),
+        (
+            [
+                pywikibot.Category(
+                    site, "Category:Files with no machine-readable license"
+                ),
+                pywikibot.Category(site, "Category:Example"),
+            ],
+            True,
+        ),
+        (
+            [pywikibot.Category(site, "Category:Example")],
+            False,
+        ),
+    ],
+)
+def test_ensure_fail_categories(categories, expected):
+    page = mock.MagicMock(spec=pywikibot.Page)
+    page.categories = mock.MagicMock(return_value=categories)
+    assert nolicense.ensure_fail_categories(page) is expected
+
+
 @mock.patch("acnutils.check_runpage")
 def test_edit_page(runpage):
     """(
@@ -364,10 +396,13 @@ def test_tag_page_redirect_disabled():
 
 @mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
+@mock.patch("nolicense.ensure_fail_categories", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
 @mock.patch("acnutils.check_runpage")
 @pytest.mark.parametrize("limit", [1, 2, 3, 4, 5])
-def test_main(runpage, tag_page, check_templates, get_replag, limit):
+def test_main(
+    runpage, tag_page, check_templates, ensure_fail_categories, get_replag, limit
+):
     pages = [
         mock.Mock(spec=pywikibot.Page, title=lambda: "page1"),
         mock.Mock(spec=pywikibot.Page, title=lambda: "page2"),
@@ -414,6 +449,10 @@ def test_main(runpage, tag_page, check_templates, get_replag, limit):
             check_templates.assert_has_calls(
                 [mock.call(call) for call in pages[:limit]]
             )
+            assert ensure_fail_categories.call_count == limit
+            ensure_fail_categories.assert_has_calls(
+                [mock.call(call) for call in pages[:limit]]
+            )
             assert tag_page.call_count == limit
             tag_page.assert_has_calls(
                 [mock.call(call, throttle=mock.ANY) for call in pages[:limit]]
@@ -424,22 +463,27 @@ def test_main(runpage, tag_page, check_templates, get_replag, limit):
 @mock.patch("acnutils.check_runpage")
 @mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
+@mock.patch("nolicense.ensure_fail_categories", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
-def test_bep(tag_page, check_templates, get_replag, runpage):
+def test_bep(tag_page, check_templates, ensure_fail_categories, get_replag, runpage):
     page = pywikibot.Page(site, "User:AntiCompositeBot/test bep")
     user = mock.sentinel.user1
     iterpages = mock.MagicMock(return_value=[(page, user)])
     with mock.patch("nolicense.iter_files_and_users", iterpages):
         nolicense.main(limit=1, days=mock.sentinel.days)
         check_templates.assert_not_called()
+        ensure_fail_categories.assert_not_called()
         runpage.assert_called_with(site, "NoLicense")
 
 
 @mock.patch("acnutils.check_runpage")
 @mock.patch("acnutils.get_replag", return_value=datetime.timedelta(seconds=0))
 @mock.patch("nolicense.check_templates", return_value=True)
+@mock.patch("nolicense.ensure_fail_categories", return_value=True)
 @mock.patch("nolicense.tag_page", return_value=True)
-def test_skip_files(tag_page, check_templates, get_replag, runpage):
+def test_skip_files(
+    tag_page, check_templates, ensure_fail_categories, get_replag, runpage
+):
     page = pywikibot.Page(site, "User:AntiCompositeBot/test bep")
     user = mock.sentinel.user1
     iterpages = mock.MagicMock(return_value=[(page, user)])
@@ -448,4 +492,5 @@ def test_skip_files(tag_page, check_templates, get_replag, runpage):
         with mock.patch("nolicense.iter_files_and_users", iterpages):
             nolicense.main(limit=1, days=mock.sentinel.days)
             check_templates.assert_not_called()
+            ensure_fail_categories.assert_not_called()
             runpage.assert_called_with(site, "NoLicense")
