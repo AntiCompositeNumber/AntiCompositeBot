@@ -3,7 +3,7 @@ Wikimedia Commons contains a lot of medium and low quality raster charts, diagra
 
 This task was previously performed by [User:McTopot](https://commons.wikimedia.org/wiki/User:McTopot).
 
-This project, including this documentation, is licensed under Apache 2.0. Contributions are welcome.
+This project is licensed under the [GNU GPLv3 or later](https://www.gnu.org/licenses/gpl-3.0-standalone.html). This documentation is [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Contributions are welcome.
 
 ## Reports
 All times are UTC. The time indicated is the start time. Reports can take some time to run and are affected by load on the Toolforge grid. If a report has not run for two weeks, contact me on [my talk page](https://commons.wikimedia.org/wiki/User_talk:AntiCompositeNumber) or file an issue.

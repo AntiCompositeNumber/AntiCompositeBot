@@ -4,7 +4,7 @@ name = "anticompositebot"
 version = "0"
 description = "Collection of Wikimedia Commons and English Wikipedia bot tasks"
 authors = ["AntiCompositeNumber"]
-license = "Apache 2.0"
+license = "GPL-3.0-or-later"
 
 [tool.poetry.dependencies]
 python = "^3.9"
