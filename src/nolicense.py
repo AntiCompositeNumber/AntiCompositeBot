@@ -103,11 +103,6 @@ def check_templates(page: pywikibot.Page) -> bool:
         for title in config.get("skip_templates", default_skip)
     }
     page_templates = set(page.itertemplates())
-
-    # Log error if license template tag found
-    ltt = pywikibot.Page(site, "Template:License template tag")
-    if ltt.exists() and ltt not in page_templates:
-        logger.error(f"License template tag found in {page}")
     return page_templates.isdisjoint(templates)
 
 
