@@ -15,7 +15,7 @@ requests-oauthlib = "*"
 bs4 = "*"
 toolforge = "*"
 redis = "*"
-acnutils = {extras = ["db"], version = "^0.6.2"}
+acnutils = {extras = ["db"], version = "^0.6.3"}
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
