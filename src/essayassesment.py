@@ -60,7 +60,8 @@ class Essay:
         query = """
         SELECT COUNT(pl_from)
         FROM pagelinks
-        WHERE pl_title = %s and pl_namespace = %s"""
+        JOIN linktarget ON pl_target_id = lt_id
+        WHERE lt_title = %s and lt_namespace = %s"""
         conn = toolforge.connect("enwiki_p")
         with conn.cursor() as cur:
             cur.execute(
