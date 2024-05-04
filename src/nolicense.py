@@ -18,7 +18,7 @@ __version__ = "1.11"
 logger = utils.getInitLogger("nolicense", level="INFO")
 
 site = pywikibot.Site("commons", "commons")
-cluster = "web"
+cluster = "analytics"
 simulate = None
 
 
