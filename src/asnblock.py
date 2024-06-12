@@ -247,12 +247,13 @@ class URLHandler:
         """Get IP ranges used by Azure and other Microsoft services."""
         # The IP list is not at a stable or predictable URL (it includes the hash
         # of the file itself, which we don't have yet). Instead, we have to parse
-        # the "click here to download manually" link out of the download page.
-        url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
+        # the download button out of the download page.
+        breakpoint()
+        url = "https://www.microsoft.com/en-us/download/details.aspx?id=56519"
         gate = session.get(url)
         gate.raise_for_status()
         soup = BeautifulSoup(gate.text, "html.parser")
-        link = soup.find("a", class_="failoverLink").get("href")
+        link = soup.find("a", download=True).get("href")
         req = session.get(link)
         req.raise_for_status()
         data = req.json()
