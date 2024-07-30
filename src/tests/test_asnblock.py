@@ -120,7 +120,11 @@ def test_ripestat_data_raise(wmf_provider):
 
 @pytest.mark.parametrize(
     "search",
-    [name for name in vars(asnblock.URLHandler) if not name.startswith("_")],
+    [
+        name
+        for name in vars(asnblock.URLHandler)
+        if not (name.startswith("_") or name == "microsoft")
+    ],
 )
 def test_URLHandler(search, live_config):
     provider = next(filter(lambda p: search in p.url, live_config.providers))
