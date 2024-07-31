@@ -26,7 +26,7 @@ spec:
               "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
               "/data/project/anticompositebot/AntiCompositeBot/src/asnblock.py"
             ]
-            args: ["enwiki", "enwiki=30"]
+            args: ["enwiki", "enwiki=30", "centralauth"]
             workingDir: /data/project/anticompositebot
             env:
             - name: HOME
