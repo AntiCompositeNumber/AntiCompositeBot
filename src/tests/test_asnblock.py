@@ -14,6 +14,7 @@ import urllib.parse
 import time
 import random
 import string
+import base64
 import yaml
 import acnutils as utils
 
@@ -92,11 +93,11 @@ def wmf_ripestat_ranges(wmf_provider):
 
 def test_ripestat_data(wmf_ripestat_ranges):
     res = session.get(
-        "https://phabricator.wikimedia.org/diffusion/OHPU"
-        "/browse/master/config/sites.yaml?view=raw"
+        "https://gerrit.wikimedia.org/r/plugins/gitiles/operations/homer/public/"
+        "+/refs/heads/master/config/sites.yaml?format=TEXT"
     )
     res.raise_for_status()
-    sites = yaml.safe_load(res.text)
+    sites = yaml.safe_load(base64.b64decode(res.text))
     called_once = False
     for site in sites.values():
         for net in site.get("bgp_out", {}):
