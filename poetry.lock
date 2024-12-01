@@ -662,13 +662,13 @@ signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 
 [[package]]
 name = "packaging"
-version = "24.1"
+version = "24.2"
 description = "Core utilities for Python packages"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "packaging-24.1-py3-none-any.whl", hash = "sha256:5b8f2217dbdbd2f7f384c41c628544e6d52f2d0f53c6d0c3ea61aa5d1d7ff124"},
-    {file = "packaging-24.1.tar.gz", hash = "sha256:026ed72c8ed3fcce5bf8950572258698927fd1dbda10a5e981cdf0ac37f4f002"},
+    {file = "packaging-24.2-py3-none-any.whl", hash = "sha256:09abb1bccd265c01f4a3aa3f7a7db064b36514d2cba19a2f694fe6150451a759"},
+    {file = "packaging-24.2.tar.gz", hash = "sha256:c228a6dc5e932d346bc5739379109d49e8853dd8223571c7c5b55260edc0b97f"},
 ]
 
 [[package]]
@@ -785,13 +785,13 @@ dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "pygments
 
 [[package]]
 name = "pywikibot"
-version = "9.4.1"
+version = "9.5.0"
 description = "Python MediaWiki Bot Framework"
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "pywikibot-9.4.1-py3-none-any.whl", hash = "sha256:a9a2088c31f4f40a855eeb9e102f8518e0810c88558d3f2100c3a2874186c0c9"},
-    {file = "pywikibot-9.4.1.tar.gz", hash = "sha256:8ee81b9844636d9eec462a51328cccec70ad0c102edf14a615f9e87610422b4c"},
+    {file = "pywikibot-9.5.0-py3-none-any.whl", hash = "sha256:4f2e3d8c00bf6410418dc78489a13d139354c832df312f78a693a27d0fffa53f"},
+    {file = "pywikibot-9.5.0.tar.gz", hash = "sha256:6543ac89a750db37a440373ec1cf4cbcd80b05742482ebeb0ee7e90bcfb590ba"},
 ]
 
 [package.dependencies]
