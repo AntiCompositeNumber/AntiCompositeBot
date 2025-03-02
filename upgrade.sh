@@ -12,6 +12,6 @@ source venv/bin/activate
 
 pip install --upgrade pip wheel poetry
 
-poetry install --no-root
+poetry install --no-root --without dev --sync
 
 deactivate
