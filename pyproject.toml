@@ -17,7 +17,7 @@ toolforge = "*"
 redis = "*"
 acnutils = {extras = ["db"], version = "^0.6.2"}
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "*"
 coveralls = "*"
 black = "*"
