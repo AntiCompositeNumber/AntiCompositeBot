@@ -35,7 +35,7 @@ from typing import (
     Sequence,
 )
 
-__version__ = "2.0.3"
+__version__ = "2.0.4"
 
 logger = utils.getInitLogger(
     "ASNBlock", level="VERBOSE", filename="stderr", thread=True
@@ -144,7 +144,7 @@ class Config(NamedTuple):
             redis_host=data.get("redis_host", ""),
             redis_port=int(data.get("redis_port", "6379")),
             use_redis=data.get("use_redis", False),
-            last_modified=page.editTime(),
+            last_modified=page.latest_revision.timestamp,
             providers=[Provider(**provider) for provider in data["providers"]],
             ignore={ipaddress.ip_network(net) for net in data["ignore"]},
             sites=data["sites"],
