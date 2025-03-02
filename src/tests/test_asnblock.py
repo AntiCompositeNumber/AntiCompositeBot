@@ -465,7 +465,8 @@ def test_make_section(provider, asserts, live_config):
         assert (exp >= 24) and (exp <= 36)
         expiries.add(exp)
 
-    assert len(expiries) == 4 if not isinstance(provider.expiry, str) else 1
+    # Occasionally two of the expiries will be the same, because random
+    assert len(expiries) >= 3 if not isinstance(provider.expiry, str) else 1
 
 
 @pytest.mark.parametrize(
