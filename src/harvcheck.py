@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright 2020 AntiCompositeNumber
 
-from bs4 import BeautifulSoup  # type: ignore
+from bs4 import BeautifulSoup
 import requests
 import urllib.parse
 import pywikibot  # type: ignore
@@ -18,9 +18,9 @@ import re
 import acnutils as utils
 
 from mwparserfromhell.wikicode import Wikicode  # type: ignore
-from bs4.element import Tag  # type: ignore
+from bs4.element import Tag
 from pywikibot.page import BasePage  # type: ignore
-from typing import Dict, List, Set, Any, Optional, Tuple
+from typing import Dict, List, Set, Any, Optional, Tuple, cast
 
 __version__ = "0.7"
 
@@ -72,11 +72,11 @@ def parse_citeref_ids(soup: BeautifulSoup) -> Set[str]:
     """Parse Parsoid HTML and return html ids for citations"""
     ids = set()
     for element in soup.find_all(class_="citation"):
-        el_id = element.get("id")
-        if el_id and el_id.startswith("CITEREF"):
+        el_id = element.get("id")  # type: ignore
+        if el_id and el_id.startswith("CITEREF"):  # type: ignore
             ids.add(el_id)
 
-    return ids
+    return ids  # type: ignore
 
 
 def parse_citeref_links(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]:
@@ -91,7 +91,9 @@ def parse_citeref_links(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]
 
     links: Dict[str, List[Tag]] = {}
     for link in soup.find_all("a"):
-        link_page, sep, fragment = link.get("href", "").partition("#")
+        if not isinstance(link, Tag):
+            continue
+        link_page, sep, fragment = link.get("href", "").partition("#")  # type: ignore
         if link_page.endswith(title) and sep and fragment.startswith("CITEREF"):
             links.setdefault(fragment, []).append(link)
 
@@ -104,7 +106,9 @@ def parse_refs(title: str, soup: BeautifulSoup) -> Dict[str, List[Tag]]:
     """
     refs: Dict[str, List[Tag]] = {}
     for ref in soup.find_all(class_="mw-ref"):
-        link_page, sep, fragment = ref.find("a").get("href", "").partition("#")
+        if not isinstance(ref, Tag):
+            continue
+        link_page, sep, fragment = ref.find("a").get("href", "").partition("#")  # type: ignore
         if link_page.endswith(title) and sep and fragment.startswith("cite_note"):
             refs.setdefault(fragment, []).append(ref)
 
@@ -118,13 +122,13 @@ def find_mismatch(ids: Set[str], links: Dict[str, Any]) -> Dict[str, Any]:
 
 def find_note_id(element: Tag) -> str:
     """Finds the HTML ID for a citation"""
-    note_id = element.parent.parent.get("id", "")
-    return note_id
+    note_id = element.parent.parent.get("id", "")  # type: ignore
+    return cast(str, note_id)
 
 
 def find_ref_for_note(note: Tag, page_refs: Dict[str, Any]) -> Any:
     """Finds the corresponding [1] refs for the reflist note"""
-    if "mw-reference-text" not in note.parent.get("class", [""]):
+    if "mw-reference-text" not in note.parent.get("class", [""]):  # type: ignore
         return [note]
     note_id = find_note_id(note)
     ref = page_refs.get(note_id)
