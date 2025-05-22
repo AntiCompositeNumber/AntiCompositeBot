@@ -13,7 +13,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.11"
+__version__ = "1.12"
 
 logger = utils.getInitLogger("nolicense", level="INFO")
 
@@ -96,8 +96,8 @@ ORDER BY actor_id
 
 
 def check_templates(page: pywikibot.Page) -> bool:
-    """Returns true if page is not tagged for deletion"""
-    default_skip = ["Template:Deletion_template_tag"]
+    """Returns true if page has no license tag and is not tagged for deletion"""
+    default_skip = ["Template:Deletion_template_tag", "Template:License_template_tag"]
     templates = {
         pywikibot.Page(site, title)
         for title in config.get("skip_templates", default_skip)
