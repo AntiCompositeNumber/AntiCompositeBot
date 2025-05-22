@@ -7,7 +7,7 @@ authors = ["AntiCompositeNumber"]
 license = "GPL-3.0-or-later"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">= 3.9.2, < 3.10"
 pywikibot = "*"
 mwparserfromhell = "*"
 requests = "*"
