@@ -11,7 +11,7 @@ from typing import NamedTuple
 import acnutils as utils
 
 site = pywikibot.Site("en", "wikipedia")
-__version__ = "1.3"
+__version__ = "1.4"
 
 
 class Row(NamedTuple):
@@ -50,13 +50,14 @@ SELECT
     NOT(ug_group IS NULL)  as `ext_conf`,
     COUNT(*) as `redwarn_edits`,
     COUNT(*)/user_editcount*100 as `redwarn_pct`,
-    ipb_sitewide as `blocked`
+    bl_sitewide as `blocked`
 FROM revision_userindex
 JOIN change_tag ON ct_rev_id = rev_id
 JOIN actor_revision ON rev_actor = actor_id
 JOIN `user` ON actor_user = user_id
 LEFT JOIN user_groups ON ug_user = user_id AND ug_group = "extendedconfirmed"
-LEFT JOIN ipblocks ON user_id = ipb_user
+LEFT JOIN block_target ON user_id = bt_user
+LEFT JOIN block ON bl_target = bt_id AND bl_sitewide = 1
 WHERE ct_tag_id in (577, 618) -- RedWarn, Ultraviolet
 GROUP BY actor_name
 ORDER BY user_registration DESC
