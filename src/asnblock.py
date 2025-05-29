@@ -35,7 +35,7 @@ from typing import (
     Sequence,
 )
 
-__version__ = "2.0.4"
+__version__ = "2.0.5"
 
 logger = utils.getInitLogger(
     "ASNBlock", level="VERBOSE", filename="stderr", thread=True
