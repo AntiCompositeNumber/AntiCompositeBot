@@ -449,14 +449,15 @@ WHERE
 """
     else:
         query = """
-SELECT ipb_expiry
-FROM ipblocks_ipindex
+SELECT bl_expiry
+FROM block
+JOIN block_target_ipindex ON bt_id = bl_target
 WHERE
-    ipb_range_start LIKE %(prefix)s
-    AND ipb_range_start <= %(start)s
-    AND ipb_range_end >= %(end)s
-    AND ipb_sitewide = 1
-    AND ipb_auto = 0
+    bt_range_start LIKE %(prefix)s
+    AND bt_range_start <= %(start)s
+    AND bt_range_end >= %(end)s
+    AND bl_sitewide = 1
+    AND bt_auto = 0
 """
     try:
         with toolforge.connect(db, cluster="analytics") as conn:  # type: ignore
