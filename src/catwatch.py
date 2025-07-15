@@ -6,6 +6,7 @@
 import toolforge
 import json
 import datetime
+from typing import cast
 
 
 def get_cat_files(category: str) -> int:
@@ -17,7 +18,7 @@ WHERE cat_title = %s
 """
     with conn.cursor() as cur:
         cur.execute(query, args=[category])
-        return cur.fetchall()[0]
+        return cast(int, cur.fetchall()[0])
 
 
 def write_to_file(filename: str, value: int) -> None:
