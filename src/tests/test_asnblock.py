@@ -128,7 +128,10 @@ def test_ripestat_data_raise(wmf_provider):
     ],
 )
 def test_URLHandler(search, live_config):
-    provider = next(filter(lambda p: search in p.url, live_config.providers))
+    try:
+        provider = next(filter(lambda p: search in p.url, live_config.providers))
+    except StopIteration:
+        pytest.skip(f"{search} is not in the live config, can not test")
     ranges = asnblock.URLHandler(provider)
 
     once = False
