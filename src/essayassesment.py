@@ -262,27 +262,34 @@ def load_wiki_config() -> Tuple[Dict[str, Union[int, float]], str]:
 
 
 def main() -> None:
-    logger.info("Starting up")
-    utils.check_runpage(site, task="EssayImpact")
-    weights, intro = load_wiki_config()
-
-    data = []
-    for page in iter_project_pages():
-        essay = Essay(page)
-        essay.calculate_score(weights)
-        data.append(essay)
-
-    data.sort(key=lambda e: cast(float, e.score), reverse=True)
-    table = construct_table(data, intro)
-    datapage = construct_data_page(data)
-
-    if not simulate:
+    try:
+        logger.info("Starting up")
         utils.check_runpage(site, task="EssayImpact")
-        write_table(table)
-        write_data_page(datapage)
-    else:
-        print(table)
-    logger.info("Finished")
+        weights, intro = load_wiki_config()
+
+        data = []
+        for page in iter_project_pages():
+            try:
+                essay = Essay(page)
+                essay.calculate_score(weights)
+                data.append(essay)
+            except Exception as err:
+                # If something goes wrong, log the exception and continue
+                logger.exception(err)
+
+        data.sort(key=lambda e: cast(float, e.score), reverse=True)
+        table = construct_table(data, intro)
+        datapage = construct_data_page(data)
+
+        if not simulate:
+            utils.check_runpage(site, task="EssayImpact")
+            write_table(table)
+            write_data_page(datapage)
+        else:
+            print(table)
+        logger.info("Finished")
+    except Exception as err:
+        logger.exception(err)
 
 
 if __name__ == "__main__":
