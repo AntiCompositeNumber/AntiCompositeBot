@@ -254,6 +254,10 @@ class URLHandler:
         gate.raise_for_status()
         soup = BeautifulSoup(gate.text, "html.parser")
         link = soup.find("a", download=True).get("href")  # type: ignore
+        if isinstance(link, list):
+            link = link[0]
+        elif not isinstance(link, str):
+            raise TypeError(link)
         req = session.get(link)
         req.raise_for_status()
         data = req.json()
