@@ -50,7 +50,16 @@ class Essay:
         }
         req = session.get(url, params=params)
         req.raise_for_status()
-        data = req.json()["query"]["pages"][0]
+        res = req.json()
+        try:
+            data = res["query"]["pages"][0]
+        except Exception:
+            mw_error = res.get("error")
+            if mw_error:
+                logger.error("title: %s, API error: %s", title, mw_error.get("code"))
+            else:
+                logger.exception("title: %s, API response: %s")
+
         watchers = data.get("watchers", 0)
         views = sum(i if i else 0 for i in list(data["pageviews"].values())[0:30])
         self.views, self.watchers = views, watchers
