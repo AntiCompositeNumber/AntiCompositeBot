@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Tuple, Iterator, Iterable, cast, Dict, Union
 
-__version__ = "1.0"
+__version__ = "1.1"
 
 logger = utils.getInitLogger(
     "essayassesment", level="VERBOSE", filename="essayimpact.log"
