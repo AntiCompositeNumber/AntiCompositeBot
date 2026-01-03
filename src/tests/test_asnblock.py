@@ -156,10 +156,11 @@ def test_URLHandler(search, live_config):
     ],
 )
 @pytest.mark.parametrize("search", ["wikimedia", "foundation"])
-@pytest.mark.skipif(
-    session.head(asnblock.whois_api).status_code == 503,
-    reason="Toolforge whois is down",
-)
+# @pytest.mark.skipif(
+#     session.head(asnblock.whois_api).status_code == 503,
+#     reason="Toolforge whois is down",
+# )
+@pytest.mark.skip(reason="No need to add to the overload on Toolforge whois")
 def test_search_toolforge_whois(whois, net, expected, search):
     throttle = mock.Mock(spec=utils.Throttle)
     assert asnblock.search_toolforge_whois(net, [search], throttle=throttle) is expected
