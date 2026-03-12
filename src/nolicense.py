@@ -13,7 +13,7 @@ import json
 import collections
 from typing import Tuple, Iterator, Optional, cast, Deque
 
-__version__ = "1.12"
+__version__ = "1.13"
 
 logger = utils.getInitLogger("nolicense", level="INFO")
 
@@ -48,12 +48,13 @@ SELECT
   CONCAT("User talk:", actor_name)
 FROM
   categorylinks
+  JOIN linktarget ON cl_target_id = lt_id AND lt_namespace = 14
   JOIN page p0 ON cl_from = p0.page_id
   JOIN logging_logindex
     ON log_page = p0.page_id AND log_type = "upload"
   JOIN actor_logging ON log_actor = actor_id
 WHERE
-  cl_to = "Files_with_no_machine-readable_license"
+  lt_title = "Files_with_no_machine-readable_license"
   AND log_timestamp > %(start_ts) s
   AND log_timestamp < %(end_ts) s
   AND "Deletion_template_tag" NOT IN (

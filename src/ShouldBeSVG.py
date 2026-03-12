@@ -16,7 +16,7 @@ from pymysql.err import OperationalError
 from pywikibot import pagegenerators
 from typing import Dict, Iterator, NamedTuple, List, cast, Tuple
 
-__version__ = "2.2"
+__version__ = "2.3"
 
 logger = utils.getInitLogger("ShouldBeSVG", level="VERBOSE")
 
@@ -47,11 +47,12 @@ def db_get_usage(cat: pywikibot.Category, depth: int) -> UsageResult:
     query = """
 SELECT page_title, count(*)
 FROM categorylinks
+JOIN linktarget ON cl_target_id = lt_id AND lt_namespace = 14
 JOIN page ON cl_from = page_id
 LEFT JOIN globalimagelinks ON page_title = gil_to
 JOIN image ON img_name = page_title
 WHERE
-    cl_to IN %(cats)s
+    lt_title IN %(cats)s
     AND img_major_mime = "image"
     AND img_minor_mime != "svg+xml"
 GROUP BY page_title
