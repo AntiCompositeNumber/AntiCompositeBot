@@ -259,7 +259,8 @@ def main(limit: int = 0, days: int = 30) -> None:
                 logger.info("Page is on skip list, skipping.")
                 continue
             elif (
-                ensure_fail_categories(page)
+                page.purge(forcelinkupdate=True)
+                and ensure_fail_categories(page)
                 and check_templates(page)
                 and tag_page(page, throttle=throttle)
             ):
