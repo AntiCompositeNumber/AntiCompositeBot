@@ -19,7 +19,7 @@ spec:
         spec:
           containers:
           - name: uncat
-            image: docker-registry.tools.wmflabs.org/toolforge-python39-sssd-base:latest
+            image: docker-registry.svc.toolforge.org/toolforge-python311-sssd-base:latest
             command: [
               "/data/project/anticompositebot/AntiCompositeBot/venv/bin/python3",
               "/data/project/anticompositebot/AntiCompositeBot/src/uncat.py"
