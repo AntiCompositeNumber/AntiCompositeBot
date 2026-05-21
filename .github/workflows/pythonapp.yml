@@ -15,6 +15,10 @@ jobs:
         python-version: 3.11
     - name: Set up Poetry
       uses: snok/install-poetry@v1
+      continue-on-error: true
+    - name: Poetry error logs
+      run: |
+        if [ -e /home/runner/work/AntiCompositeBot/AntiCompositeBot/poetry-installer-error-* ]; then cat /home/runner/work/AntiCompositeBot/AntiCompositeBot/poetry-installer-error-** && exit 1; else echo "notexists"; fi
     - name: Install dependencies
       run: poetry install --no-interaction --no-root
     - name: Load pywikibot config
