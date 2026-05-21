@@ -48,14 +48,12 @@ WHERE
 
 
 def update_page_text(page: pywikibot.Page, target: str) -> None:
-    new_text = string.Template(
-        """#REDIRECT [[$target]]
+    new_text = string.Template("""#REDIRECT [[$target]]
 
 {{Redirect category shell|
 {{R from subpage}}
 }}
-"""
-    ).substitute(target=target)
+""").substitute(target=target)
     summary = (
         f"Redirecting to [[{target}]] per [[WP:DCS]] "
         "([[Wikipedia:Bots/Requests for approval/AntiCompositeBot 3|dcs_redir]] "
