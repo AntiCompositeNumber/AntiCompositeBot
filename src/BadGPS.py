@@ -14,6 +14,7 @@ archived and is not actively maintained.
 :author: AntiCompositeNumber
 :version: 1.0.1
 """
+
 import time
 import platform
 import json
