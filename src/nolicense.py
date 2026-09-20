@@ -11,9 +11,10 @@ import argparse
 import string
 import json
 import collections
-from typing import Tuple, Iterator, Optional, cast, Deque
+import itertools
+from typing import Tuple, Iterator, Optional, cast, Deque, Sequence
 
-__version__ = "1.13"
+__version__ = "1.14"
 
 logger = utils.getInitLogger("nolicense", level="INFO")
 
@@ -30,6 +31,68 @@ def get_config():
     return conf_json
 
 
+def get_cat_page_ids() -> list[int]:
+    query = """
+SELECT
+    p0.page_id
+FROM
+    categorylinks
+    JOIN linktarget ON cl_target_id = lt_id AND lt_namespace = 14
+    JOIN page p0 ON cl_from = p0.page_id
+WHERE
+    lt_title = "Files_with_no_machine-readable_license"
+    AND p0.page_namespace = 6
+    AND "Deletion_template_tag" NOT IN (
+        SELECT lt_title
+        FROM templatelinks
+        JOIN linktarget ON lt_id = tl_target_id
+        WHERE
+            lt_namespace = 10
+            AND tl_from = p0.page_id
+    )
+ORDER BY page_id DESC
+"""
+    conn = toolforge.connect("commonswiki_p", cluster=cluster, extension="links")
+    with conn.cursor() as cur:
+        cur.execute(query)
+        data = cast(list[int], cur.fetchall())
+    return data
+
+
+def filter_page_ids(page_ids: Sequence[int], start_ts: str, end_ts: str):
+    query = """
+SELECT
+    actor_name
+    p0.page_title,
+FROM
+    page p0
+    JOIN logging_logindex ON log_page = p0.page_id AND log_type = "upload"
+    JOIN actor_logging ON log_actor = actor_id
+WHERE
+    p0.page_id IN %(page_ids)s
+    AND log_timestamp > %(start_ts)s
+    AND log_timestamp < %(end_ts)s
+    AND (
+        log_action = "upload"
+        OR actor_id IN (
+            SELECT log_actor
+            FROM logging_logindex
+            WHERE
+                log_page = p0.page_id
+                AND log_type = "upload"
+                AND log_action = "upload"
+        )
+    )
+    GROUP BY page_id
+    ORDER BY actor_id
+"""
+    conn = toolforge.connect("commonswiki_p", cluster=cluster)
+    with conn.cursor() as cur:
+        cur.execute(query, args={"start_ts": start_ts, "end_ts": end_ts})
+        data = cast(Iterator[Tuple[bytes, bytes]], cur.fetchall())
+        return data
+
+
 def iter_files_and_users(
     days, delay_mins=30
 ) -> Iterator[Tuple[pywikibot.Page, pywikibot.Page]]:
@@ -41,51 +104,18 @@ def iter_files_and_users(
     end_ts = (
         datetime.datetime.utcnow() - datetime.timedelta(minutes=delay_mins)
     ).strftime("%Y%m%d%H%M%S")
-    query = """
-SELECT
-  p0.page_namespace,
-  p0.page_title,
-  CONCAT("User talk:", actor_name)
-FROM
-  categorylinks
-  JOIN linktarget ON cl_target_id = lt_id AND lt_namespace = 14
-  JOIN page p0 ON cl_from = p0.page_id
-  JOIN logging_logindex
-    ON log_page = p0.page_id AND log_type = "upload"
-  JOIN actor_logging ON log_actor = actor_id
-WHERE
-  lt_title = "Files_with_no_machine-readable_license"
-  AND log_timestamp > %(start_ts) s
-  AND log_timestamp < %(end_ts) s
-  AND "Deletion_template_tag" NOT IN (
-    SELECT lt_title
-    FROM templatelinks
-    JOIN linktarget ON lt_id = tl_target_id
-    WHERE
-      lt_namespace = 10
-      AND tl_from = p0.page_id
-  )
-  AND (
-    log_action = "upload"
-    OR actor_id IN (
-      SELECT log_actor
-      FROM logging_logindex
-      WHERE
-        log_page = p0.page_id
-        AND log_type = "upload"
-        AND log_action = "upload"
-    )
-  )
-GROUP BY page_id
-ORDER BY actor_id
-"""
-    conn = toolforge.connect("commonswiki_p", cluster=cluster)
-    with conn.cursor() as cur:
-        cur.execute(query, args={"start_ts": start_ts, "end_ts": end_ts})
-        data = cast(Iterator[Tuple[int, bytes, bytes]], cur.fetchall())
-    for ns, title, user in data:
-        page = pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=ns)
-        user_talk = pywikibot.Page(site, title=str(user, encoding="utf-8"))
+
+    page_ids = get_cat_page_ids()
+    batch_size = 500
+    data: list[tuple[bytes, bytes]] = []
+    for batch in itertools.batched(page_ids, batch_size):
+        filtered = filter_page_ids(batch, start_ts, end_ts)
+        data.extend(filtered)
+
+    data.sort()
+    for user, title in data:
+        page = pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=6)
+        user_talk = pywikibot.Page(site, title=str(user, encoding="utf-8"), ns=3)
         if not page.exists():
             continue
         if user_talk.isRedirectPage():
