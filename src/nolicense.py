@@ -88,7 +88,9 @@ WHERE
 """
     conn = toolforge.connect("commonswiki_p", cluster=cluster)
     with conn.cursor() as cur:
-        cur.execute(query, args={"start_ts": start_ts, "end_ts": end_ts})
+        cur.execute(
+            query, args={"page_ids": page_ids, "start_ts": start_ts, "end_ts": end_ts}
+        )
         data = cast(Iterator[Tuple[bytes, bytes]], cur.fetchall())
         return data
 
