@@ -62,8 +62,8 @@ ORDER BY page_id DESC
 def filter_page_ids(page_ids: Sequence[int], start_ts: str, end_ts: str):
     query = """
 SELECT
-    actor_name
-    p0.page_title,
+    actor_name,
+    p0.page_title
 FROM
     page p0
     JOIN logging_logindex ON log_page = p0.page_id AND log_type = "upload"
