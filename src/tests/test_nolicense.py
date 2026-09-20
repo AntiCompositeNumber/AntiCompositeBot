@@ -25,7 +25,7 @@ def test_get_config():
     assert conf
 
 
-@pytest.skip(reason="FIXME: Update for new DB schema")
+@pytest.mark.skip(reason="FIXME: Update for new DB schema")
 def test_iter_files_and_users():
     mock_cursor = mock.MagicMock()
     mock_cursor.fetchall.return_value = [(6, b"Example.jpg", b"User talk:Example")]
