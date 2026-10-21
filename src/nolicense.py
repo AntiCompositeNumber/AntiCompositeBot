@@ -84,7 +84,7 @@ WHERE
         )
     )
     GROUP BY page_id
-    ORDER BY actor_id
+    ORDER BY actor_name
 """
     conn = toolforge.connect("commonswiki_p", cluster=cluster)
     with conn.cursor() as cur:
@@ -115,6 +115,7 @@ def iter_files_and_users(
         data.extend(filtered)
 
     data.sort()
+    logger.info(f"Found {len(data)} files to check")
     for user, title in data:
         page = pywikibot.Page(site, title=str(title, encoding="utf-8"), ns=6)
         user_talk = pywikibot.Page(site, title=str(user, encoding="utf-8"), ns=3)
