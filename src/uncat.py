@@ -7,7 +7,7 @@ import toolforge  # type: ignore
 import acnutils
 import datetime
 
-__version__ = "0.3"
+__version__ = "0.4"
 
 logger = acnutils.getInitLogger("uncat", level="VERBOSE")
 
@@ -26,7 +26,7 @@ WHERE
 GROUP BY page_id
 ORDER BY COUNT(*) DESC
 """
-    conn = toolforge.connect("commonswiki_p")
+    conn = toolforge.connect("commonswiki_p", extension="links")
     with conn.cursor() as cur:
         cur.execute(query)
         data = cur.fetchall()
